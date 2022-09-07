@@ -80,15 +80,22 @@ class Smp_Unet_CE(BaseModule):
         self.log('Train_sup_Dice', loss2)
         self.log('Train_sup_loss', loss)
 
-        return {'batch': batch, 'logits': logits.detach(), "loss": loss}
+        batch['logits'] = logits
+
+        return {'batch': batch, "loss": loss}
 
     def validation_step(self, batch, batch_idx):
 
         inputs = batch['image']
         labels = batch['mask']
         logits = self.forward(inputs)
-        preds = logits.argmax(dim=1)
         probas = logits.softmax(dim=1)
+        confidences, preds = torch.max(probas, dim=1)
+
+        batch['probas'] = probas.detach()
+        batch['confs'] = confidences.detach()
+        batch['preds'] = preds.detach()
+        batch['logits'] = logits.detach()
 
         stat_scores = torchmetrics.stat_scores(
             preds,
@@ -107,8 +114,5 @@ class Smp_Unet_CE(BaseModule):
         self.log('Val_loss', loss)
 
         return {'batch': batch,
-                'logits': logits.detach(),
                 'stat_scores': stat_scores.detach(),
-                'probas': probas.detach(),
-                'preds': preds.detach()
                 }
