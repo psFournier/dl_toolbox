@@ -26,7 +26,7 @@ def plot_reliability_diagram(acc_bin, conf_bin):
 
     return figure
 
-def compute_calibration_bins(bin_boundaries, labels, confs, preds, ignore_index):
+def compute_calibration_bins(bin_boundaries, labels, confs, preds):
 
     """
     All inputs must be flattened torch tensors.
@@ -35,8 +35,6 @@ def compute_calibration_bins(bin_boundaries, labels, confs, preds, ignore_index)
     accus = preds.eq(labels).float()
 
     indices = torch.bucketize(confs, bin_boundaries) - 1
-    print(indices)
-    print(torch.max(confs))
     n_bins = len(bin_boundaries) - 1
 
     count_bins = torch.zeros(n_bins, dtype=confs.dtype)
@@ -61,7 +59,6 @@ class CalibrationLogger(pl.Callback):
 
         self.n_bins = 20
         self.bin_boundaries = torch.linspace(0, 1, self.n_bins + 1)
-        print(self.bin_boundaries)
         self.acc_bins = torch.zeros(self.n_bins)
         self.conf_bins = torch.zeros(self.n_bins)
         self.prop_bins = torch.zeros(self.n_bins)
@@ -71,38 +68,43 @@ class CalibrationLogger(pl.Callback):
             self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
 
-        labels = batch['mask'].cpu().flatten()
-        confs = batch['confs'].cpu().flatten()
-        preds = batch['preds'].cpu().flatten()
-        acc_bins, conf_bins, prop_bins = compute_calibration_bins(
-            self.bin_boundaries,
-            labels,
-            confs,
-            preds,
-            pl_module.ignore_index
-        )
-        self.acc_bins += acc_bins
-        self.conf_bins += conf_bins
-        self.prop_bins += prop_bins
-        self.nb_step += 1
+        if trainer.current_epoch % 50 == 0:
+            
+            labels = batch['mask'].cpu().flatten()
+            cls_filter = torch.nonzero(labels == 1, as_tuple=True)
+            cls_labels = labels[cls_filter]
+            cls_confs = batch['confs'].cpu().flatten()[cls_filter]
+            cls_preds = batch['preds'].cpu().flatten()[cls_filter]
+            acc_bins, conf_bins, prop_bins = compute_calibration_bins(
+                self.bin_boundaries,
+                cls_labels,
+                cls_confs,
+                cls_preds
+            )
+            self.acc_bins += acc_bins
+            self.conf_bins += conf_bins
+            self.prop_bins += prop_bins
+            self.nb_step += 1
 
     def on_validation_epoch_end(self, trainer, pl_module):
+        
+        if trainer.current_epoch % 50 == 0:
 
-        self.acc_bins /= self.nb_step
-        self.conf_bins /= self.nb_step
-        self.prop_bins /= self.nb_step
+            self.acc_bins /= self.nb_step
+            self.conf_bins /= self.nb_step
+            self.prop_bins /= self.nb_step
 
-        figure = plot_reliability_diagram(
-            self.acc_bins.numpy(),
-            self.conf_bins.numpy(),
-        )
-        trainer.logger.experiment.add_figure(
-            "Reliability diagram",
-            figure,
-            global_step=trainer.global_step
-        )
-        self.acc_bins = torch.zeros(self.n_bins)
-        self.conf_bins = torch.zeros(self.n_bins)
-        self.prop_bins = torch.zeros(self.n_bins)
-        self.nb_step = 0
+            figure = plot_reliability_diagram(
+                self.acc_bins.numpy(),
+                self.conf_bins.numpy(),
+            )
+            trainer.logger.experiment.add_figure(
+                "Reliability diagram",
+                figure,
+                global_step=trainer.global_step
+            )
+            self.acc_bins = torch.zeros(self.n_bins)
+            self.conf_bins = torch.zeros(self.n_bins)
+            self.prop_bins = torch.zeros(self.n_bins)
+            self.nb_step = 0
 

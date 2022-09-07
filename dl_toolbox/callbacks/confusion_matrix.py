@@ -58,18 +58,22 @@ class ConfMatLogger(pl.Callback):
     def on_validation_batch_end(
             self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
+        
+        if trainer.current_epoch % 50 == 0:
+            
+            batch = outputs['batch']
+            inputs, labels = batch['image'], batch['mask'] # labels shape B,H,W, values in {0, C-1}
+            #probas = outputs['probas'] # dim B,C-1,H,W
+            preds = batch['preds'] # ajouter preds aux autres méthodes
 
-        batch = outputs['batch']
-        inputs, labels = batch['image'], batch['mask'] # labels shape B,H,W, values in {0, C-1}
-        #probas = outputs['probas'] # dim B,C-1,H,W
-        preds = batch['preds'] # ajouter preds aux autres méthodes
-
-        self.conf_mat(preds.cpu(), labels.cpu())
+            self.conf_mat(preds.cpu(), labels.cpu())
 
     def on_validation_epoch_end(self, trainer, pl_module):
+        
+        if trainer.current_epoch % 50 == 0:
 
-        cm = self.conf_mat.compute()
-        figure = plot_confusion_matrix(cm.numpy(), class_names=self.labels)
-        trainer.logger.experiment.add_figure(
-            "Confusion matrix", figure, global_step=trainer.global_step
-        )
+            cm = self.conf_mat.compute()
+            figure = plot_confusion_matrix(cm.numpy(), class_names=self.labels)
+            trainer.logger.experiment.add_figure(
+                "Confusion matrix", figure, global_step=trainer.global_step
+            )
