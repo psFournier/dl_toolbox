@@ -112,14 +112,21 @@ class PL(BaseModule):
         loss2 = self.loss2(logits, labels)
         loss = loss1 + loss2
 
+        batch['logits'] = logits
+        outputs = {'batch': batch}
+
         self.log('Train_sup_CE', loss1)
         self.log('Train_sup_Dice', loss2)
         self.log('Train_sup_loss', loss)
+
+        pseudo_loss = 0
 
         if self.trainer.current_epoch > self.alpha_milestones[0]:
 
             unsup_inputs = unsup_batch['image']
             unsup_outputs = self.network(unsup_inputs)
+            unsup_batch['logits'] = unsup_outputs
+            outputs['unsup_batch'] = unsup_batch
             
             pseudo_probs = unsup_outputs.detach().softmax(dim=1)
             
@@ -127,17 +134,21 @@ class PL(BaseModule):
             loss_no_reduce = self.unsup_loss(
                 unsup_outputs,
                 pseudo_preds
-            ) # B,C,H,W
+            ) # B,H,W
             pseudo_certain = pseudo_probas > self.pseudo_threshold # B,H,W
-            certain = torch.sum(pseudo_certain) * self.num_classes
-            pseudo_loss = torch.sum(pseudo_certain * loss_no_reduce) / certain
-            self.log('Pseudo label loss', pseudo_loss)
-            loss += self.alpha * pseudo_loss
+            certain = torch.sum(pseudo_certain)
+            self.log('Pseudo_certain_unsup', torch.mean(pseudo_certain))
+            pseudo_loss += torch.sum(pseudo_certain * loss_no_reduce) / certain
+            self.log('Pseudo_loss_unsup', pseudo_loss)
+            
+        self.log('Pseudo label loss', pseudo_loss)
+        loss += self.alpha * pseudo_loss
+        outputs['loss'] = loss
 
         self.log('Prop unsup train', self.alpha)
         self.log("Train_loss", loss)
 
-        return {'batch': batch, "loss": loss}
+        return outputs
 
 
     def validation_step(self, batch, batch_idx):
@@ -145,8 +156,13 @@ class PL(BaseModule):
         inputs = batch['image']
         labels = batch['mask']
         logits = self.forward(inputs)
-        probas = torch.sigmoid(logits)
-        preds = torch.argmax(probas, dim=1)
+        probas = torch.softmax(logits, dim=1)
+        confidences, preds = torch.max(probas, dim=1)
+
+        batch['probas'] = probas.detach()
+        batch['confs'] = confidences.detach()
+        batch['preds'] = preds.detach()
+        batch['logits'] = logits.detach()
 
         stat_scores = torchmetrics.stat_scores(
             preds,
@@ -165,8 +181,5 @@ class PL(BaseModule):
         self.log('Val_loss', loss)
 
         return {'batch': batch,
-                'logits': logits.detach(),
                 'stat_scores': stat_scores.detach(),
-                'probas': probas.detach(),
-                'preds': preds.detach()
                 }

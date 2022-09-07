@@ -83,36 +83,3 @@ class Smp_Unet_CE(BaseModule):
         batch['logits'] = logits
 
         return {'batch': batch, "loss": loss}
-
-    def validation_step(self, batch, batch_idx):
-
-        inputs = batch['image']
-        labels = batch['mask']
-        logits = self.forward(inputs)
-        probas = logits.softmax(dim=1)
-        confidences, preds = torch.max(probas, dim=1)
-
-        batch['probas'] = probas.detach()
-        batch['confs'] = confidences.detach()
-        batch['preds'] = preds.detach()
-        batch['logits'] = logits.detach()
-
-        stat_scores = torchmetrics.stat_scores(
-            preds,
-            labels,
-            ignore_index=self.ignore_index if self.ignore_index >= 0 else None,
-            mdmc_reduce='global',
-            reduce='macro',
-            num_classes=self.num_classes
-        )
-        
-        loss1 = self.loss1(logits, labels)
-        loss2 = self.loss2(logits, labels)
-        loss = loss1 + loss2
-        self.log('Val_CE', loss1)
-        self.log('Val_Dice', loss2)
-        self.log('Val_loss', loss)
-
-        return {'batch': batch,
-                'stat_scores': stat_scores.detach(),
-                }

@@ -51,6 +51,7 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
             log_loss=False,
             from_logits=True
         )
+        self.ignore_index = 0
         self.save_hyperparameters()
 
     @classmethod
@@ -94,37 +95,41 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         self.log('Train_sup_Dice', dice)
         self.log('Train_sup_loss', loss)
 
-        return {'batch': batch, 'logits': logits.detach(), "loss": loss}
+        batch['logits'] = logits
+
+        return {'batch': batch, "loss": loss}
 
     def validation_step(self, batch, batch_idx):
 
         inputs = batch['image']
-        labels = batch['mask'] # B,H,W
+        labels = batch['mask']
+        logits = self.forward(inputs)
+        probas = torch.sigmoid(logits) # B,C-1,H,W
+        confidences, preds = torch.max(probas, dim=1)
+        preds += 1
+
+        batch['probas'] = probas.detach()
+        batch['confs'] = confidences.detach()
+        batch['preds'] = preds.detach()
+        batch['logits'] = logits.detach()
+
+        stat_scores = torchmetrics.stat_scores(
+            preds,
+            labels,
+            ignore_index=self.ignore_index if self.ignore_index >= 0 else None,
+            mdmc_reduce='global',
+            reduce='macro',
+            num_classes=self.num_classes
+        )
+
         onehot_labels = self.onehot(labels).float() # B,C,H,W
-        
         final_labels = onehot_labels[:, 1:, ...]
-        
         mask = torch.ones_like(
             final_labels,
             dtype=onehot_labels.dtype,
             device=onehot_labels.device
         )
-        
-        logits = self.forward(inputs)
-        probas = torch.sigmoid(logits) # B,C-1,H,W
-        preds = torch.argmax(probas, dim=1) + 1
-        
-        stat_scores = torchmetrics.stat_scores(
-            preds,
-            labels,
-            ignore_index=0,
-            mdmc_reduce='global',
-            reduce='macro',
-            #threshold=0.5,
-            #top_k=1,
-            num_classes=self.num_classes
-        )
-        
+               
         bce = self.bce(logits, final_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)
         dice = self.dice(logits * mask, final_labels * mask)
@@ -135,32 +140,5 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         self.log('Val_loss', loss)
 
         return {'batch': batch,
-                'logits': logits.detach(),
                 'stat_scores': stat_scores.detach(),
-                'probas': probas.detach(),
-                'preds': preds.detach()
-                }
-    
-    def validation_epoch_end(self, outs):
-        
-        stat_scores = [out['stat_scores'] for out in outs]
-
-        class_stat_scores = torch.sum(torch.stack(stat_scores), dim=0)
-        f1_sum = 0
-        tp_sum = 0
-        supp_sum = 0
-        nc = 0
-        # ignore_index = 0
-        for i in range(self.num_classes):
-            tp, fp, tn, fn, supp = class_stat_scores[i, :]
-            if supp > 0:
-                nc += 1
-                f1 = tp / (tp + 0.5 * (fp + fn))
-                self.log(f'Val_f1_{i}', f1)
-                f1_sum += f1
-                tp_sum += tp
-                supp_sum += supp
-        
-        self.log('Val_acc', tp_sum / supp_sum)
-        self.log('Val_f1', f1_sum / nc) 
-
+                }    

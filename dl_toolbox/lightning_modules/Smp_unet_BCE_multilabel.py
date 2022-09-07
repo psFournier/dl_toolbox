@@ -91,12 +91,32 @@ class Smp_Unet_BCE_multilabel(BaseModule):
         self.log('Train_sup_Dice', dice)
         self.log('Train_sup_loss', loss)
 
-        return {'batch': batch, 'logits': logits.detach(), "loss": loss}
+        batch['logits'] = logits
+
+        return {'batch': batch, "loss": loss}
 
     def validation_step(self, batch, batch_idx):
 
         inputs = batch['image']
         labels = batch['mask']
+        logits = self.forward(inputs)
+        probas = torch.sigmoid(logits)
+        confidences, preds = torch.max(probas, dim=1)
+
+        batch['probas'] = probas.detach()
+        batch['confs'] = confidences.detach()
+        batch['preds'] = preds.detach()
+        batch['logits'] = logits.detach()
+
+        stat_scores = torchmetrics.stat_scores(
+            preds,
+            labels,
+            ignore_index=self.ignore_index if self.ignore_index >= 0 else None,
+            mdmc_reduce='global',
+            reduce='macro',
+            num_classes=self.num_classes
+        )
+
         onehot_labels = self.onehot(labels).float()
         
         mask = torch.ones_like(
@@ -106,21 +126,6 @@ class Smp_Unet_BCE_multilabel(BaseModule):
         )
         if self.ignore_index >= 0:
             mask -= onehot_labels[:, [self.ignore_index], ...]
-        
-        logits = self.forward(inputs)
-        probas = torch.sigmoid(logits)
-        preds = torch.argmax(probas, dim=1)
-
-        stat_scores = torchmetrics.stat_scores(
-            preds,
-            labels,
-            ignore_index=self.ignore_index if self.ignore_index >= 0 else None,
-            mdmc_reduce='global',
-            reduce='macro',
-            #threshold=0.5,
-            #top_k=1,
-            num_classes=self.num_classes
-        )
         
         bce = self.bce(logits, onehot_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)
@@ -132,8 +137,5 @@ class Smp_Unet_BCE_multilabel(BaseModule):
         self.log('Val_loss', loss)
 
         return {'batch': batch,
-                'logits': logits.detach(),
                 'stat_scores': stat_scores.detach(),
-                'probas': probas.detach(),
-                'preds': preds.detach()
                 }

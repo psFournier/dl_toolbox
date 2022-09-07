@@ -47,15 +47,18 @@ class BaseModule(pl.LightningModule):
 
         return [self.optimizer], [scheduler]
 
-    # def on_train_start(self):
-    #     self.logger.log_hyperparams(self.hparams, {"hp/Val_loss": 0})
-
     def validation_step(self, batch, batch_idx):
 
         inputs = batch['image']
         labels = batch['mask']
         logits = self.forward(inputs)
-        preds = logits.argmax(dim=1)
+        probas = logits.softmax(dim=1)
+        confidences, preds = torch.max(probas, dim=1)
+
+        batch['probas'] = probas.detach()
+        batch['confs'] = confidences.detach()
+        batch['preds'] = preds.detach()
+        batch['logits'] = logits.detach()
 
         stat_scores = torchmetrics.stat_scores(
             preds,
@@ -65,8 +68,17 @@ class BaseModule(pl.LightningModule):
             reduce='macro',
             num_classes=self.num_classes
         )
+        
+        loss1 = self.loss1(logits, labels)
+        loss2 = self.loss2(logits, labels)
+        loss = loss1 + loss2
+        self.log('Val_CE', loss1)
+        self.log('Val_Dice', loss2)
+        self.log('Val_loss', loss)
 
-        return {'batch': batch, 'logits': logits.detach(), 'stat_scores': stat_scores.detach()}
+        return {'batch': batch,
+                'stat_scores': stat_scores.detach(),
+                }
 
     def validation_epoch_end(self, outs):
         
