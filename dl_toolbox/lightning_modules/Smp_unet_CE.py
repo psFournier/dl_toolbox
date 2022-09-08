@@ -41,7 +41,8 @@ class Smp_Unet_CE(BaseModule):
         self.final_lr = final_lr
         self.lr_milestones = list(lr_milestones)
         self.loss1 = nn.CrossEntropyLoss(
-            ignore_index=self.ignore_index
+            ignore_index=self.ignore_index,
+            weight=torch.Tensor(self.weights)
         )
         self.loss2 = DiceLoss(
             mode="multiclass",

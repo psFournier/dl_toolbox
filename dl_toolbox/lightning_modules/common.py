@@ -18,6 +18,7 @@ class BaseModule(pl.LightningModule):
 
     def __init__(self,
                  num_classes,
+                 weights,
                  ignore_index,
                  *args,
                  **kwargs):
@@ -25,6 +26,7 @@ class BaseModule(pl.LightningModule):
         super().__init__()
 
         self.num_classes = num_classes
+        self.weights = list(weights)
         self.ignore_index = ignore_index
 
     @classmethod
@@ -32,6 +34,7 @@ class BaseModule(pl.LightningModule):
 
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--num_classes", type=int)
+        parser.add_argument("--weights", type=int, nargs="+")
         parser.add_argument("--ignore_index", type=int)
 
         return parser
