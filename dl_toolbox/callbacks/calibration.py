@@ -6,6 +6,7 @@ import numpy as np
 import itertools
 from torchmetrics.functional.classification.calibration_error import _binning_bucketize
 from torchmetrics.utilities.data import dim_zero_cat
+import seaborn as sns
 
 # Necessary for imshow to run on machines with no graphical interface.
 plt.switch_backend("agg")
@@ -25,6 +26,33 @@ def plot_reliability_diagram(acc_bin, conf_bin):
     plt.show()
 
     return figure
+
+def plot_calib(count_bins, acc_bins, conf_bins, max_points):
+
+    acc, conf = [], []
+    total_count = torch.sum(count_bins)
+    k = min(max_points / total_count, 1)
+    for i,c in enumerate(count_bins):
+        c = int(c * k)
+        if c > 0:
+            for _ in range(int(c)):
+                acc.append(acc_bins[i])
+                conf.append(conf_bins[i])
+
+    #fig = plt.figure()
+    #plt.scatter(x=np.asarray(conf), y=np.asarray(acc))
+    g = sns.jointplot(
+        x=np.asarray(conf),
+        y=np.asarray(acc),
+        kind='scatter',
+        color='b',
+        xlim=(None, 1),
+        ylim=(None, 1)
+    )
+    g.ax_joint.set_xlabel('average confidence')
+    g.ax_joint.set_ylabel('average accuracy')
+
+    return g.figure
 
 def compute_calibration_bins(bin_boundaries, labels, confs, preds):
 
@@ -48,30 +76,28 @@ def compute_calibration_bins(bin_boundaries, labels, confs, preds):
     acc_bins.scatter_add_(dim=0, index=indices, src=accus)
     acc_bins = torch.nan_to_num(acc_bins / count_bins)
 
-    prop_bins = count_bins / count_bins.sum()
-
-    return acc_bins, conf_bins, prop_bins
+    return acc_bins, conf_bins, count_bins
    
 
 class CalibrationLogger(pl.Callback):
 
     def on_fit_start(self, trainer, pl_module):
 
-        self.n_bins = 20
+        self.n_bins = 100
         self.bin_boundaries = torch.linspace(0, 1, self.n_bins + 1)
-        self.acc_bins, self.conf_bins, self.prop_bins = [], [], []
+        self.acc_bins, self.conf_bins, self.count_bins = [], [], []
         for i in range(pl_module.num_classes):
             if i != pl_module.ignore_index:
                 self.acc_bins.append(torch.zeros(self.n_bins))
                 self.conf_bins.append(torch.zeros(self.n_bins))
-                self.prop_bins.append(torch.zeros(self.n_bins))
+                self.count_bins.append(torch.zeros(self.n_bins))
         self.nb_step = 0
 
     def on_validation_batch_end(
             self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
 
-        if trainer.current_epoch % 50 == 0:
+        if trainer.current_epoch % 20 == 0:
             
             labels = batch['mask'].cpu().flatten()
 
@@ -82,7 +108,7 @@ class CalibrationLogger(pl.Callback):
                     cls_labels = labels[cls_filter]
                     cls_confs = batch['confs'].cpu().flatten()[cls_filter]
                     cls_preds = batch['preds'].cpu().flatten()[cls_filter]
-                    acc_bins, conf_bins, prop_bins = compute_calibration_bins(
+                    acc_bins, conf_bins, count_bins = compute_calibration_bins(
                         self.bin_boundaries,
                         cls_labels,
                         cls_confs,
@@ -90,33 +116,34 @@ class CalibrationLogger(pl.Callback):
                     )
                     self.acc_bins[i] += acc_bins
                     self.conf_bins[i] += conf_bins
-                    self.prop_bins[i] += prop_bins
+                    self.count_bins[i] += count_bins
 
             self.nb_step += 1
 
     def on_validation_epoch_end(self, trainer, pl_module):
         
-        if trainer.current_epoch % 50 == 0:
+        if trainer.current_epoch % 20 == 0:
 
             for i in range(pl_module.num_classes):
                 if i != pl_module.ignore_index:
 
                     self.acc_bins[i] /= self.nb_step
                     self.conf_bins[i] /= self.nb_step
-                    self.prop_bins[i] /= self.nb_step
 
-                    figure = plot_reliability_diagram(
-                        self.acc_bins[i].numpy(),
-                        self.conf_bins[i].numpy(),
+                    figure = plot_calib(
+                        self.count_bins[i],
+                        self.acc_bins[i],
+                        self.conf_bins[i],
+                        max_points=10000
                     )
                     trainer.logger.experiment.add_figure(
-                        "Reliability diagram",
+                        f"Calibration for class {i}",
                         figure,
                         global_step=trainer.global_step
                     )
                     self.acc_bins[i] = torch.zeros(self.n_bins)
                     self.conf_bins[i] = torch.zeros(self.n_bins)
-                    self.prop_bins[i] = torch.zeros(self.n_bins)
+                    self.count_bins[i] = torch.zeros(self.n_bins)
 
             self.nb_step = 0
 
