@@ -51,7 +51,7 @@ class ConfMatLogger(pl.Callback):
 
         self.conf_mat = ConfusionMatrix(
             num_classes=len(self.labels),
-            normalize="true",
+            normalize=None,
             compute_on_step=False
         )
 
@@ -72,8 +72,17 @@ class ConfMatLogger(pl.Callback):
         
         if trainer.current_epoch % 50 == 0:
 
-            cm = self.conf_mat.compute()
-            figure = plot_confusion_matrix(cm.numpy(), class_names=self.labels)
+            cm = self.conf_mat.compute().numpy()
+            cm_recall = cm/np.sum(cm,axis=1, keepdims=True)
+            cm_precision = cm/np.sum(cm,axis=0,keepdims=True)
+            
             trainer.logger.experiment.add_figure(
-                "Confusion matrix", figure, global_step=trainer.global_step
+                "Confusion matrix recall", 
+                plot_confusion_matrix(cm_recall, class_names=self.labels), 
+                global_step=trainer.global_step
+            )
+            trainer.logger.experiment.add_figure(
+                "Confusion matrix precision", 
+                plot_confusion_matrix(cm_precision, class_names=self.labels), 
+                global_step=trainer.global_step
             )

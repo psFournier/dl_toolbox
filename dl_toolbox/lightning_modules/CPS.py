@@ -133,36 +133,37 @@ class CPS(BaseModule):
  
         # Supervising network 1 with pseudolabels from network 2
             
-        pseudo_probs_2 = logits2.detach().softmax(dim=1)
-        top_probs_2, pseudo_preds_2 = torch.max(pseudo_probs_2, dim=1) # B,H,W
-        loss_no_reduce_1 = self.unsup_loss(
-            logits1,
-            pseudo_preds_2
-        ) # B,H,W
-        pseudo_certain_2 = (top_probs_2 > self.pseudo_threshold).float()
-        certain_2 = torch.sum(pseudo_certain_2)
-        self.log('Pseudo_certain_2_sup', torch.mean(pseudo_certain_2))
-        pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / certain_2
+        #pseudo_probs_2 = logits2.detach().softmax(dim=1)
+        #top_probs_2, pseudo_preds_2 = torch.max(pseudo_probs_2, dim=1) # B,H,W
+        #loss_no_reduce_1 = self.unsup_loss(
+        #    logits1,
+        #    pseudo_preds_2
+        #) # B,H,W
+        #pseudo_certain_2 = (top_probs_2 > self.pseudo_threshold).float()
+        #certain_2 = torch.sum(pseudo_certain_2)
+        #self.log('Pseudo_certain_2_sup', torch.mean(pseudo_certain_2))
+        #pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / certain_2
 
         # Supervising network 2 with pseudolabels from network 1
 
-        pseudo_probs_1 = logits1.detach().softmax(dim=1)
-        top_probs_1, pseudo_preds_1 = torch.max(pseudo_probs_1, dim=1)
-        loss_no_reduce_2 = self.unsup_loss(
-            logits2,
-            pseudo_preds_1
-        )
-        pseudo_certain_1 = (top_probs_1 > self.pseudo_threshold).float()
-        certain_1 = torch.sum(pseudo_certain_1)
-        pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / certain_1
+        #pseudo_probs_1 = logits1.detach().softmax(dim=1)
+        #top_probs_1, pseudo_preds_1 = torch.max(pseudo_probs_1, dim=1)
+        #loss_no_reduce_2 = self.unsup_loss(
+        #    logits2,
+        #    pseudo_preds_1
+        #)
+        #pseudo_certain_1 = (top_probs_1 > self.pseudo_threshold).float()
+        #certain_1 = torch.sum(pseudo_certain_1)
+        #pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / certain_1
 
-        pseudo_loss_sup = (pseudo_loss_1 + pseudo_loss_2) / 2
-        pseudo_loss = pseudo_loss_sup
+        #pseudo_loss_sup = (pseudo_loss_1 + pseudo_loss_2) / 2
+        #pseudo_loss = pseudo_loss_sup
+        pseudo_loss = 0
 
         self.log('Train_sup_CE', loss1)
         self.log('Train_sup_Dice', loss2)
         self.log('Train_sup_loss', loss)
-        self.log('Pseudo_loss_sup', pseudo_loss_sup)
+        #self.log('Pseudo_loss_sup', pseudo_loss_sup)
 
         if self.trainer.current_epoch > self.alpha_milestones[0]:
 
