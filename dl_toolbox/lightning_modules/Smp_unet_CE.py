@@ -81,6 +81,6 @@ class Smp_Unet_CE(BaseModule):
         self.log('Train_sup_Dice', loss2)
         self.log('Train_sup_loss', loss)
 
-        batch['logits'] = logits
+        batch['logits'] = logits.detach()
 
         return {'batch': batch, "loss": loss}

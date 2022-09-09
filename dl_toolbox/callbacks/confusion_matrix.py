@@ -42,10 +42,11 @@ def plot_confusion_matrix(cm, class_names):
 
 class ConfMatLogger(pl.Callback):
 
-    def __init__(self, labels, *args, **kwargs):
+    def __init__(self, labels, freq, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.labels = labels
+        self.freq = freq
 
     def on_fit_start(self, trainer, pl_module):
 
@@ -59,7 +60,7 @@ class ConfMatLogger(pl.Callback):
             self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
         
-        if trainer.current_epoch % 50 == 0:
+        if trainer.current_epoch % self.freq == 0:
             
             batch = outputs['batch']
             inputs, labels = batch['image'], batch['mask'] # labels shape B,H,W, values in {0, C-1}
@@ -70,7 +71,7 @@ class ConfMatLogger(pl.Callback):
 
     def on_validation_epoch_end(self, trainer, pl_module):
         
-        if trainer.current_epoch % 50 == 0:
+        if trainer.current_epoch % self.freq == 0:
 
             cm = self.conf_mat.compute().numpy()
             cm_recall = cm/np.sum(cm,axis=1, keepdims=True)

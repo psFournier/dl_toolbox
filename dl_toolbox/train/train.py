@@ -5,7 +5,7 @@ from pytorch_lightning.profiler import SimpleProfiler
 from pytorch_lightning.loggers import TensorBoardLogger
 from dl_toolbox.lightning_modules import *
 from dl_toolbox.lightning_datamodules import *
-from dl_toolbox.callbacks import ConfMatLogger, CalibrationLogger, SegmentationImagesVisualisation
+from dl_toolbox.callbacks import *
 from dl_toolbox.torch_datasets import *
 from dl_toolbox.utils import LabelsToRGB
 
@@ -89,12 +89,15 @@ def main():
             SegmentationImagesVisualisation(
                 visu_fn=LabelsToRGB(
                     labels=datasets[args.dataset]['labels'][args.labels]
-                )
+                ),
+                freq=50
             ),
             ConfMatLogger(
-                labels=datasets[args.dataset]['labels'][args.labels].keys()
+                labels=datasets[args.dataset]['labels'][args.labels].keys(),
+                freq=50
             ),
-            CalibrationLogger(),
+            CalibrationLogger(freq=50),
+            ClassDistribLogger(freq=100)
             #StochasticWeightAveraging(
             #    swa_epoch_start=0.91,
             #    swa_lrs=0.005,

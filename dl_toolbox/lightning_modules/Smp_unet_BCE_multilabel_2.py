@@ -46,7 +46,7 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         self.lr_milestones = list(lr_milestones)
         self.bce = nn.BCEWithLogitsLoss(
             reduction='none',
-            pos_weight=torch.Tensor(self.weights[1:])
+            pos_weight=torch.Tensor(self.weights[1:]).reshape(1, -1, 1, 1)
         )
         self.onehot = TorchOneHot(range(self.num_classes))
         self.dice = DiceLoss(
@@ -98,7 +98,7 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         self.log('Train_sup_Dice', dice)
         self.log('Train_sup_loss', loss)
 
-        batch['logits'] = logits
+        batch['logits'] = logits.detach()
 
         return {'batch': batch, "loss": loss}
 

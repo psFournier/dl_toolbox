@@ -44,7 +44,7 @@ class Smp_Unet_BCE_Mixup(BaseModule):
         self.lr_milestones = list(lr_milestones)
         self.bce = nn.BCEWithLogitsLoss(
             reduction='none',
-            pos_weight=torch.Tensor(self.weights)
+            pos_weight=torch.Tensor(self.weights).reshape(1, -1, 1, 1)
         )
         self.onehot = TorchOneHot(range(self.num_classes))
         self.mixup = Mixup(alpha=0.4)
@@ -97,7 +97,7 @@ class Smp_Unet_BCE_Mixup(BaseModule):
         self.log('Train_sup_Dice', dice)
         self.log('Train_sup_loss', loss)
         
-        batch['logits'] = logits
+        batch['logits'] = logits.detach()
 
         return {'batch': batch, "loss": loss}
 

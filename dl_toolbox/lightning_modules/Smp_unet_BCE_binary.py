@@ -44,7 +44,7 @@ class Smp_Unet_BCE_binary(BaseModule):
         self.lr_milestones = list(lr_milestones)
         self.bce = nn.BCEWithLogitsLoss(
             reduction='none',
-            pos_weight=torch.Tensor(self.weights)
+            pos_weight=torch.Tensor(self.weights).reshape(1, -1, 1, 1)
         )
         self.dice = DiceLoss(
             mode="binary",
@@ -80,7 +80,7 @@ class Smp_Unet_BCE_binary(BaseModule):
         bce = torch.sum(mask * bce) / torch.sum(mask)
         dice = self.dice(logits*mask, labels*mask)
         loss = bce + dice
-        batch['logits'] = logits
+        batch['logits'] = logits.detach()
         self.log('Train_sup_BCE', bce)
         self.log('Train_sup_Dice', dice)
         self.log('Train_sup_loss', loss)

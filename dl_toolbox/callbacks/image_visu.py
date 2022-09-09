@@ -16,16 +16,17 @@ class SegmentationImagesVisualisation(pl.Callback):
 
     NB_COL: int = 4
 
-    def __init__(self, visu_fn, *args, **kwargs):
+    def __init__(self, visu_fn, freq, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.visu_fn = visu_fn 
+        self.freq = freq
 
     def on_train_batch_end(
             self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ) -> None:
 
-        if trainer.current_epoch % 50 == 0 and batch_idx == 0:
+        if trainer.current_epoch % self.freq == 0 and batch_idx == 0:
 
             self.display_batch(
                 trainer,
@@ -87,6 +88,6 @@ class SegmentationImagesVisualisation(pl.Callback):
     ) -> None:
         """Called when the validation batch ends."""
  
-        if trainer.current_epoch % 50 == 0 and batch_idx == 0:
+        if trainer.current_epoch % self.freq == 0 and batch_idx == 0:
             self.display_batch(trainer, outputs['batch'], prefix='Val')
 

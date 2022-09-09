@@ -26,16 +26,6 @@ def plot_reliability_diagram(acc_bin, conf_bin):
 
     return figure
 
-def plot_hist_cls(class_distrib):
-    
-    figure = plt.figure(figsize=(8,8))
-    plt.plot(
-        x=range(len(class_distrib)),
-        height=class_distrib
-    )
-    plt.xlabel("Class")
-    plt.ylabel("Counts")
-
 def plot_calib(count_bins, acc_bins, conf_bins, max_points):
 
     acc, conf = [], []
@@ -90,6 +80,11 @@ def compute_calibration_bins(bin_boundaries, labels, confs, preds):
 
 class CalibrationLogger(pl.Callback):
 
+    def __init__(self, freq, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        self.freq = freq
+
     def on_fit_start(self, trainer, pl_module):
 
         self.n_bins = 100
@@ -101,29 +96,17 @@ class CalibrationLogger(pl.Callback):
                 self.conf_bins.append(torch.zeros(self.n_bins))
                 self.count_bins.append(torch.zeros(self.n_bins))
         self.nb_step = 0
-        self.class_distrib_train = [0]*pl_module.num_classes
-        self.class_ditrib_val = [0]*pl_module.num_classes
-        
-    def on_train_batch_end(
-        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
-    ):
-        if trainer.current_epoch % 20 == 0:
-            labels = batch['mask'].cpu().flatten()
-            for i in range(pl_module.num_classes):
-                cls_filter = torch.nonzero(labels==i, as_tuple=True)
-                self.class_distrib_train[i] += len(cls_filter)
 
     def on_validation_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
 
-        if trainer.current_epoch % 20 == 0:
+        if trainer.current_epoch % self.freq == 0:
             
             labels = batch['mask'].cpu().flatten()
             
             for i in range(pl_module.num_classes):
                 cls_filter = torch.nonzero(labels == i, as_tuple=True)
-                self.class_distrib_val[i] += len(cls_filter)
                 if i != pl_module.ignore_index:                    
                     cls_labels = labels[cls_filter]
                     cls_confs = batch['confs'].cpu().flatten()[cls_filter]
@@ -139,30 +122,10 @@ class CalibrationLogger(pl.Callback):
                     self.count_bins[i] += count_bins
 
             self.nb_step += 1
-    
-    def on_train_epoch_end(self, trainer, pl_module):
-        
-        if trainer.current_epoch % 20 == 0:
-            
-            fig_distrib = plot_hist_cls(self.class_distrib_train)
-            self.class_distrib_train = [0]*pl_module.num_classes
-            trainer.logger.experiment.add_figure(
-                f"Train set class distribution",
-                fig_distrib,
-                global_step=trainer.global_step
-            )
             
     def on_validation_epoch_end(self, trainer, pl_module):
         
-        if trainer.current_epoch % 20 == 0:
-            
-            fig_distrib = plot_hist_cls(self.class_distrib_val)
-            self.class_distrib_val = [0]*pl_module.num_classes
-            trainer.logger.experiment.add_figure(
-                f"Val set class distribution",
-                fig_distrib,
-                global_step=trainer.global_step
-            )
+        if trainer.current_epoch % self.freq == 0:
 
             for i in range(pl_module.num_classes):
                 if i != pl_module.ignore_index:
