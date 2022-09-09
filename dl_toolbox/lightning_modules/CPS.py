@@ -54,7 +54,8 @@ class CPS(BaseModule):
         self.lr_milestones = list(lr_milestones)
 
         self.loss1 = nn.CrossEntropyLoss(
-            ignore_index=self.ignore_index
+            ignore_index=self.ignore_index,
+            weight=torch.Tensor(self.weights)
         )
         self.loss2 = DiceLoss(
             mode="multiclass",
@@ -119,6 +120,7 @@ class CPS(BaseModule):
 
         logits1 = self.network1(inputs)
         logits2 = self.network2(inputs)
+        logits = (logits1 + logits2) / 2
         loss1 = self.loss1(logits1, labels) 
         loss1 += self.loss1(logits2, labels)
         loss1 /= 2
@@ -127,8 +129,7 @@ class CPS(BaseModule):
         loss2 /= 2
         loss = loss1 + loss2
 
-        batch['logits'] = (logits1 + logits2) / 2
-
+        batch['logits'] = logits.detach()
         outputs = {'batch': batch}
  
         # Supervising network 1 with pseudolabels from network 2
@@ -170,7 +171,8 @@ class CPS(BaseModule):
             unsup_inputs = unsup_batch['image']
             unsup_outputs_1 = self.network1(unsup_inputs)
             unsup_outputs_2 = self.network2(unsup_inputs)
-            unsup_batch['logits'] = (unsup_outputs_1 + unsup_outputs_2) / 2
+            unsup_logits = (unsup_outputs_1 + unsup_outputs_2) / 2
+            unsup_batch['logits'] = unsup_logits.detach()
             outputs['unsup_batch'] = unsup_batch
 
             # Supervising network 1 with pseudolabels from network 2

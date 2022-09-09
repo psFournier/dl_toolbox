@@ -51,7 +51,8 @@ class MT(BaseModule):
         self.lr_milestones = list(lr_milestones)
 
         self.loss1 = nn.CrossEntropyLoss(
-            ignore_index=self.ignore_index
+            ignore_index=self.ignore_index,
+            weight=torch.Tensor(self.weights)
         )
         self.loss2 = DiceLoss(
             mode="multiclass",
@@ -131,6 +132,9 @@ class MT(BaseModule):
         self.log('Train_sup_CE', loss1)
         self.log('Train_sup_Dice', loss2)
         self.log('Train_sup_loss', loss)
+        
+        batch['logits'] = logits1.detach()
+        outputs = {'batch': batch}
 
         if self.trainer.current_epoch > self.alpha_milestones[0]:
             
@@ -143,9 +147,11 @@ class MT(BaseModule):
                 input_batch=unsup_inputs,
                 target_batch=teacher_probs
             ) # BxCxHxW
-
+            unsup_batch['image'] = cutmixed_inputs
             cutmix_confs, cutmix_preds = torch.max(cutmixed_probs, dim=1) # BxHxW
             cutmixed_logits = self.network1(cutmixed_inputs)
+            unsup_batch['logits'] = cutmixed_logits.detach()
+            outputs['unsup_batch'] = unsup_batch
             loss_no_reduce = self.unsup_loss(
                 cutmixed_logits,
                 cutmix_preds
@@ -162,16 +168,22 @@ class MT(BaseModule):
         self.update_teacher()
         self.log('Prop unsup train', self.alpha)
         self.log("Train_loss", loss)
+         outputs['loss'] = loss
 
-        return {'batch': batch, "loss": loss}
+        return outputs
 
     def validation_step(self, batch, batch_idx):
-
+        
         inputs = batch['image']
         labels = batch['mask']
         logits = self.forward(inputs)
-        probas = torch.sigmoid(logits)
-        preds = torch.argmax(probas, dim=1)
+        probas = torch.softmax(logits, dim=1)
+        confidences, preds = torch.max(probas, dim=1)
+
+        batch['probas'] = probas.detach()
+        batch['confs'] = confidences.detach()
+        batch['preds'] = preds.detach()
+        batch['logits'] = logits.detach()
 
         stat_scores = torchmetrics.stat_scores(
             preds,
@@ -190,8 +202,5 @@ class MT(BaseModule):
         self.log('Val_loss', loss)
 
         return {'batch': batch,
-                'logits': logits.detach(),
                 'stat_scores': stat_scores.detach(),
-                'probas': probas.detach(),
-                'preds': preds.detach()
                 }

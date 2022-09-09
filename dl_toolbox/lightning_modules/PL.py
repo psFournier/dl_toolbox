@@ -46,7 +46,8 @@ class PL(BaseModule):
         self.lr_milestones = list(lr_milestones)
 
         self.loss1 = nn.CrossEntropyLoss(
-            ignore_index=self.ignore_index
+            ignore_index=self.ignore_index,
+            weight=torch.Tensor(self.weights)
         )
 
         self.loss2 = DiceLoss(
@@ -112,7 +113,7 @@ class PL(BaseModule):
         loss2 = self.loss2(logits, labels)
         loss = loss1 + loss2
 
-        batch['logits'] = logits
+        batch['logits'] = logits.detach()
         outputs = {'batch': batch}
 
         self.log('Train_sup_CE', loss1)
@@ -125,7 +126,7 @@ class PL(BaseModule):
 
             unsup_inputs = unsup_batch['image']
             unsup_outputs = self.network(unsup_inputs)
-            unsup_batch['logits'] = unsup_outputs
+            unsup_batch['logits'] = unsup_outputs.detach()
             outputs['unsup_batch'] = unsup_batch
             
             pseudo_probs = unsup_outputs.detach().softmax(dim=1)

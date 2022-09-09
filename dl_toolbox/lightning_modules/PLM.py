@@ -48,7 +48,10 @@ class PLM(BaseModule):
         self.lr_milestones = list(lr_milestones)
 
         self.onehot = TorchOneHot(range(self.num_classes))
-        self.loss1 = nn.BCEWithLogitsLoss(reduction='none')
+        self.loss1 = nn.BCEWithLogitsLoss(
+            reduction='none',
+            pos_weight=torch.Tensor(self.weights).reshape(1,-1,1,1)
+        )
 
         self.loss2 = DiceLoss(
             mode="multilabel",
@@ -112,6 +115,8 @@ class PLM(BaseModule):
 
         onehot_labels = self.onehot(labels).float()
         mixed_inputs, mixed_labels = self.mixup(inputs, onehot_labels)
+        batch['image'] = mixed_inputs
+        batch['mask'] = mixed_labels
         
         mask = torch.ones_like(
             onehot_labels,
@@ -122,6 +127,7 @@ class PLM(BaseModule):
             mask -= mixed_labels[:, [self.ignore_index], ...]
         
         logits = self.network(mixed_inputs)
+        
         bce = self.loss1(logits, mixed_labels) # B,C,H,W
         bce = torch.sum(mask * bce) / torch.sum(mask)
         dice = self.loss2(logits * mask, mixed_labels * mask)
@@ -130,6 +136,9 @@ class PLM(BaseModule):
         self.log('Train_sup_BCE', bce)
         self.log('Train_sup_Dice', dice)
         self.log('Train_sup_loss', loss)
+        
+        batch['logits'] = logits.detach()
+        outputs = {'batch': batch}
 
         if self.trainer.current_epoch > self.alpha_milestones[0]:
 
@@ -163,8 +172,9 @@ class PLM(BaseModule):
 
         self.log('Prop unsup train', self.alpha)
         self.log("Train_loss", loss)
+        outputs['loss'] = loss
 
-        return {'batch': batch, "loss": loss}
+        return outputs
 
     def validation_step(self, batch, batch_idx):
 
