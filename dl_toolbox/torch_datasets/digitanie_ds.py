@@ -14,9 +14,8 @@ from dl_toolbox.torch_datasets.utils import *
 from functools import partial
 from enum import Enum
 
-# count factors 85 14 85 17 85 85 28 85 85 3 1 somme = 575
-# facteurs 1, 6, 1, 5, 1, 1, 3, 1, 1, 26, 85
-# facteurs binaires 6 37 6 33 6 6 20 6 6 191 575
+# count factors 71 12 79 16 73 86 21 49 52 3 1 somme = 464
+
 
 digitanie_labels = {
     

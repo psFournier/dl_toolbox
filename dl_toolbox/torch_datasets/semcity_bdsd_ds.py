@@ -23,9 +23,8 @@ from dl_toolbox.utils import MergeLabels, OneHot
 #         'sport venues', 1825718)
 #    ]
 
-# count factors 2 19 19 19 19 1 1 somme 80
-# facteurs 8, 1, 1, 1, 1, 15, 19
-# facteurs binaires 40 3 3 3 3 80 80
+# count factors 1 15 14 20 10 1 2 0 somme 73
+
 
 semcity_labels = {
 
