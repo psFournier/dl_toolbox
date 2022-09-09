@@ -42,7 +42,10 @@ class Smp_Unet_BCE_Mixup(BaseModule):
         self.initial_lr = initial_lr
         self.final_lr = final_lr
         self.lr_milestones = list(lr_milestones)
-        self.bce = nn.BCEWithLogitsLoss(reduction='none')
+        self.bce = nn.BCEWithLogitsLoss(
+            reduction='none',
+            pos_weight=torch.Tensor(self.weights)
+        )
         self.onehot = TorchOneHot(range(self.num_classes))
         self.mixup = Mixup(alpha=0.4)
         self.dice = DiceLoss(

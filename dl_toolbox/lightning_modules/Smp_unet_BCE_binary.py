@@ -43,7 +43,8 @@ class Smp_Unet_BCE_binary(BaseModule):
         self.final_lr = final_lr
         self.lr_milestones = list(lr_milestones)
         self.bce = nn.BCEWithLogitsLoss(
-            reduction='none'
+            reduction='none',
+            pos_weight=torch.Tensor(self.weights)
         )
         self.dice = DiceLoss(
             mode="binary",
@@ -79,33 +80,37 @@ class Smp_Unet_BCE_binary(BaseModule):
         bce = torch.sum(mask * bce) / torch.sum(mask)
         dice = self.dice(logits*mask, labels*mask)
         loss = bce + dice
+        batch['logits'] = logits
         self.log('Train_sup_BCE', bce)
         self.log('Train_sup_Dice', dice)
         self.log('Train_sup_loss', loss)
 
-        return {'batch': batch, 'logits': logits.detach(), "loss": loss}
+        return {'batch': batch, "loss": loss}
 
     def validation_step(self, batch, batch_idx):
 
         inputs = batch['image']
         labels = batch['mask']
-        mask = torch.ones_like(labels, dtype=labels.dtype, device=labels.device)
         logits = self.forward(inputs).squeeze()
         probas = torch.sigmoid(logits)
-        preds = (probas > 0.5).int()
-        full_probas = torch.stack([1-probas, probas], dim=1)
+        probas = torch.stack([1-probas, probas], dim=1)
+        confidences, preds = torch.max(probas, dim=1)
 
+        batch['probas'] = probas.detach()
+        batch['confs'] = confidences.detach()
+        batch['preds'] = preds.detach()
+        batch['logits'] = logits.detach()
+        
         stat_scores = torchmetrics.stat_scores(
-            full_probas,
+            preds,
             labels,
             ignore_index=None,
             mdmc_reduce='global',
             reduce='macro',
-            threshold=0.5,
-            top_k=1,
             num_classes=2
         )
-
+        
+        mask = torch.ones_like(labels, dtype=labels.dtype, device=labels.device)
         bce = self.bce(logits, labels.float())
         bce = torch.sum(mask * bce) / torch.sum(mask)
         dice = self.dice(logits*mask, labels*mask)
@@ -115,8 +120,5 @@ class Smp_Unet_BCE_binary(BaseModule):
         self.log('Val_loss', loss)
 
         return {'batch': batch,
-                'logits': logits.detach(),
                 'stat_scores': stat_scores.detach(),
-                'probas': full_probas.detach(),
-                'preds': preds.detach()
                 }

@@ -23,17 +23,21 @@ from dl_toolbox.utils import MergeLabels, OneHot
 #         'sport venues', 1825718)
 #    ]
 
+# count factors 2 19 19 19 19 1 1 somme 80
+# facteurs 8, 1, 1, 1, 1, 15, 19
+# facteurs binaires 40 3 3 3 3 80 80
+
 semcity_labels = {
 
     'base' : {
-        'void': {'color': (255, 255, 255)},
-        'impervious surface': {'color': (38, 38, 38)},
-        'building': {'color': (238, 118, 33)},
-        'pervious surface': {'color': (34, 139, 34)},
-        'high vegetation': {'color': (0, 222, 137)},
-        'car': {'color': (255, 0, 0)},
-        'water': {'color': (0, 0, 238)},
-        'sport venue': {'color': (160, 30, 230)}
+        'void': {'color': (255, 255, 255), 'count': 3080233},
+        'impervious surface': {'color': (38, 38, 38), 'count': 45886967},
+        'building': {'color': (238, 118, 33), 'count':43472320},
+        'pervious surface': {'color': (34, 139, 34), 'count':58879144 },
+        'high vegetation': {'color': (0, 222, 137), 'count':31261675 },
+        'car': {'color': (255, 0, 0), 'count': 3753288},
+        'water': {'color': (0, 0, 238), 'count': 7199301},
+        'sport venue': {'color': (160, 30, 230), 'count': 0}
     },
     'semcity' : {
         'other': {'color': (255, 255, 255)},

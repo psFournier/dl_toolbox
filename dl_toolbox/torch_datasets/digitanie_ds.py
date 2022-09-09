@@ -14,20 +14,24 @@ from dl_toolbox.torch_datasets.utils import *
 from functools import partial
 from enum import Enum
 
+# count factors 85 14 85 17 85 85 28 85 85 3 1 somme = 575
+# facteurs 1, 6, 1, 5, 1, 1, 3, 1, 1, 26, 85
+# facteurs binaires 6 37 6 33 6 6 20 6 6 191 575
+
 digitanie_labels = {
     
     'base' : {
-        'other': {'color': (0, 0, 0)},
-        'bare ground': {'color': (100, 50, 0)},
-        'low vegetation': {'color':(0, 250, 50)},
-        'water': {'color': (0, 50, 250)},
-        'building': {'color': (250, 50, 50)},
-        'high vegetation': {'color': (0, 100, 50)},
-        'parking': {'color': (200, 200, 200)},
-        'pedestrian': {'color': (200, 150, 50)},
-        'road': {'color': (100, 100, 100)},
-        'railways': {'color': (200, 100, 200)},
-        'swimming pool': {'color': (50, 150, 250)}
+        'other': {'color': (0, 0, 0), 'count': 6038869},
+        'bare ground': {'color': (100, 50, 0), 'count':1054258 },
+        'low vegetation': {'color':(0, 250, 50), 'count': 6732654},
+        'water': {'color': (0, 50, 250), 'count': 1360835},
+        'building': {'color': (250, 50, 50), 'count': 6226380},
+        'high vegetation': {'color': (0, 100, 50), 'count': 7313601},
+        'parking': {'color': (200, 200, 200), 'count': 1830771},
+        'pedestrian': {'color': (200, 150, 50), 'count': 4273071},
+        'road': {'color': (100, 100, 100), 'count': 4403274},
+        'railways': {'color': (200, 100, 200), 'count': 280964},
+        'swimming pool': {'color': (50, 150, 250), 'count': 85323}
     },
     '7class' : {
         'other': {'color': (0, 0, 0)},
