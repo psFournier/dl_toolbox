@@ -168,7 +168,7 @@ class MT(BaseModule):
         self.update_teacher()
         self.log('Prop unsup train', self.alpha)
         self.log("Train_loss", loss)
-         outputs['loss'] = loss
+        outputs['loss'] = loss
 
         return outputs
 

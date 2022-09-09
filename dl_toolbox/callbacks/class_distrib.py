@@ -38,6 +38,7 @@ class ClassDistribLogger(pl.Callback):
     def on_train_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
+        batch = outputs['batch']
         if trainer.current_epoch % self.freq == 0:
             labels = batch['mask'].cpu().flatten()
             for i in range(pl_module.num_classes):
@@ -47,7 +48,7 @@ class ClassDistribLogger(pl.Callback):
     def on_validation_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
-
+        batch = outputs['batch']
         if trainer.current_epoch % self.freq == 0:
             labels = batch['mask'].cpu().flatten()
             for i in range(pl_module.num_classes):

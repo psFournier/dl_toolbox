@@ -101,6 +101,8 @@ class CalibrationLogger(pl.Callback):
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
 
+        batch = outputs['batch']
+
         if trainer.current_epoch % self.freq == 0:
             
             labels = batch['mask'].cpu().flatten()
