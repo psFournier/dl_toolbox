@@ -91,7 +91,8 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         logits = self.network(inputs) # B,C-1,H,W
         bce = self.bce(logits, final_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)
-        dice = self.dice(logits * mask, final_labels * mask)
+        #dice = self.dice(logits * mask, final_labels * mask)
+        dice = 0
         loss = bce + dice
         
         self.log('Train_sup_BCE', bce)
@@ -135,7 +136,8 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
                
         bce = self.bce(logits, final_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)
-        dice = self.dice(logits * mask, final_labels * mask)
+        #dice = self.dice(logits * mask, final_labels * mask)
+        dice = 0
         loss = bce + dice
         
         self.log('Val_BCE', bce)

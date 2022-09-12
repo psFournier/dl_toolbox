@@ -75,7 +75,8 @@ class Unet_CE(BaseModule):
         labels = batch['mask']
         logits = self.network(inputs)
         loss1 = self.loss1(logits, labels)
-        loss2 = self.loss2(logits, labels)
+        #loss2 = self.loss2(logits, labels)
+        loss2=0
         loss = loss1 + loss2
         self.log('Train_sup_CE', loss1)
         self.log('Train_sup_Dice', loss2)

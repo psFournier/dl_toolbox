@@ -127,7 +127,8 @@ class MT(BaseModule):
 
         logits1 = self.network1(inputs) # BxCxHxW
         loss1 = self.loss1(logits1, labels) 
-        loss2 = self.loss2(logits1, labels)
+        #loss2 = self.loss2(logits1, labels)
+        loss2=0
         loss = loss1 + loss2
         self.log('Train_sup_CE', loss1)
         self.log('Train_sup_Dice', loss2)
@@ -171,36 +172,3 @@ class MT(BaseModule):
         outputs['loss'] = loss
 
         return outputs
-
-    def validation_step(self, batch, batch_idx):
-        
-        inputs = batch['image']
-        labels = batch['mask']
-        logits = self.forward(inputs)
-        probas = torch.softmax(logits, dim=1)
-        confidences, preds = torch.max(probas, dim=1)
-
-        batch['probas'] = probas.detach()
-        batch['confs'] = confidences.detach()
-        batch['preds'] = preds.detach()
-        batch['logits'] = logits.detach()
-
-        stat_scores = torchmetrics.stat_scores(
-            preds,
-            labels,
-            ignore_index=self.ignore_index if self.ignore_index >= 0 else None,
-            mdmc_reduce='global',
-            reduce='macro',
-            num_classes=self.num_classes
-        )
-        
-        loss1 = self.loss1(logits, labels)
-        loss2 = self.loss2(logits, labels)
-        loss = loss1 + loss2
-        self.log('Val_CE', loss1)
-        self.log('Val_Dice', loss2)
-        self.log('Val_loss', loss)
-
-        return {'batch': batch,
-                'stat_scores': stat_scores.detach(),
-                }

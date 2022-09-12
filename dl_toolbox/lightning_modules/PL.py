@@ -110,7 +110,8 @@ class PL(BaseModule):
 
         logits = self.network(inputs)
         loss1 = self.loss1(logits, labels)
-        loss2 = self.loss2(logits, labels)
+        #loss2 = self.loss2(logits, labels)
+        loss2=0
         loss = loss1 + loss2
 
         batch['logits'] = logits.detach()

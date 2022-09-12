@@ -130,7 +130,8 @@ class PLM(BaseModule):
         
         bce = self.loss1(logits, mixed_labels) # B,C,H,W
         bce = torch.sum(mask * bce) / torch.sum(mask)
-        dice = self.loss2(logits * mask, mixed_labels * mask)
+        #dice = self.loss2(logits * mask, mixed_labels * mask)
+        dice=0
         loss = bce + dice
         
         self.log('Train_sup_BCE', bce)
@@ -204,7 +205,8 @@ class PLM(BaseModule):
             
         bce = self.loss1(logits, onehot_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)
-        dice = self.loss2(logits * mask, onehot_labels * mask)
+        #dice = self.loss2(logits * mask, onehot_labels * mask)
+        dice=0
         loss = bce + dice
         
         self.log('Val_BCE', bce)

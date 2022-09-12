@@ -90,7 +90,8 @@ class Smp_Unet_BCE_Mixup(BaseModule):
         logits = self.network(mixed_inputs)
         bce = self.bce(logits, mixed_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)
-        dice = self.dice(logits * mask, mixed_labels * mask)
+        #dice = self.dice(logits * mask, mixed_labels * mask)
+        dice = 0
         loss = bce + dice
         
         self.log('Train_sup_BCE', bce)
@@ -135,7 +136,8 @@ class Smp_Unet_BCE_Mixup(BaseModule):
         
         bce = self.bce(logits, onehot_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)
-        dice = self.dice(logits * mask, onehot_labels * mask)
+        #dice = self.dice(logits * mask, onehot_labels * mask)
+        dice = 0
         loss = bce + dice
         
         self.log('Val_BCE', bce)

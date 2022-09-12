@@ -124,8 +124,9 @@ class CPS(BaseModule):
         loss1 = self.loss1(logits1, labels) 
         loss1 += self.loss1(logits2, labels)
         loss1 /= 2
-        loss2 = self.loss2(logits1, labels)
-        loss2 += self.loss2(logits2, labels)
+        #loss2 = self.loss2(logits1, labels)
+        #loss2 += self.loss2(logits2, labels)
+        loss2=0
         loss2 /= 2
         loss = loss1 + loss2
 
@@ -236,7 +237,8 @@ class CPS(BaseModule):
         )
         
         loss1 = self.loss1(logits, labels)
-        loss2 = self.loss2(logits, labels)
+        #loss2 = self.loss2(logits, labels)
+        loss2=0
         loss = loss1 + loss2
         self.log('Val_CE', loss1)
         self.log('Val_Dice', loss2)

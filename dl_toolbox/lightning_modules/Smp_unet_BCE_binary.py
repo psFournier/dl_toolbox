@@ -78,7 +78,8 @@ class Smp_Unet_BCE_binary(BaseModule):
         logits = self.network(inputs).squeeze()
         bce = self.bce(logits, labels.float())
         bce = torch.sum(mask * bce) / torch.sum(mask)
-        dice = self.dice(logits*mask, labels*mask)
+        #dice = self.dice(logits*mask, labels*mask)
+        dice=0
         loss = bce + dice
         batch['logits'] = logits.detach()
         self.log('Train_sup_BCE', bce)
@@ -113,7 +114,8 @@ class Smp_Unet_BCE_binary(BaseModule):
         mask = torch.ones_like(labels, dtype=labels.dtype, device=labels.device)
         bce = self.bce(logits, labels.float())
         bce = torch.sum(mask * bce) / torch.sum(mask)
-        dice = self.dice(logits*mask, labels*mask)
+        #dice = self.dice(logits*mask, labels*mask)
+        dice=0
         loss = bce + dice
         self.log('Val_BCE', bce)
         self.log('Val_Dice', dice)
