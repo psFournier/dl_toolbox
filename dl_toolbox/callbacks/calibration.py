@@ -48,6 +48,7 @@ def plot_calib(count_bins, acc_bins, conf_bins, max_points):
         xlim=(None, 1),
         ylim=(None, 1)
     )
+    sns.lineplot(x=[0,1], y=[0,1], ax=g.ax_joint, dashes=True)
     g.ax_joint.set_xlabel('average confidence')
     g.ax_joint.set_ylabel('average accuracy')
 

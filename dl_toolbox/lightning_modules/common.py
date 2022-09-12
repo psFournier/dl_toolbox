@@ -34,7 +34,7 @@ class BaseModule(pl.LightningModule):
 
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--num_classes", type=int)
-        parser.add_argument("--weights", type=int, nargs="+")
+        parser.add_argument("--weights", type=float, nargs="+")
         parser.add_argument("--ignore_index", type=int)
 
         return parser
