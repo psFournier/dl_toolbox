@@ -52,7 +52,7 @@ class SegmentationImagesVisualisation(pl.Callback):
         preds_rgb = self.visu_fn(preds).transpose((0,3,1,2))
         np_preds_rgb = torch.from_numpy(preds_rgb).float()
 
-        if 'mask' in batch.keys(): 
+        if batch['mask'] is not None: 
             labels = batch['mask'].cpu()
             labels_rgb = self.visu_fn(labels).transpose((0,3,1,2))
             np_labels_rgb = torch.from_numpy(labels_rgb).float()
@@ -74,7 +74,7 @@ class SegmentationImagesVisualisation(pl.Callback):
             out_grid = torchvision.utils.make_grid(np_preds_rgb[start:end, :, :, :], padding=10, normalize=True)
             grids = [orig_img_grid, img_grid, out_grid]
 
-            if 'mask' in batch.keys():
+            if batch['mask'] is not None:
                 mask_grid = torchvision.utils.make_grid(np_labels_rgb[start:end, :, :, :], padding=10, normalize=True)
                 grids.append(mask_grid)
 
