@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from dl_toolbox.lightning_modules.utils import *
 from dl_toolbox.lightning_modules import BaseModule
 import numpy as np
-from dl_toolbox.augmentations import Cutmix
+from dl_toolbox.augmentations import Cutmix,Cutmix2
 
 class MT(BaseModule):
 

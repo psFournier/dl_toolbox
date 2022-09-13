@@ -4,7 +4,7 @@ from .d4 import Vflip, Hflip, Transpose1, Transpose2, D4, Rot90, Rot270, Rot180
 from .geometric import Sharpness
 from .histograms import HistEq
 from .mixup import Mixup, Mixup2
-from .cutmix import Cutmix
+from .cutmix import Cutmix, Cutmix2
 from .merge_label import MergeLabels
 from .normalizations import ImagenetNormalize
 #from .getters import get_image_level_aug, get_batch_level_aug, image_level_aug
