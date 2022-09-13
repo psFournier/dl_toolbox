@@ -94,7 +94,7 @@ class MT(BaseModule):
 
     def forward(self, x):
  
-        return self.network2(x)
+        return self.network1(x)
 
     def on_train_epoch_start(self):
 

@@ -44,6 +44,7 @@ def plot_calib(count_bins, acc_bins, conf_bins, max_points):
         x=np.asarray(conf),
         y=np.asarray(acc),
         kind='kde',
+        fill=True,
         color='b',
         xlim=(None, 1),
         ylim=(None, 1)
@@ -129,18 +130,27 @@ class CalibrationLogger(pl.Callback):
     def on_validation_epoch_end(self, trainer, pl_module):
         
         if trainer.current_epoch % self.freq == 0:
+            
+            acc_bins = torch.zeros(self.n_bins)
+            conf_bins = torch.zeros(self.n_bins)
+            count_bins = torch.zeros(self.n_bins)
+            tot_steps = 0
 
             for i in range(pl_module.num_classes):
                 if i != pl_module.ignore_index:
-
+                    
+                    acc_bins += self.acc_bins[i]
                     self.acc_bins[i] /= self.nb_step
+                    conf_bins += self.conf_bins[i]
                     self.conf_bins[i] /= self.nb_step
+                    count_bins += self.count_bins[i]
+                    tot_steps += self.nb_step
 
                     figure = plot_calib(
                         self.count_bins[i],
                         self.acc_bins[i],
                         self.conf_bins[i],
-                        max_points=10000
+                        max_points=100000
                     )
                     trainer.logger.experiment.add_figure(
                         f"Calibration for class {i}",
@@ -150,6 +160,18 @@ class CalibrationLogger(pl.Callback):
                     self.acc_bins[i] = torch.zeros(self.n_bins)
                     self.conf_bins[i] = torch.zeros(self.n_bins)
                     self.count_bins[i] = torch.zeros(self.n_bins)
+                    
+            figure = plot_calib(
+                count_bins,
+                acc_bins,
+                conf_bins,
+                max_points=100000
+            )
+            trainer.logger.experiment.add_figure(
+                f"Calibration globale",
+                figure,
+                global_step=trainer.global_step
+            )
 
             self.nb_step = 0
 
