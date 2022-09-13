@@ -14,7 +14,7 @@ class SegmentationImagesVisualisation(pl.Callback):
 
     """
 
-    NB_COL: int = 4
+    NB_COL: int = 2
 
     def __init__(self, visu_fn, freq, *args, **kwargs):
 
@@ -22,33 +22,24 @@ class SegmentationImagesVisualisation(pl.Callback):
         self.visu_fn = visu_fn 
         self.freq = freq
 
-    def on_train_batch_end(
-            self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
-    ) -> None:
+#    def on_train_batch_end(
+#            self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
+#    ) -> None:
 
-        if trainer.current_epoch % self.freq == 0 and batch_idx == 0:
-
-            self.display_batch(
-                trainer,
-                outputs['batch'],
-                prefix='Train'
-            )
-
-            if 'unsup_batch' in outputs.keys():
-                self.display_batch(
-                    trainer,
-                    outputs['unsup_batch'],
-                    prefix='UnsupTrain'
-                )
+#        if trainer.current_epoch % self.freq == 0 and batch_idx == 0:
+#
+#            self.display_batch(
+#                trainer,
+#                outputs['batch'],
+#                prefix='Train'
+#        )
             
     def display_batch(self, trainer, batch, prefix):
 
         img = batch['image'].cpu()
         orig_img = batch['orig_image'].cpu()
-        logits = batch['logits'].cpu()
+        preds = batch['preds'].cpu()
 
-        probs = torch.softmax(logits, dim=1)
-        top_probs, preds = torch.max(probs, dim=1)
         preds_rgb = self.visu_fn(preds).transpose((0,3,1,2))
         np_preds_rgb = torch.from_numpy(preds_rgb).float()
 
@@ -81,7 +72,6 @@ class SegmentationImagesVisualisation(pl.Callback):
             final_grid = torch.cat(grids, dim=1)
 
             trainer.logger.experiment.add_image(f'Images/{prefix}_batch_art_{idx}', final_grid, global_step=trainer.global_step)
-            break
 
     def on_validation_batch_end(
             self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx, dataloader_idx

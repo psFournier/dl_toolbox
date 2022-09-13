@@ -150,7 +150,7 @@ class CalibrationLogger(pl.Callback):
                         self.count_bins[i],
                         self.acc_bins[i],
                         self.conf_bins[i],
-                        max_points=100000
+                        max_points=10000
                     )
                     trainer.logger.experiment.add_figure(
                         f"Calibration for class {i}",

@@ -44,7 +44,7 @@ class Smp_Unet_BCE_binary(BaseModule):
         self.lr_milestones = list(lr_milestones)
         self.bce = nn.BCEWithLogitsLoss(
             reduction='none',
-            pos_weight=torch.Tensor(self.weights).reshape(1, -1, 1, 1)
+            pos_weight=torch.Tensor(self.weights).reshape(1, 1, 1)
         )
         self.dice = DiceLoss(
             mode="binary",
@@ -75,8 +75,8 @@ class Smp_Unet_BCE_binary(BaseModule):
         inputs = batch['image']
         labels = batch['mask']
         mask = torch.ones_like(labels, dtype=labels.dtype, device=labels.device)
-        logits = self.network(inputs).squeeze()
-        bce = self.bce(logits, labels.float())
+        logits = self.network(inputs)
+        bce = self.bce(logits.squeeze(), labels.float())
         bce = torch.sum(mask * bce) / torch.sum(mask)
         #dice = self.dice(logits*mask, labels*mask)
         dice=0
@@ -92,8 +92,8 @@ class Smp_Unet_BCE_binary(BaseModule):
 
         inputs = batch['image']
         labels = batch['mask']
-        logits = self.forward(inputs).squeeze()
-        probas = torch.sigmoid(logits)
+        logits = self.forward(inputs)
+        probas = torch.sigmoid(logits.squeeze())
         probas = torch.stack([1-probas, probas], dim=1)
         confidences, preds = torch.max(probas, dim=1)
 
@@ -112,7 +112,7 @@ class Smp_Unet_BCE_binary(BaseModule):
         )
         
         mask = torch.ones_like(labels, dtype=labels.dtype, device=labels.device)
-        bce = self.bce(logits, labels.float())
+        bce = self.bce(logits.squeeze(), labels.float())
         bce = torch.sum(mask * bce) / torch.sum(mask)
         #dice = self.dice(logits*mask, labels*mask)
         dice=0
