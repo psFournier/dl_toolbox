@@ -96,8 +96,8 @@ def main():
                 labels=datasets[args.dataset]['labels'][args.labels].keys(),
                 freq=50
             ),
-            CalibrationLogger(freq=50),
-            ClassDistribLogger(freq=100)
+            CalibrationLogger(freq=10),
+            ClassDistribLogger(freq=200)
             #StochasticWeightAveraging(
             #    swa_epoch_start=0.91,
             #    swa_lrs=0.005,
