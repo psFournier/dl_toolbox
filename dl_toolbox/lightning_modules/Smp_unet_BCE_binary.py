@@ -29,7 +29,7 @@ class Smp_Unet_BCE_binary(BaseModule):
                  **kwargs):
 
         super().__init__(*args, **kwargs)
-        self.num_classes = 1 
+
         self.ignore_index = -1
         self.network = smp.Unet(
             encoder_name=encoder,

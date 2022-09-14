@@ -172,7 +172,7 @@ class DigitanieMontpellierDs(DigitanieDs):
 class DigitanieBiarritzDs(DigitanieDs):
 
     stats = {}
-    stats['min'] = np.array([-544, -503, 473, -652])
+    stats['min'] = np.array([-544, -503, -473, -652])
     stats['max'] = np.array([19498, 19829, 17822, 27880])
 
     def __init__(self, *args, **kwargs):

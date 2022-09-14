@@ -160,18 +160,6 @@ class CalibrationLogger(pl.Callback):
                     self.acc_bins[i] = torch.zeros(self.n_bins)
                     self.conf_bins[i] = torch.zeros(self.n_bins)
                     self.count_bins[i] = torch.zeros(self.n_bins)
-                    
-            figure = plot_calib(
-                count_bins,
-                acc_bins,
-                conf_bins,
-                max_points=100000
-            )
-            trainer.logger.experiment.add_figure(
-                f"Calibration globale",
-                figure,
-                global_step=trainer.global_step
-            )
 
             self.nb_step = 0
 
