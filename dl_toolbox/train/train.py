@@ -67,6 +67,7 @@ def main():
 
     parser = ArgumentParser()
     parser.add_argument("--output_dir", type=str, default="./outputs")
+    parser.add_argument("--version", type=str, default=None)
     parser.add_argument("--exp_name", type=str)
     parser.add_argument("--model", type=str)
     parser.add_argument("--dataset", type=str)
@@ -82,7 +83,7 @@ def main():
     pl_module = models[args.model]['cls'](**args_dict)
     trainer = Trainer.from_argparse_args(
         args,
-        logger=TensorBoardLogger(args.output_dir, name=args.exp_name),
+        logger=TensorBoardLogger(args.output_dir, version=args.version, name=args.exp_name),
         profiler=SimpleProfiler(),
         callbacks=[
             ModelCheckpoint(),
@@ -94,7 +95,7 @@ def main():
             ),
             ConfMatLogger(
                 labels=datasets[args.dataset]['labels'][args.labels].keys(),
-                freq=50
+                freq=10
             ),
             CalibrationLogger(freq=10),
             ClassDistribLogger(freq=200)
