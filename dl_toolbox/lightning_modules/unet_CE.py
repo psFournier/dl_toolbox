@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 from dl_toolbox.lightning_modules.utils import *
 from dl_toolbox.lightning_modules import BaseModule
-from dl_toolbox.networks import UNet
+from dl_toolbox.networks import UNet_enc
 
 
 class Unet_CE(BaseModule):
@@ -31,10 +31,9 @@ class Unet_CE(BaseModule):
 
         super().__init__(*args, **kwargs)
         
-        self.network = UNet(
+        self.network = UNet_enc(
             n_channels=in_channels,
             n_classes=self.num_classes,
-            bilinear=True
         )
         self.in_channels = in_channels
         self.initial_lr = initial_lr
@@ -74,6 +73,8 @@ class Unet_CE(BaseModule):
         inputs = batch['image']
         labels = batch['mask']
         logits = self.network(inputs)
+        print(logits.shape)
+        print(labels.shape)
         loss1 = self.loss1(logits, labels)
         #loss2 = self.loss2(logits, labels)
         loss2=0

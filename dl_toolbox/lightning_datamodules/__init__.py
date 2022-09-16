@@ -9,3 +9,4 @@
 from .supervised_dm import SupervisedDm
 from .semisup_dm import SemisupDm
 from .utils import read_splitfile
+from .resisc import ResiscDm
