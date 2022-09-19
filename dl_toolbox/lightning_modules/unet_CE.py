@@ -73,8 +73,6 @@ class Unet_CE(BaseModule):
         inputs = batch['image']
         labels = batch['mask']
         logits = self.network(inputs)
-        print(logits.shape)
-        print(labels.shape)
         loss1 = self.loss1(logits, labels)
         #loss2 = self.loss2(logits, labels)
         loss2=0

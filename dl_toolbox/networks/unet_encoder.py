@@ -47,10 +47,9 @@ class UNet_enc(nn.Module):
         self.down2 = Down(32, 64)
         self.down3 = Down(64, 128)
         self.down4 = Down(128, 256)
-        self.down5 = Down(256, 32)
-        self.fc1 = nn.Linear(32*8*8,512)
-        self.fc2 = nn.Linear(512,256)
-        self.pred = nn.Linear(256,self.n_classes)
+        self.down5 = Down(256, 16)
+        self.fc1 = nn.Linear(16*8*8,512)
+        self.pred = nn.Linear(512,self.n_classes)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -60,6 +59,5 @@ class UNet_enc(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
         x6 = self.down5(x5)
-        fc1 = self.relu(self.fc1(x6.view(-1,32*8*8)))
-        fc2 = self.relu(self.fc2(fc1))
-        return self.pred(fc2)
+        fc1 = self.relu(self.fc1(x6.view(-1,16*8*8)))
+        return self.pred(fc1)

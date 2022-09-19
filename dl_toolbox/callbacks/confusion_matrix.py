@@ -17,12 +17,12 @@ def plot_confusion_matrix(cm, class_names):
       cm (array, shape = [n, n]): a confusion matrix of integer classes
       class_names (array, shape = [n]): String names of the integer classes
     """
-    figure = plt.figure(figsize=(8, 8))
+    figure = plt.figure(figsize=(15,15))
     plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
     plt.title("Confusion matrix")
     plt.colorbar()
     tick_marks = np.arange(len(class_names))
-    plt.xticks(tick_marks, class_names, rotation=45)
+    plt.xticks(tick_marks, class_names, rotation=90)
     plt.yticks(tick_marks, class_names)
 
     # Compute the labels from the normalized confusion matrix.
@@ -32,7 +32,7 @@ def plot_confusion_matrix(cm, class_names):
     threshold = cm.max() / 2.0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         color = "white" if cm[i, j] > threshold else "black"
-        plt.text(j, i, labels[i, j], horizontalalignment="center", color=color)
+        #plt.text(j, i, labels[i, j], horizontalalignment="center", color=color)
 
     plt.tight_layout()
     plt.ylabel("True label")
@@ -63,11 +63,9 @@ class ConfMatLogger(pl.Callback):
         if trainer.current_epoch % self.freq == 0:
             
             batch = outputs['batch']
-            inputs, labels = batch['image'], batch['mask'] # labels shape B,H,W, values in {0, C-1}
-            #probas = outputs['probas'] # dim B,C-1,H,W
-            preds = batch['preds'] # ajouter preds aux autres méthodes
-
-            self.conf_mat(preds.cpu(), labels.cpu())
+            labels = batch['mask'].cpu() # labels shape B,H,W, values in {0, C-1}
+            preds = batch['preds'].cpu() 
+            self.conf_mat(preds, labels)
 
     def on_validation_epoch_end(self, trainer, pl_module):
         

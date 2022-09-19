@@ -46,16 +46,14 @@ class ResiscDm(LightningDataModule):
     def setup(self, stage=None):
 
         self.sup_train_set = ResiscDs(
-            datadir='/home/pfournie/ai4geo/data/NWPU-RESISC45',
-            cls_list=['forest', 'harbor'],
-            idxs=list(range(1, 100)),
-            img_aug='d4'
+            datadir='/d/pfournie/ai4geo/data/NWPU-RESISC45',
+            idxs=list(range(1, 650)),
+            img_aug=self.img_aug
         )
 
         self.val_set = ResiscDs(
-            datadir='/home/pfournie/ai4geo/data/NWPU-RESISC45',
-            cls_list=['forest', 'harbor'],
-            idxs=list(range(100, 125)),
+            datadir='/d/pfournie/ai4geo/data/NWPU-RESISC45',
+            idxs=list(range(650, 700)),
             img_aug='no'
         )
 

@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from pytorch_lightning.callbacks import ModelCheckpoint,StochasticWeightAveraging
+from pytorch_lightning.callbacks import ModelCheckpoint,StochasticWeightAveraging, DeviceStatsMonitor
 from pytorch_lightning import Trainer 
 from pytorch_lightning.profiler import SimpleProfiler
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -71,18 +71,23 @@ def main():
 
     pl_datamodule = ResiscDm(**args_dict)
     pl_module = models[args.model]['cls'](**args_dict)
+
     trainer = Trainer.from_argparse_args(
         args,
         logger=TensorBoardLogger(args.output_dir, version=args.version, name=args.exp_name),
         profiler=SimpleProfiler(),
         callbacks=[
             ModelCheckpoint(),
-            ConfMatLogger(
-                labels=['forest', 'harbor'],
-                freq=1
-            ),
-            CalibrationLogger(freq=1),
-            ClassDistribLogger(freq=1)
+            DeviceStatsMonitor(),
+            #ConfMatLogger(
+            #    labels=ResiscDs.cls_names,
+            #    freq=1
+            #),
+            #CalibrationLogger(
+            #    per_class=False,
+            #    freq=1
+            #),
+            #ClassDistribLogger(freq=100)
             #StochasticWeightAveraging(
             #    swa_epoch_start=0.91,
             #    swa_lrs=0.005,
@@ -91,8 +96,8 @@ def main():
             #    device=None
             #),
         ],
-        log_every_n_steps=1,
-        flush_logs_every_n_steps=1,
+        log_every_n_steps=100,
+        flush_logs_every_n_steps=100,
         num_sanity_val_steps=0,
         check_val_every_n_epoch=1,
         benchmark=True
