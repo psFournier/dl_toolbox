@@ -80,6 +80,13 @@ class BaseModule(pl.LightningModule):
         bins = torch.bincount(unique_mapping, minlength=self.num_classes**2)
         conf_mat = bins.reshape(self.num_classes, self.num_classes)
         
+        acc_bins, conf_bins, count_bins = compute_calibration_bins(
+            torch.linspace(0, 1, 100 + 1).to(self.device),
+            labels.flatten(),
+            confidences.flatten(),
+            preds.flatten()
+        )
+        
         loss1 = self.loss1(logits, labels)
         #loss2 = self.loss2(logits, labels)
         loss2=0
@@ -88,7 +95,9 @@ class BaseModule(pl.LightningModule):
         self.log('Val_Dice', loss2)
         self.log('Val_loss', loss)
 
-        return {'batch': batch,
+        return {'acc_bins': acc_bins.detach(),
+                'conf_bins': conf_bins.detach(),
+                'count_bins': count_bins.detach(),
                 'stat_scores': stat_scores.detach(),
                 'conf_mat': conf_mat.detach()
                 }
@@ -135,22 +144,21 @@ class BaseModule(pl.LightningModule):
             global_step=self.trainer.global_step
         )
 
-        labels = [out['batch']['mask'].flatten() for out in outs]
-        preds = [out['batch']['preds'].flatten() for out in outs]
-        confs = [out['batch']['confs'].flatten() for out in outs]
-
-        acc_bins, conf_bins, count_bins = compute_calibration_bins(
-            torch.linspace(0, 1, 100 + 1).to(self.device),
-            torch.cat(labels, dim=0),
-            torch.cat(confs, dim=0),
-            torch.cat(preds, dim=0)
-        )
+        count_bins = torch.stack([out['count_bins'] for out in outs])
+        conf_bins = torch.stack([out['conf_bins'] for out in outs])
+        acc_bins = torch.stack([out['acc_bins'] for out in outs])
+        
+        counts = torch.sum(count_bins, dim=0)
+        accs = torch.sum(torch.mul(acc_bins, count_bins), dim=0)
+        accs = torch.div(accs, counts)
+        confs = torch.sum(torch.mul(conf_bins, count_bins), dim=0)
+        confs = torch.div(confs, counts)
 
         figure = plot_calib(
-            count_bins.cpu().numpy(),
-            acc_bins.cpu().numpy(),
-            conf_bins.cpu().numpy(),
-            max_points=1000
+            counts.cpu().numpy(),
+            accs.cpu().numpy(),
+            confs.cpu().numpy(),
+            max_points=10000
         )
 
         self.trainer.logger.experiment.add_figure(

@@ -26,13 +26,14 @@ def plot_confusion_matrix(cm, class_names):
     plt.yticks(tick_marks, class_names)
 
     # Compute the labels from the normalized confusion matrix.
-    labels = np.around(cm.astype("float"), decimals=2)
+    # labels = np.around(cm.astype("float"), decimals=2)
+    labels = int(np.around(cm.astype('float') * 100))
 
     # Use white text if squares are dark; otherwise black.
     threshold = cm.max() / 2.0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         color = "white" if cm[i, j] > threshold else "black"
-        #plt.text(j, i, labels[i, j], horizontalalignment="center", color=color)
+        plt.text(j, i, labels[i, j], fontsize=10, horizontalalignment="center", color=color)
 
     plt.tight_layout()
     plt.ylabel("True label")

@@ -87,18 +87,6 @@ def main():
         profiler=SimpleProfiler(),
         callbacks=[
             ModelCheckpoint(),
-            SegmentationImagesVisualisation(
-                visu_fn=LabelsToRGB(
-                    labels=datasets[args.dataset]['labels'][args.labels]
-                ),
-                freq=50
-            ),
-            ConfMatLogger(
-                labels=datasets[args.dataset]['labels'][args.labels].keys(),
-                freq=10
-            ),
-            CalibrationLogger(freq=10),
-            ClassDistribLogger(freq=200)
             #StochasticWeightAveraging(
             #    swa_epoch_start=0.91,
             #    swa_lrs=0.005,
