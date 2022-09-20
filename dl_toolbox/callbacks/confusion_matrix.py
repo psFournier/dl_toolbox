@@ -27,7 +27,7 @@ def plot_confusion_matrix(cm, class_names):
 
     # Compute the labels from the normalized confusion matrix.
     # labels = np.around(cm.astype("float"), decimals=2)
-    labels = int(np.around(cm.astype('float') * 100))
+    labels = np.around(cm.astype('float') * 100).astype('int')
 
     # Use white text if squares are dark; otherwise black.
     threshold = cm.max() / 2.0
