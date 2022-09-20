@@ -52,20 +52,17 @@ class BaseModule(pl.LightningModule):
 
         return [self.optimizer], [scheduler]
 
+    def _compute_probas(self, logits):
+
+        return logits.softmax(dim=1)
+
     def validation_step(self, batch, batch_idx):
 
         inputs = batch['image']
         labels = batch['mask']
         logits = self.forward(inputs)
-        probas = logits.softmax(dim=1)
+        probas = self._compute_probas(logits)
         confidences, preds = torch.max(probas, dim=1)
-
-        batch['probas'] = probas.detach()
-        batch['confs'] = confidences.detach()
-        batch['preds'] = preds.detach()
-        batch['logits'] = logits.detach()
-        batch['mask'] = labels.detach()
-        batch['image'] = inputs.detach()
 
         stat_scores = torchmetrics.stat_scores(
             preds,
@@ -87,19 +84,13 @@ class BaseModule(pl.LightningModule):
             preds.flatten()
         )
         
-        loss1 = self.loss1(logits, labels)
-        #loss2 = self.loss2(logits, labels)
-        loss2=0
-        loss = loss1 + loss2
-        self.log('Val_CE', loss1)
-        self.log('Val_Dice', loss2)
-        self.log('Val_loss', loss)
 
         return {'acc_bins': acc_bins.detach(),
                 'conf_bins': conf_bins.detach(),
                 'count_bins': count_bins.detach(),
                 'stat_scores': stat_scores.detach(),
-                'conf_mat': conf_mat.detach()
+                'conf_mat': conf_mat.detach(),
+                'logits': logits.detach()
                 }
 
     def validation_epoch_end(self, outs):

@@ -102,30 +102,21 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         batch['logits'] = logits.detach()
 
         return {'batch': batch, "loss": loss}
+    
+    def _compute_probas(self, logits):
+
+        b,c,h,w = logits.shape
+        z = torch.zeros(b,1,h,w, device=logits.device)
+        p = torch.cat([z, torch.sigmoid(logits)], dim=1)
+
+        return p
 
     def validation_step(self, batch, batch_idx):
 
-        inputs = batch['image']
+        outs = super().validation_step(batch, batch_idx)
+        
         labels = batch['mask']
-        logits = self.forward(inputs)
-        probas = torch.sigmoid(logits) # B,C-1,H,W
-        confidences, preds = torch.max(probas, dim=1)
-        preds += 1
-
-        batch['probas'] = probas.detach()
-        batch['confs'] = confidences.detach()
-        batch['preds'] = preds.detach()
-        batch['logits'] = logits.detach()
-
-        stat_scores = torchmetrics.stat_scores(
-            preds,
-            labels,
-            ignore_index=self.ignore_index if self.ignore_index >= 0 else None,
-            mdmc_reduce='global',
-            reduce='macro',
-            num_classes=self.num_classes
-        )
-
+        logits = outs['logits']
         onehot_labels = self.onehot(labels).float() # B,C,H,W
         final_labels = onehot_labels[:, 1:, ...]
         mask = torch.ones_like(
@@ -144,6 +135,4 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         self.log('Val_Dice', dice)
         self.log('Val_loss', loss)
 
-        return {'batch': batch,
-                'stat_scores': stat_scores.detach(),
-                }    
+        return outs    

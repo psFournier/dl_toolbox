@@ -95,8 +95,8 @@ def main():
             #    device=None
             #),
         ],
-        log_every_n_steps=500,
-        flush_logs_every_n_steps=500,
+        log_every_n_steps=1,
+        flush_logs_every_n_steps=1,
         num_sanity_val_steps=0,
         check_val_every_n_epoch=1,
         benchmark=True

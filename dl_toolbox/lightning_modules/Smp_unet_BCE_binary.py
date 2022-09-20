@@ -88,29 +88,19 @@ class Smp_Unet_BCE_binary(BaseModule):
 
         return {'batch': batch, "loss": loss}
 
-    def validation_step(self, batch, batch_idx):
+    def _compute_probas(self, logits):
 
-        inputs = batch['image']
-        labels = batch['mask']
-        logits = self.forward(inputs)
         probas = torch.sigmoid(logits.squeeze())
         probas = torch.stack([1-probas, probas], dim=1)
-        confidences, preds = torch.max(probas, dim=1)
 
-        batch['probas'] = probas.detach()
-        batch['confs'] = confidences.detach()
-        batch['preds'] = preds.detach()
-        batch['logits'] = logits.detach()
+        return probas
+
+    def validation_step(self, batch, batch_idx):
+
+        outs = super().validation_step(batch, batch_idx)
         
-        stat_scores = torchmetrics.stat_scores(
-            preds,
-            labels,
-            ignore_index=None,
-            mdmc_reduce='global',
-            reduce='macro',
-            num_classes=2
-        )
-        
+        labels = batch['mask']
+        logits = outs['logits']
         mask = torch.ones_like(labels, dtype=labels.dtype, device=labels.device)
         bce = self.bce(logits.squeeze(), labels.float())
         bce = torch.sum(mask * bce) / torch.sum(mask)
@@ -121,6 +111,4 @@ class Smp_Unet_BCE_binary(BaseModule):
         self.log('Val_Dice', dice)
         self.log('Val_loss', loss)
 
-        return {'batch': batch,
-                'stat_scores': stat_scores.detach(),
-                }
+        return outs
