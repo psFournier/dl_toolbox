@@ -40,6 +40,19 @@ def plot_confusion_matrix(cm, class_names):
     plt.xlabel("Predicted label")
     return figure
 
+def compute_conf_mat(labels, preds, num_classes, ignore_idx=None):
+
+    if ignore_idx is not None:
+        idx = labels != ignore_idx
+        preds = preds[idx]
+        labels = labels[idx]
+
+    unique_mapping = (labels * num_classes + preds).to(torch.long)
+    bins = torch.bincount(unique_mapping, minlength=num_classes**2)
+    conf_mat = bins.reshape(num_classes, num_classes)
+
+    return conf_mat
+    
 
 class ConfMatLogger(pl.Callback):
 

@@ -78,7 +78,7 @@ def main():
         profiler=SimpleProfiler(),
         callbacks=[
             ModelCheckpoint(),
-            DeviceStatsMonitor(),
+            #DeviceStatsMonitor(),
             #ConfMatLogger(
             #    labels=ResiscDs.cls_names,
             #    freq=1

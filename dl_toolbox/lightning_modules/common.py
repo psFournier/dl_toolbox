@@ -9,7 +9,7 @@ import torchmetrics.functional as torchmetrics
 from dl_toolbox.losses import DiceLoss
 from copy import deepcopy
 import torch.nn.functional as F
-from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins
+from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat
 
 from dl_toolbox.lightning_modules.utils import *
 import numpy as np
@@ -64,24 +64,29 @@ class BaseModule(pl.LightningModule):
         probas = self._compute_probas(logits)
         confidences, preds = torch.max(probas, dim=1)
 
+        ignore_idx = self.ignore_index if self.ignore_index >= 0 else None
         stat_scores = torchmetrics.stat_scores(
             preds,
             labels,
-            ignore_index=self.ignore_index if self.ignore_index >= 0 else None,
+            ignore_index=ignore_idx,
             mdmc_reduce='global',
             reduce='macro',
             num_classes=self.num_classes
         )
-
-        unique_mapping = (labels.flatten() * self.num_classes + preds.flatten()).to(torch.long)
-        bins = torch.bincount(unique_mapping, minlength=self.num_classes**2)
-        conf_mat = bins.reshape(self.num_classes, self.num_classes)
+        
+        conf_mat = compute_conf_mat(
+            labels.flatten(),
+            preds.flatten(),
+            self.num_classes,
+            ignore_idx=None
+        )
         
         acc_bins, conf_bins, count_bins = compute_calibration_bins(
             torch.linspace(0, 1, 100 + 1).to(self.device),
             labels.flatten(),
             confidences.flatten(),
-            preds.flatten()
+            preds.flatten(),
+            ignore_idx=ignore_idx
         )
         
 
@@ -119,19 +124,25 @@ class BaseModule(pl.LightningModule):
 
         conf_mats = [out['conf_mat'] for out in outs]
 
-        cm = torch.stack(conf_mats, dim=0).sum(dim=0)
-        cm = cm.cpu().numpy()
-        cm_recall = cm/np.sum(cm,axis=1, keepdims=True)
-        cm_precision = cm/np.sum(cm,axis=0,keepdims=True)
+        cm = torch.stack(conf_mats, dim=0).sum(dim=0).cpu()
+        sum_col = torch.sum(cm,dim=1, keepdim=True)
+        print(cm)
+        print(sum_col)
+        sum_lin = torch.sum(cm,dim=0, keepdim=True)
+        if self.ignore_index >= 0: sum_lin -= cm[self.ignore_index,:]
+        cm_recall = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.)
+        cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.)
+        #cm_recall = np.divide(cm, sum_col, out=np.zeros_like(cm), where=sum_col!=0)
+        #cm_precision = np.divide(cm, sum_lin, out=np.zeros_like(cm), where=sum_lin!=0)
         
         self.trainer.logger.experiment.add_figure(
             "Confusion matrix recall", 
-            plot_confusion_matrix(cm_recall, class_names=[str(i) for i in range(num_classes)]), 
+            plot_confusion_matrix(cm_recall.numpy(), class_names=[str(i) for i in range(num_classes)]), 
             global_step=self.trainer.global_step
         )
         self.trainer.logger.experiment.add_figure(
             "Confusion matrix precision", 
-            plot_confusion_matrix(cm_precision, class_names=[str(i) for i in range(num_classes)]), 
+            plot_confusion_matrix(cm_precision.numpy(), class_names=[str(i) for i in range(num_classes)]), 
             global_step=self.trainer.global_step
         )
 
