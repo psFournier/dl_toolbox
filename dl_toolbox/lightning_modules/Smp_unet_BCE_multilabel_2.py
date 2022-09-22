@@ -40,6 +40,7 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
             classes=self.num_classes - 1,
             decoder_use_batchnorm=True
         )
+        self.out_channels = self.num_classes - 1
         self.in_channels = in_channels
         self.initial_lr = initial_lr
         self.final_lr = final_lr

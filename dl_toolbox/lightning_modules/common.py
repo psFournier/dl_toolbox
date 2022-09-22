@@ -28,6 +28,7 @@ class BaseModule(pl.LightningModule):
         super().__init__()
 
         self.num_classes = num_classes
+        self.out_channels = self.num_classes
         self.weights = list(weights) if len(weights)>0 else [1]*self.num_classes
         self.ignore_index = ignore_index
 
@@ -126,8 +127,6 @@ class BaseModule(pl.LightningModule):
 
         cm = torch.stack(conf_mats, dim=0).sum(dim=0).cpu()
         sum_col = torch.sum(cm,dim=1, keepdim=True)
-        print(cm)
-        print(sum_col)
         sum_lin = torch.sum(cm,dim=0, keepdim=True)
         if self.ignore_index >= 0: sum_lin -= cm[self.ignore_index,:]
         cm_recall = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.)
