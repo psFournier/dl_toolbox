@@ -101,6 +101,20 @@ class Smp_Unet_BCE_Mixup(BaseModule):
         batch['logits'] = logits.detach()
 
         return {'batch': batch, "loss": loss}
+    
+    def _compute_probas(self, logits):
+
+        return torch.sigmoid(logits)
+    
+    def _compute_conf_preds(self, probas):
+        
+        aux_confs, aux_preds = torch.max(probas, axis=1)
+        cond = aux_confs > 0.5
+        preds = torch.where(cond, aux_preds + 1, 0)
+        confs = torch.where(cond, aux_confs, 1-aux_confs)
+        
+        return confs, preds
+
 
     def validation_step(self, batch, batch_idx):
 

@@ -41,6 +41,14 @@ digitanie_labels = {
         'bitumen': {'color': (100, 100, 100)},
         'swimming pool': {'color': (50, 150, 250)}
     },
+    '6class' : {
+        'other': {'color': (0, 0, 0)},
+        'low vegetation': {'color':(0, 250, 50)},
+        'water': {'color': (0, 50, 250)},
+        'building': {'color': (250, 50, 50)},
+        'high vegetation': {'color': (0, 100, 50)},
+        'road': {'color': (100, 100, 100)}
+    },
     'semcity' : {
         'other': {'color': (255, 255, 255)},
         'pervious surface': {'color': (34, 139, 34)},
@@ -58,6 +66,7 @@ digitanie_labels = {
 digitanie_label_mergers = {
     'base' : [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],
     '7class' : [[0, 1, 7, 9], [2], [3], [4], [5], [6, 8], [10]],
+    '6class' : [[0, 1, 6, 7, 9, 10], [2], [3], [4], [5], [8]],
     'semcity' : [[0, 9], [1, 2], [3, 10], [4], [5], [6, 7, 8]],
     'building' : [[0,1,2,3,5,6,7,8,9,10],[4]]
 }

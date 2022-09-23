@@ -17,28 +17,46 @@ def plot_confusion_matrix(cm, class_names):
       cm (array, shape = [n, n]): a confusion matrix of integer classes
       class_names (array, shape = [n]): String names of the integer classes
     """
-    figure = plt.figure(figsize=(15,15))
-    plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-    plt.title("Confusion matrix")
-    plt.colorbar()
     tick_marks = np.arange(len(class_names))
-    plt.xticks(tick_marks, class_names, rotation=90)
-    plt.yticks(tick_marks, class_names)
-
+    
+    sum_col = torch.sum(cm,dim=1, keepdim=True)
+    sum_lin = torch.sum(cm,dim=0, keepdim=True)
+    cm_recall = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.).numpy()
+    cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.).numpy()
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 20), gridspec_kw={'width_ratios': [1, 1]})
+    
+    ax1.imshow(cm_recall, interpolation="nearest", cmap=plt.cm.Blues)
+    ax1.set_title("Recall matrix")
+    ax1.set_xticks(tick_marks, class_names, rotation=90)
+    ax1.set_yticks(tick_marks, class_names)
     # Compute the labels from the normalized confusion matrix.
     # labels = np.around(cm.astype("float"), decimals=2)
-    labels = np.around(cm.astype('float') * 100).astype('int')
-
+    labels = np.around(cm_recall.astype('float') * 100).astype('int')
     # Use white text if squares are dark; otherwise black.
-    threshold = cm.max() / 2.0
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        color = "white" if cm[i, j] > threshold else "black"
-        plt.text(j, i, labels[i, j], fontsize=10, horizontalalignment="center", color=color)
-
-    plt.tight_layout()
-    plt.ylabel("True label")
-    plt.xlabel("Predicted label")
-    return figure
+    threshold = cm_recall.max() / 2.0
+    for i, j in itertools.product(range(cm_recall.shape[0]), range(cm_recall.shape[1])):
+        color = "white" if cm_recall[i, j] > threshold else "black"
+        ax1.text(j, i, labels[i, j], fontsize=10, horizontalalignment="center", color=color)
+    ax1.set_ylabel("True label")
+    ax1.set_xlabel("Predicted label")
+    
+    ax2.imshow(cm_precision, interpolation="nearest", cmap=plt.cm.Blues)
+    ax2.set_title("Precision matrix")
+    ax2.set_xticks(tick_marks, class_names, rotation=90)
+    #ax2.set_yticks(tick_marks, class_names)
+    # Compute the labels from the normalized confusion matrix.
+    # labels = np.around(cm.astype("float"), decimals=2)
+    labels = np.around(cm_precision.astype('float') * 100).astype('int')
+    # Use white text if squares are dark; otherwise black.
+    threshold = cm_precision.max() / 2.0
+    for i, j in itertools.product(range(cm_precision.shape[0]), range(cm_precision.shape[1])):
+        color = "white" if cm_precision[i, j] > threshold else "black"
+        ax2.text(j, i, labels[i, j], fontsize=10, horizontalalignment="center", color=color)
+    ax2.set_ylabel("True label")
+    ax2.set_xlabel("Predicted label")
+    
+    return fig
 
 def compute_conf_mat(labels, preds, num_classes, ignore_idx=None):
 

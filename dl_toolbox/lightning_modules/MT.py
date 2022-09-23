@@ -172,3 +172,17 @@ class MT(BaseModule):
         outputs['loss'] = loss
 
         return outputs
+    
+    def validation_step(self, batch, batch_idx):
+
+        outs = super().validation_step(batch, batch_idx)
+
+        loss1 = self.loss1(outs['logits'], batch['mask'])
+        #loss2 = self.loss2(logits, labels)
+        loss2=0
+        loss = loss1 + loss2
+        self.log('Val_CE', loss1)
+        self.log('Val_Dice', loss2)
+        self.log('Val_loss', loss)
+
+        return outs

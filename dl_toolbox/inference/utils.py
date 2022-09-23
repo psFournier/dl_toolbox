@@ -48,7 +48,6 @@ def compute_probas(
     batch_size,
     workers,
     tta,
-    mode,
     merge
 ):
     
@@ -101,16 +100,11 @@ def compute_probas(
             outputs_tta = batch_forward(inputs, module, t)
             outputs = torch.vstack([outputs, outputs_tta])
             window_list += windows[:]
-
-        split_pred = torch.split(outputs, 1, dim=0)
-        pred_list = [torch.squeeze(e, dim=0) for e in split_pred]
+            
+        probas = module._compute_probas(outputs)
+        probas_list = [torch.squeeze(e, dim=0) for e in torch.split(probas, 1, dim=0)]
         
-        for pred, w in zip(pred_list, window_list):
-            if mode=='softmax':
-                prob = pred.softmax(dim=0)
-            elif mode=='sigmoid':
-                prob = torch.sigmoid(pred)
-
+        for prob, w in zip(probas_list, window_list):
             pred_sum[
                 :, 
                 w.row_off-dataset.tile.row_off:w.row_off-dataset.tile.row_off+w.height,
@@ -123,7 +117,7 @@ def compute_probas(
                 
     probas = torch.div(pred_sum, mask_sum)
 
-    return probas.detach().cpu().numpy()
+    return probas.detach().cpu()
 
 def batch_forward(inputs, module, tta=None):
     

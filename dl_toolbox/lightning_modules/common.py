@@ -56,6 +56,10 @@ class BaseModule(pl.LightningModule):
     def _compute_probas(self, logits):
 
         return logits.softmax(dim=1)
+    
+    def _compute_conf_preds(self, probas):
+        
+        return torch.max(probas, dim=1)
 
     def validation_step(self, batch, batch_idx):
 
@@ -63,7 +67,7 @@ class BaseModule(pl.LightningModule):
         labels = batch['mask']
         logits = self.forward(inputs)
         probas = self._compute_probas(logits)
-        confidences, preds = torch.max(probas, dim=1)
+        confidences, preds = self._compute_conf_preds(probas)
 
         ignore_idx = self.ignore_index if self.ignore_index >= 0 else None
         stat_scores = torchmetrics.stat_scores(
@@ -126,24 +130,21 @@ class BaseModule(pl.LightningModule):
         conf_mats = [out['conf_mat'] for out in outs]
 
         cm = torch.stack(conf_mats, dim=0).sum(dim=0).cpu()
-        sum_col = torch.sum(cm,dim=1, keepdim=True)
-        sum_lin = torch.sum(cm,dim=0, keepdim=True)
-        if self.ignore_index >= 0: sum_lin -= cm[self.ignore_index,:]
-        cm_recall = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.)
-        cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.)
+        
+        #sum_col = torch.sum(cm,dim=1, keepdim=True)
+        #sum_lin = torch.sum(cm,dim=0, keepdim=True)
+        #if self.ignore_index >= 0: sum_lin -= cm[self.ignore_index,:]
+        #cm_recall = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.)
+        #cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.)
         #cm_recall = np.divide(cm, sum_col, out=np.zeros_like(cm), where=sum_col!=0)
         #cm_precision = np.divide(cm, sum_lin, out=np.zeros_like(cm), where=sum_lin!=0)
         
         self.trainer.logger.experiment.add_figure(
-            "Confusion matrix recall", 
-            plot_confusion_matrix(cm_recall.numpy(), class_names=[str(i) for i in range(num_classes)]), 
+            "Confusion matrices", 
+            plot_confusion_matrix(cm, class_names=[str(i) for i in range(num_classes)]), 
             global_step=self.trainer.global_step
         )
-        self.trainer.logger.experiment.add_figure(
-            "Confusion matrix precision", 
-            plot_confusion_matrix(cm_precision.numpy(), class_names=[str(i) for i in range(num_classes)]), 
-            global_step=self.trainer.global_step
-        )
+
 
         count_bins = torch.stack([out['count_bins'] for out in outs])
         conf_bins = torch.stack([out['conf_bins'] for out in outs])

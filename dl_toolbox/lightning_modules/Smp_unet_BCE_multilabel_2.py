@@ -55,7 +55,6 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
             log_loss=False,
             from_logits=True
         )
-        self.ignore_index = 0
         self.save_hyperparameters()
 
     @classmethod
@@ -106,11 +105,16 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
     
     def _compute_probas(self, logits):
 
-        b,c,h,w = logits.shape
-        z = torch.zeros(b,1,h,w, device=logits.device)
-        p = torch.cat([z, torch.sigmoid(logits)], dim=1)
-
-        return p
+        return torch.sigmoid(logits)
+    
+    def _compute_conf_preds(self, probas):
+        
+        aux_confs, aux_preds = torch.max(probas, axis=1)
+        cond = aux_confs > 0.5
+        preds = torch.where(cond, aux_preds + 1, 0)
+        confs = torch.where(cond, aux_confs, 1-aux_confs)
+        
+        return confs, preds
 
     def validation_step(self, batch, batch_idx):
 

@@ -213,3 +213,37 @@ class CPS(BaseModule):
         self.log("Train_loss", loss)
 
         return outputs
+    
+    def validation_step(self, batch, batch_idx):
+
+        outs = super().validation_step(batch, batch_idx)
+
+        loss1 = self.loss1(outs['logits'], batch['mask'])
+        #loss2 = self.loss2(logits, labels)
+        loss2=0
+        loss = loss1 + loss2
+        self.log('Val_CE', loss1)
+        self.log('Val_Dice', loss2)
+        self.log('Val_loss', loss)
+        
+        logits1 = self.network1(batch['image'])
+        logits2 = self.network2(batch['image'])
+        
+        pseudo_probs_2 = logits2.detach().softmax(dim=1)
+        top_probs_2, pseudo_preds_2 = torch.max(pseudo_probs_2, dim=1)
+        pseudo_certain_2 = (top_probs_2 > self.pseudo_threshold).float() # B,H,W
+        certain_2 = torch.sum(pseudo_certain_2)
+        self.log('Val prop of confident pseudo labels', torch.mean(pseudo_certain_2))
+        
+        loss_no_reduce_1 = self.unsup_loss(
+            logits1,
+            pseudo_preds_2
+        ) # B,H,W
+        pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / certain_2
+        self.log('Val_pseudo_loss_1', pseudo_loss_1)
+        
+        accus = pseudo_preds_2.eq(batch['mask']).float()
+        pseudo_accus = torch.sum(pseudo_certain_2 * accus) / certain_2
+        self.log('Val acc of pseudo labels', pseudo_accus)
+
+        return outs
