@@ -24,7 +24,7 @@ def plot_confusion_matrix(cm, class_names):
     cm_recall = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.).numpy()
     cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.).numpy()
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 20), gridspec_kw={'width_ratios': [1, 1]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]})
     
     ax1.imshow(cm_recall, interpolation="nearest", cmap=plt.cm.Blues)
     ax1.set_title("Recall matrix")
