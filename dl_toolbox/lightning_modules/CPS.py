@@ -137,16 +137,15 @@ class CPS(BaseModule):
         batch['logits'] = logits.detach()
         outputs = {'batch': batch}
 
-
-        probas = self._compute_probas(logits)
-        confidences, preds = self._compute_conf_preds(probas)
-        conf_mat = compute_conf_mat(
-            labels.flatten(),
-            preds.flatten(),
-            self.num_classes,
-            ignore_idx=None
-        )       
-        outputs['conf_mat'] = conf_mat.detach()
+        #probas = self._compute_probas(batch['logits'])
+        #confidences, preds = self._compute_conf_preds(probas)
+        #conf_mat = compute_conf_mat(
+        #    labels.flatten().cpu(),
+        #    preds.flatten().cpu(),
+        #    self.num_classes,
+        #    ignore_idx=None
+        #)       
+        #outputs['conf_mat'] = conf_mat
  
         # Supervising network 1 with pseudolabels from network 2
             
@@ -229,20 +228,20 @@ class CPS(BaseModule):
 
         return outputs
 
-    def training_epoch_end(self, outs):
-
-        conf_mats = [out['conf_mat'] for out in outs]
-
-        cm = torch.stack(conf_mats, dim=0).sum(dim=0).cpu()
-       
-        self.trainer.logger.experiment.add_figure(
-            "Training Confusion matrices", 
-            plot_confusion_matrix(
-                cm,
-                class_names=self.trainer.datamodule.train_set.datasets[0].labels.keys()
-            ),
-            global_step=self.trainer.global_step
-        )
+#    def training_epoch_end(self, outs):
+#
+ #       conf_mats = [out['conf_mat'] for out in outs]
+#
+#        cm = torch.stack(conf_mats, dim=0).sum(dim=0).cpu()
+#       
+#        self.trainer.logger.experiment.add_figure(
+#            "Training Confusion matrices", 
+#            plot_confusion_matrix(
+#                cm,
+#                class_names=self.trainer.datamodule.train_set.datasets[0].labels.keys()
+#            ),
+#            global_step=self.trainer.global_step
+#        )
 
     
     def validation_step(self, batch, batch_idx):

@@ -62,7 +62,7 @@ class BaseModule(pl.LightningModule):
 
         inputs = batch['image']
         labels = batch['mask']
-        logits = self.forward(inputs)
+        logits = self.forward(inputs).detach()
         probas = self._compute_probas(logits)
         confidences, preds = self._compute_conf_preds(probas)
 
