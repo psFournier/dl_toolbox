@@ -23,6 +23,7 @@ class CPS(BaseModule):
                  final_alpha,
                  alpha_milestones,
                  pseudo_threshold,
+                 ignore_index,
                  pretrained=True,
                  initial_lr=0.05,
                  final_lr=0.001,
@@ -87,6 +88,7 @@ class CPS(BaseModule):
         parser.add_argument("--initial_lr", type=float)
         parser.add_argument("--final_lr", type=float)
         parser.add_argument("--lr_milestones", nargs='+', type=float)
+        parser.add_argument("--ignore_index", type=int)
 
         return parser
 

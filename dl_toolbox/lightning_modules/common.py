@@ -20,7 +20,6 @@ class BaseModule(pl.LightningModule):
 
     def __init__(self,
                  num_classes,
-                 ignore_index,
                  weights,
                  *args,
                  **kwargs):
@@ -30,7 +29,6 @@ class BaseModule(pl.LightningModule):
         self.num_classes = num_classes
         self.out_channels = self.num_classes
         self.weights = list(weights) if len(weights)>0 else [1]*self.num_classes
-        self.ignore_index = ignore_index
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
@@ -38,8 +36,7 @@ class BaseModule(pl.LightningModule):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--num_classes", type=int)
         parser.add_argument("--weights", type=float, nargs="+", default=())
-        parser.add_argument("--ignore_index", type=int)
-
+                            
         return parser
     
     def configure_optimizers(self):
@@ -69,7 +66,7 @@ class BaseModule(pl.LightningModule):
         probas = self._compute_probas(logits)
         confidences, preds = self._compute_conf_preds(probas)
 
-        ignore_idx = self.ignore_index if self.ignore_index >= 0 else None
+        ignore_idx = None
         stat_scores = torchmetrics.stat_scores(
             preds,
             labels,

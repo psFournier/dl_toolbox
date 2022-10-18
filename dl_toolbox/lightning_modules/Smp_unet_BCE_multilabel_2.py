@@ -24,6 +24,7 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
     def __init__(self,
                  encoder,
                  in_channels,
+                 ignore_index,
                  pretrained=True,
                  initial_lr=0.05,
                  final_lr=0.001,
@@ -44,6 +45,7 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         self.in_channels = in_channels
         self.initial_lr = initial_lr
         self.final_lr = final_lr
+        self.ignore_index = list(ignore_index) if len(ignore_index)>0 else [-1]*self.num_classes
         self.lr_milestones = list(lr_milestones)
         self.bce = nn.BCEWithLogitsLoss(
             reduction='none',
@@ -67,7 +69,8 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
         parser.add_argument("--initial_lr", type=float)
         parser.add_argument("--final_lr", type=float)
         parser.add_argument("--lr_milestones", nargs='+', type=float)
-
+        parser.add_argument("--ignore_index", type=int, nargs="+", default=())
+        
         return parser
 
     def forward(self, x):
@@ -87,7 +90,10 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
             dtype=onehot_labels.dtype,
             device=onehot_labels.device
         )
-        
+        for i, idx in enumerate(self.ignore_index[1:]):
+            if idx >= 0:
+                mask[:, i, ...] -= onehot_labels[:, idx, ...]
+            
         logits = self.network(inputs) # B,C-1,H,W
         bce = self.bce(logits, final_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)
@@ -129,6 +135,9 @@ class Smp_Unet_BCE_multilabel_2(BaseModule):
             dtype=onehot_labels.dtype,
             device=onehot_labels.device
         )
+        for i, idx in enumerate(self.ignore_index[1:]):
+            if idx >= 0:
+                mask[:, i, ...] -= onehot_labels[:, idx, ...]
                
         bce = self.bce(logits, final_labels)
         bce = torch.sum(mask * bce) / torch.sum(mask)

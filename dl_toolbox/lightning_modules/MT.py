@@ -88,6 +88,7 @@ class MT(BaseModule):
         parser.add_argument("--initial_lr", type=float)
         parser.add_argument("--final_lr", type=float)
         parser.add_argument("--lr_milestones", nargs='+', type=float)
+        parser.add_argument("--ignore_index", type=int)
 
         return parser
 

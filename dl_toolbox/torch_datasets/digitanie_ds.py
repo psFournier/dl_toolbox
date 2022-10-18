@@ -42,7 +42,7 @@ digitanie_labels = {
         'swimming pool': {'color': (50, 150, 250)}
     },
     '6class' : {
-        'other': {'color': (0, 0, 0)},
+        'other': {'color': (255,255,255)},
         'low vegetation': {'color':(0, 250, 50)},
         'water': {'color': (0, 50, 250)},
         'building': {'color': (250, 50, 50)},
