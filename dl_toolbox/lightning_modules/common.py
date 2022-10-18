@@ -138,7 +138,10 @@ class BaseModule(pl.LightningModule):
         
         self.trainer.logger.experiment.add_figure(
             "Confusion matrices", 
-            plot_confusion_matrix(cm, class_names=[str(i) for i in range(num_classes)]), 
+            plot_confusion_matrix(
+                cm,
+                class_names=self.trainer.datamodule.val_set.datasets[0].labels.keys()
+            ), 
             global_step=self.trainer.global_step
         )
 

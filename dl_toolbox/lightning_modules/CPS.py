@@ -12,6 +12,7 @@ import torch.nn.functional as F
 
 from dl_toolbox.lightning_modules.utils import *
 from dl_toolbox.lightning_modules import BaseModule
+from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat
 
 class CPS(BaseModule):
 
@@ -53,6 +54,7 @@ class CPS(BaseModule):
         self.initial_lr = initial_lr
         self.final_lr = final_lr
         self.lr_milestones = list(lr_milestones)
+        self.ignore_index = ignore_index
 
         self.loss1 = nn.CrossEntropyLoss(
             ignore_index=self.ignore_index,
@@ -134,6 +136,17 @@ class CPS(BaseModule):
 
         batch['logits'] = logits.detach()
         outputs = {'batch': batch}
+
+
+        probas = self._compute_probas(logits)
+        confidences, preds = self._compute_conf_preds(probas)
+        conf_mat = compute_conf_mat(
+            labels.flatten(),
+            preds.flatten(),
+            self.num_classes,
+            ignore_idx=None
+        )       
+        outputs['conf_mat'] = conf_mat.detach()
  
         # Supervising network 1 with pseudolabels from network 2
             
@@ -215,6 +228,22 @@ class CPS(BaseModule):
         self.log("Train_loss", loss)
 
         return outputs
+
+    def training_epoch_end(self, outs):
+
+        conf_mats = [out['conf_mat'] for out in outs]
+
+        cm = torch.stack(conf_mats, dim=0).sum(dim=0).cpu()
+       
+        self.trainer.logger.experiment.add_figure(
+            "Training Confusion matrices", 
+            plot_confusion_matrix(
+                cm,
+                class_names=self.trainer.datamodule.train_set.datasets[0].labels.keys()
+            ),
+            global_step=self.trainer.global_step
+        )
+
     
     def validation_step(self, batch, batch_idx):
 
