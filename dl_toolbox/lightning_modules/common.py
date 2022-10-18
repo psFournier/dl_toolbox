@@ -9,7 +9,7 @@ import torchmetrics.functional as torchmetrics
 from dl_toolbox.losses import DiceLoss
 from copy import deepcopy
 import torch.nn.functional as F
-from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat
+from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat, log_batch_images
 
 from dl_toolbox.lightning_modules.utils import *
 import numpy as np
@@ -63,8 +63,19 @@ class BaseModule(pl.LightningModule):
         inputs = batch['image']
         labels = batch['mask']
         logits = self.forward(inputs).detach()
+
         probas = self._compute_probas(logits)
         confidences, preds = self._compute_conf_preds(probas)
+        batch['preds'] = preds
+
+        if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
+            log_batch_images(
+                batch,
+                self.trainer,
+                visu_fn=self.trainer.datamodule.val_set.datasets[0].labels_to_rgb,
+                prefix='Val'
+            )
+            
 
         ignore_idx = None
         stat_scores = torchmetrics.stat_scores(

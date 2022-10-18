@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 from dl_toolbox.lightning_modules.utils import *
 from dl_toolbox.lightning_modules import BaseModule
-from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat
+from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat, log_batch_images
 
 class CPS(BaseModule):
 
@@ -137,8 +137,18 @@ class CPS(BaseModule):
         batch['logits'] = logits.detach()
         outputs = {'batch': batch}
 
-        #probas = self._compute_probas(batch['logits'])
-        #confidences, preds = self._compute_conf_preds(probas)
+        probas = self._compute_probas(logits).detach()
+        confidences, preds = self._compute_conf_preds(probas)
+        batch['preds'] = preds
+
+        if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
+            log_batch_images(
+                batch,
+                self.trainer,
+                visu_fn=self.trainer.datamodule.val_set.datasets[0].labels_to_rgb,
+                prefix='Train'
+            )
+
         #conf_mat = compute_conf_mat(
         #    labels.flatten().cpu(),
         #    preds.flatten().cpu(),
@@ -218,6 +228,16 @@ class CPS(BaseModule):
             pseudo_loss_unsup = (pseudo_loss_1 + pseudo_loss_2) / 2
             pseudo_loss += pseudo_loss_unsup
             self.log('Pseudo_loss_unsup', pseudo_loss_unsup)
+
+            unsup_batch['preds'] = pseudo_preds_2
+
+            if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
+                log_batch_images(
+                    unsup_batch,
+                    self.trainer,
+                    visu_fn=self.trainer.datamodule.unsup_train_set.datasets[0].labels_to_rgb,
+                    prefix='Unsup_train'
+                )
 
         self.log('Pseudo label loss', pseudo_loss)
         loss += self.alpha * pseudo_loss
