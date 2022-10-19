@@ -1,8 +1,6 @@
 # Toolbox for deep learning in pytorch
 
-This repository contains pieces of code that can be combined to run machine learning algorithms. It is an ongoing work and new things may be added as I work on them.
-The code is designed to ease its appropriation by others, mainly by avoiding complex heritance mechanisms and favoring one-file implementation when possible.
-Libraries with significant user communities and support are also favored.
+This repository is intended to contain classes useful to start deep learning projects. The code is designed to ease its appropriation by others, mainly by avoiding complex heritance mechanisms and favoring one-file implementation when possible.
 
 As of May 6th 2022, the code mainly provides tools to run semantic segmentation algorithms with neural networks, both supervised and semi-supervised, on remote sensing RGB images.
 It is heavily based on the PytorchLightning library, which itself relies on PyTorch.
@@ -10,7 +8,8 @@ Segmentation networks are taken from the segmentation-model-pytorch library.
 
 ## Installation and test
 
-First clone the repo. Then a good practice is to always run python codes from a project in a dedicated virtual environment : create such an environment with `virtualenv venv` (venv is the name of the virtualenv) then do `venv/bin/pip install --upgrade pip` and `venv/bin/pip install -r requirements.txt`.
+First clone the repo.
+Then a good practice is to always run python codes from a project in a dedicated virtual environment : create such an environment with `virtualenv venv` (venv is the name of the virtualenv) then do `venv/bin/pip install --upgrade pip` and `venv/bin/pip install -r requirements.txt`.
 
 To test the installation : 
 
@@ -27,11 +26,6 @@ Create a personal development branch (`git checkout -b <nom_branche_perso>`), pu
 ### End-user
 
 ## Organisation 
-
-### Examples of use
-
-Complete machine learning pipelines examples can be found in /docs/examples.
-As of May 6th 2022, a supervised and a semi-supervised pipeline for learning on a dataset from the AI4GEO project are given.
 
 ### Tools
 

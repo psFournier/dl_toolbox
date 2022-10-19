@@ -54,7 +54,9 @@ def main():
         ),
         crop_size=args.crop_size,
         crop_step=args.crop_size,
-        img_aug=args.img_aug
+        img_aug=args.img_aug,
+        labels='building',
+        label_merger='building'
     )
     dataset2 = SemcityBdsdDs(
         image_path=os.path.join(args.data_path, 'BDSD_M_3_4_7_8.tif'),
@@ -68,7 +70,10 @@ def main():
         ),
         crop_size=args.crop_size,
         crop_step=args.crop_size,
-        img_aug=args.img_aug
+        img_aug=args.img_aug,
+        labels='building',
+        label_merger='building'
+
     )
     trainset = ConcatDataset([dataset1, dataset2])
 
@@ -84,7 +89,10 @@ def main():
         ),
         crop_size=args.crop_size,
         crop_step=args.crop_size,
-        img_aug='no'
+        img_aug='no',
+        labels='building',
+        label_merger='building'
+
     )
 
     train_sampler = RandomSampler(
@@ -96,6 +104,9 @@ def main():
     train_dataloader = DataLoader(
         dataset=trainset,
         batch_size=args.sup_batch_size,
+        collate_fn=CustomCollate(batch_aug='none'),
+        drop_last=True,
+        worker_init_fn=worker_init_function,
         sampler=train_sampler,
         num_workers=args.workers
     )
@@ -105,43 +116,31 @@ def main():
         shuffle=False,
         batch_size=args.sup_batch_size,
         num_workers=args.workers,
+        worker_init_fn=worker_init_function
     )
 
     model = smp.Unet(
         encoder_name=args.encoder,
-        encoder_weights='imagenet' if args.pretrained else None,
-        in_channels=args.in_channels,
-        classes=args.num_classes if args.train_with_void else args.num_classes
-                                                              - 1,
+        encoder_weights=None,
+        in_channels=3,
+        classes=1,
         decoder_use_batchnorm=True
     )
 
     model.to(device)
-
+    weights = list(weights) if len(weights)>0 else [1]*self.num_classes
     # A changer pour le masking ("reduction=none")
-    loss_fn = torch.nn.BCEWithLogitsLoss()
-
-    optimizer = SGD(
-        model.parameters(),
-        lr=args.initial_lr,
-        momentum=0.9,
+    loss_fn = nn.BCEWithLogitsLoss(
+        reduction='none',
+        pos_weight=torch.Tensor(self.weights).reshape(1, 1, 1)
     )
 
-    def lambda_lr(epoch):
 
-        m = epoch / args.max_epochs
-        if m < args.lr_milestones[0]:
-            return 1
-        elif m < args.lr_milestones[1]:
-            return 1 + ((m - args.lr_milestones[0]) / (
-                        args.lr_milestones[1] - args.lr_milestones[0])) * (
-                               args.final_lr / args.initial_lr - 1)
-        else:
-            return args.final_lr / args.initial_lr
-
-    scheduler = LambdaLR(
+    optimizer = Adam(model.parameters(), lr=args.initial_lr)
+    scheduler = MultiStepLR(
         optimizer,
-        lr_lambda=lambda_lr
+        milestones=arg.lr_milestones,
+        gamma=0.2
     )
 
     start_epoch = 0

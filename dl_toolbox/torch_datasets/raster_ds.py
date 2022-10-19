@@ -24,7 +24,7 @@ class RasterDs(Dataset):
             crop_step,
             img_aug,
             label_path=None,
-            one_hot=True,
+            one_hot=False,
             *args,
             **kwargs
             ):
