@@ -1,4 +1,5 @@
 import torch
+from argparse import ArgumentParser
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -74,11 +75,11 @@ class OutConv(nn.Module):
     def forward(self, x):
         return self.conv(x)
 
-class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, bilinear=False):
-        super(UNet, self).__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
+class Unet(nn.Module):
+    def __init__(self, in_channels, out_channels, bilinear=False, *args, **kwargs):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.bilinear = bilinear
 
         self.inc = DoubleConv(n_channels, 64)
@@ -92,6 +93,15 @@ class UNet(nn.Module):
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, n_classes)
+
+    @classmethod
+    def add_model_specific_args(cls, parent_parser):
+
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument("--in_channels", type=int)
+        parser.add_argument("--out_channels", type=int)
+
+        return parser
 
     def forward(self, x):
         x1 = self.inc(x)

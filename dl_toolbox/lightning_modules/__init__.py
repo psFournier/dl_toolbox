@@ -4,9 +4,10 @@ from .Smp_unet_BCE_binary import Smp_Unet_BCE_binary
 from .Smp_unet_BCE_multilabel import Smp_Unet_BCE_multilabel
 from .Smp_unet_BCE_multilabel_2 import Smp_Unet_BCE_multilabel_2
 from .Smp_unet_BCE_Mixup import Smp_Unet_BCE_Mixup
-from .unet_CE import Unet_CE
 from .PL import PL
 from .CPS import CPS
 from .MT import MT
 from .PLM import PLM
+from .CE import CE
 #from .DCT import DCT
+from .module_factory import ModuleFactory

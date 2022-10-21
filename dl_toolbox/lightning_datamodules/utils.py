@@ -29,7 +29,7 @@ def read_splitfile(
     next(reader)
     for row in reader:
               
-        city, _, image_path, label_path, x0, y0, w, h, fold = row[:9]
+        dataset, _, image_path, label_path, x0, y0, w, h, fold = row[:9]
         is_train = int(fold) in train_folds 
         is_test = int(fold) in test_folds
         window = Window(
@@ -55,9 +55,9 @@ def read_splitfile(
             kwargs['label_path'] = os.path.join(data_path, label_path)
  
         if is_train:
-            train_datasets_args.append((dataset_dict[city], kwargs))
+            train_datasets_args.append((dataset, kwargs))
         elif is_test:
-            test_datasets_args.append((dataset_dict[city], kwargs))
+            test_datasets_args.append((dataset, kwargs))
         else:
             pass
 

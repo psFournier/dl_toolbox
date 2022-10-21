@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -37,20 +38,30 @@ class Down(nn.Module):
         return self.maxpool_conv(x)
 
 
-class UNet_enc(nn.Module):
-    def __init__(self, n_channels, n_classes):
-        super(UNet_enc, self).__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-        self.inc = DoubleConv(n_channels, 16)
+class Vgg(nn.Module):
+
+    def __init__(self, in_channels, out_channels, *args, **kwargs):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.inc = DoubleConv(in_channels, 16)
         self.down1 = Down(16, 32)
         self.down2 = Down(32, 64)
         self.down3 = Down(64, 128)
         self.down4 = Down(128, 256)
         self.down5 = Down(256, 16)
         self.fc1 = nn.Linear(16*8*8,512)
-        self.pred = nn.Linear(512,self.n_classes)
+        self.pred = nn.Linear(512,out_channels)
         self.relu = nn.ReLU(inplace=True)
+
+    @classmethod
+    def add_model_specific_args(cls, parent_parser):
+
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument("--in_channels", type=int)
+        parser.add_argument("--out_channels", type=int)
+
+        return parser
 
     def forward(self, x):
         x1 = self.inc(x)

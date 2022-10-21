@@ -1,3 +1,4 @@
+from argparse import ArgumentParser 
 import os
 from torch.utils.data import Dataset
 import torch
@@ -54,6 +55,17 @@ class RasterDs(Dataset):
         self.one_hot = OneHot(list(range(len(self.labels)))) if one_hot else None
         self.labels_to_rgb = LabelsToRGB(self.labels)
         self.rgb_to_labels = RGBToLabels(self.labels)
+
+    @classmethod
+    def add_model_specific_args(cls, parent_parser):
+
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument('--img_aug', type=str)
+        parser.add_argument('--crop_size', type=int)
+        parser.add_argument('--crop_step', type=int)
+        parser.add_argument('--labels', type=str)
+
+        return parser
 
     def read_label(self, label_path, window):
         pass

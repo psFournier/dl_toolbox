@@ -13,32 +13,33 @@ from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_cali
 
 from dl_toolbox.lightning_modules.utils import *
 import numpy as np
+from dl_toolbox.networks import *
 
 class BaseModule(pl.LightningModule):
 
     # Validation step common to all modules if possible
 
     def __init__(self,
-                 num_classes,
-                 ignore_index,
-                 weights,
+                 initial_lr=0.05,
+                 final_lr=0.001,
+                 lr_milestones=(0.5,0.9),
                  *args,
                  **kwargs):
 
         super().__init__()
 
-        self.num_classes = num_classes
-        self.out_channels = self.num_classes
-        self.weights = list(weights) if len(weights)>0 else [1]*self.num_classes
-        self.ignore_index = ignore_index
+        self.net_factory = NetworkFactory()
+        self.initial_lr = initial_lr
+        self.final_lr = final_lr
+        self.lr_milestones = list(lr_milestones)
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
 
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--num_classes", type=int)
-        parser.add_argument("--weights", type=float, nargs="+", default=())
-        parser.add_argument("--ignore_index", type=int)
+        parser.add_argument("--initial_lr", type=float)
+        parser.add_argument("--final_lr", type=float)
+        parser.add_argument("--lr_milestones", nargs='+', type=float)
 
         return parser
     
