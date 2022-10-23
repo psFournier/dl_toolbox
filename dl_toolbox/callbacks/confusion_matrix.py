@@ -9,7 +9,7 @@ import itertools
 plt.switch_backend("agg")
 
 # Taken from https://www.tensorflow.org/tensorboard/image_summaries
-def plot_confusion_matrix(cm, class_names):
+def plot_confusion_matrix(cm, class_names, norm):
     """
     Returns a matplotlib figure containing the plotted confusion matrix.
 
@@ -19,42 +19,32 @@ def plot_confusion_matrix(cm, class_names):
     """
     tick_marks = np.arange(len(class_names))
     
-    sum_col = torch.sum(cm,dim=1, keepdim=True)
-    sum_lin = torch.sum(cm,dim=0, keepdim=True)
-    cm_recall = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.).numpy()
-    cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.).numpy()
+    fig, ax = plt.subplots(1, 1)
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, gridspec_kw={'width_ratios': [1, 1]})
+    if norm=='recall':
+
+        sum_col = torch.sum(cm,dim=1, keepdim=True)
+        cm = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.).numpy()
+        ax.set_title("Recall matrix")
     
-    ax1.imshow(cm_recall, interpolation="nearest", cmap=plt.cm.Blues)
-    ax1.set_title("Recall matrix")
-    ax1.set_xticks(tick_marks, class_names, rotation=90)
-    ax1.set_yticks(tick_marks, class_names)
+    elif norm=='precision':
+    
+        sum_lin = torch.sum(cm,dim=0, keepdim=True)
+        cm = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.).numpy()
+        ax.set_title("Precision matrix")
+
+    ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+    ax.set_xticks(tick_marks, class_names, rotation=90, fontsize=5)
+    ax.set_yticks(tick_marks, class_names, fontsize=5)
     # Compute the labels from the normalized confusion matrix.
-    # labels = np.around(cm.astype("float"), decimals=2)
-    labels = np.around(cm_recall.astype('float') * 100).astype('int')
+    labels = np.around(cm.astype('float') * 100).astype('int')
     # Use white text if squares are dark; otherwise black.
-    threshold = cm_recall.max() / 2.0
-    for i, j in itertools.product(range(cm_recall.shape[0]), range(cm_recall.shape[1])):
-        color = "white" if cm_recall[i, j] > threshold else "black"
-        ax1.text(j, i, labels[i, j], fontsize=10, horizontalalignment="center", color=color)
-    ax1.set_ylabel("True label")
-    ax1.set_xlabel("Predicted label")
-    
-    ax2.imshow(cm_precision, interpolation="nearest", cmap=plt.cm.Blues)
-    ax2.set_title("Precision matrix")
-    ax2.set_xticks(tick_marks, class_names, rotation=90)
-    #ax2.set_yticks(tick_marks, class_names)
-    # Compute the labels from the normalized confusion matrix.
-    # labels = np.around(cm.astype("float"), decimals=2)
-    labels = np.around(cm_precision.astype('float') * 100).astype('int')
-    # Use white text if squares are dark; otherwise black.
-    threshold = cm_precision.max() / 2.0
-    for i, j in itertools.product(range(cm_precision.shape[0]), range(cm_precision.shape[1])):
-        color = "white" if cm_precision[i, j] > threshold else "black"
-        ax2.text(j, i, labels[i, j], fontsize=10, horizontalalignment="center", color=color)
-    ax2.set_ylabel("True label")
-    ax2.set_xlabel("Predicted label")
+    threshold = cm.max() / 2.0
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        color = "white" if cm[i, j] > threshold else "black"
+        ax.text(j, i, labels[i, j], fontsize=5, horizontalalignment="center", color=color)
+    ax.set_ylabel("True label")
+    ax.set_xlabel("Predicted label")
     
     return fig
 

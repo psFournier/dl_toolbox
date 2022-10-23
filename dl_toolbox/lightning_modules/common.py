@@ -141,8 +141,13 @@ class BaseModule(pl.LightningModule):
         #cm_precision = np.divide(cm, sum_lin, out=np.zeros_like(cm), where=sum_lin!=0)
         
         self.trainer.logger.experiment.add_figure(
-            "Confusion matrices", 
-            plot_confusion_matrix(cm, class_names=[str(i) for i in range(num_classes)]), 
+            "Precision matrix", 
+            plot_confusion_matrix(cm, class_names=[str(i) for i in range(num_classes)], norm='precision'), 
+            global_step=self.trainer.global_step
+        )
+        self.trainer.logger.experiment.add_figure(
+            "Recall matrix", 
+            plot_confusion_matrix(cm, class_names=[str(i) for i in range(num_classes)], norm='recall'), 
             global_step=self.trainer.global_step
         )
 
