@@ -39,7 +39,7 @@ class SplitfileSup(SupervisedDm):
             self.train_set = ConcatDataset([
                 dataset_factory.create(dataset)(
                     *args,
-                    {**kwargs, **read_kwargs}
+                    **{**kwargs, **read_kwargs}
                 ) for dataset, read_kwargs in train_args
             ])
 
@@ -47,8 +47,8 @@ class SplitfileSup(SupervisedDm):
             self.val_set = ConcatDataset([
                 dataset_factory.create(dataset)(
                     *args,
-                    {**kwargs, **read_kwargs}
-                ) for dataset, kwargs in val_args
+                    **{**kwargs, **read_kwargs}
+                ) for dataset, read_kwargs in val_args
             ])
 
     @classmethod

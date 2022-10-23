@@ -13,9 +13,6 @@ from dl_toolbox.torch_datasets.utils import *
 
 class RasterDs(Dataset):
 
-    labels = {}
-    stats = {}
-
     def __init__(
             self,
             image_path,
