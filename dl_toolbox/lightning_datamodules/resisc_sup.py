@@ -32,6 +32,7 @@ class ResiscSup(SupervisedDm):
             *args,
             **kwargs
         )
+        self.class_names = self.val_set.cls_names
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):

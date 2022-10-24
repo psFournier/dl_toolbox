@@ -50,6 +50,8 @@ class SplitfileSup(SupervisedDm):
                     **{**kwargs, **read_kwargs}
                 ) for dataset, read_kwargs in val_args
             ])
+        self.class_names = list(self.val_set.datasets[0].labels.keys())
+
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):

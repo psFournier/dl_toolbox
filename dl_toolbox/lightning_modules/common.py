@@ -142,12 +142,20 @@ class BaseModule(pl.LightningModule):
         
         self.trainer.logger.experiment.add_figure(
             "Precision matrix", 
-            plot_confusion_matrix(cm, class_names=[str(i) for i in range(num_classes)], norm='precision'), 
+            plot_confusion_matrix(
+                cm,
+                class_names=self.trainer.datamodule.class_names,
+                norm='precision'
+            ), 
             global_step=self.trainer.global_step
         )
         self.trainer.logger.experiment.add_figure(
             "Recall matrix", 
-            plot_confusion_matrix(cm, class_names=[str(i) for i in range(num_classes)], norm='recall'), 
+            plot_confusion_matrix(
+                cm,
+                class_names=self.trainer.datamodule.class_names,
+                norm='recall'
+            ), 
             global_step=self.trainer.global_step
         )
 

@@ -38,6 +38,7 @@ class ResiscSemisup(SemisupDm):
             *args,
             **kwargs
         )
+        self.class_names = self.val_set.cls_names
 
 
     @classmethod
