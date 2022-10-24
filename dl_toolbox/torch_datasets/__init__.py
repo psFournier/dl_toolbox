@@ -8,3 +8,4 @@ from .digitanie_ds import *
 from .semcity_bdsd_ds import *
 from .miniworld_ds import *
 from .resisc import *
+from .dataset_factory import DatasetFactory

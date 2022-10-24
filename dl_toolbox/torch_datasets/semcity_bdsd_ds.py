@@ -65,11 +65,11 @@ class SemcityBdsdDs(RasterDs):
         'max': np.array([2902,4174,4726,5196,4569,4653,5709,3939])
     }
 
-    def __init__(self, labels, label_merger, *args, **kwargs):
+    def __init__(self, labels, *args, **kwargs):
         
         self.labels = semcity_labels[labels]
         super().__init__(*args, **kwargs)
-        self.label_merger = MergeLabels(semcity_label_mergers[label_merger])
+        self.label_merger = MergeLabels(semcity_label_mergers[labels])
 
     def read_image(self, image_path, window):
 

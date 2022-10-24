@@ -15,108 +15,30 @@ from .utils import read_splitfile
 class SupervisedDm(LightningDataModule):
 
     def __init__(self,
-                 data_path,
-                 labels,
-                 label_merger,
-                 splitfile_path,
-                 test_folds,
-                 train_folds,
-                 crop_size,
                  epoch_len,
                  sup_batch_size,
                  workers,
-                 img_aug,
                  batch_aug,
                  *args,
                  **kwargs):
 
         super().__init__()
-        self.data_path = data_path
-        self.labels = labels
-        self.label_merger = label_merger
-        self.splitfile_path = splitfile_path
-        self.test_folds = test_folds
-        self.train_folds = train_folds
-        self.crop_size = crop_size
         self.epoch_len = epoch_len
         self.sup_batch_size = sup_batch_size
         self.num_workers = workers
-        self.img_aug = img_aug
         self.batch_aug = batch_aug
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
 
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--data_path", type=str)
-        parser.add_argument("--labels", type=str)
-        parser.add_argument("--label_merger", type=str)
-        parser.add_argument("--splitfile_path", type=str)
-        parser.add_argument("--test_folds", nargs='+', type=int)
-        parser.add_argument("--train_folds", nargs='+', type=int)
         parser.add_argument("--epoch_len", type=int)
         parser.add_argument("--sup_batch_size", type=int)
-        parser.add_argument("--crop_size", type=int)
         parser.add_argument("--workers", type=int)
-        parser.add_argument('--img_aug', type=str)
         parser.add_argument('--batch_aug', type=str)
 
         return parser
    
-    def prepare_data(self, *args, **kwargs):
-
-        pass
-
-    def setup(self, stage=None):
-        
-        #with open(self.splitfile_path, newline='') as splitfile:
-        #    train_sets, val_sets = build_split_from_csv(
-        #        splitfile=splitfile,
-        #        dataset_cls=self.dataset_cls,
-        #        train_folds=self.train_folds,
-        #        test_folds=self.test_folds,
-        #        img_aug=self.img_aug,
-        #        data_path=self.data_path,
-        #        crop_size = self.crop_size,
-        #        one_hot=True
-        #    )
-        #if train_sets: self.train_set = ConcatDataset(train_sets)
-        #if val_sets: self.val_set = ConcatDataset(val_sets)
-
-        with open(self.splitfile_path, newline='') as splitfile:
-            train_args, val_args = read_splitfile(
-                splitfile=splitfile,
-                data_path=self.data_path,
-                train_folds=self.train_folds,
-                test_folds=self.test_folds
-            )
-
-        if train_args:
-            self.train_set = ConcatDataset([
-                cls(
-                    labels=self.labels,
-                    label_merger=self.label_merger,
-                    img_aug=self.img_aug,
-                    crop_size=self.crop_size,
-                    crop_step=self.crop_size,
-                    one_hot=False,
-                    **kwarg
-                ) for cls, kwarg in train_args
-            ])
-
-        if val_args:
-            self.val_set = ConcatDataset([
-                cls(
-                    labels=self.labels,
-                    label_merger=self.label_merger,
-                    img_aug='no',
-                    crop_size=self.crop_size,
-                    crop_step=self.crop_size,
-                    one_hot=False,
-                    **kwarg
-                ) for cls, kwarg in val_args
-            ])
-
     def train_dataloader(self):
 
         train_sampler = RandomSampler(
