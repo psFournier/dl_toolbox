@@ -12,15 +12,15 @@ def display_batch(batch, visu_fn):
 
     img = batch['image'].cpu()
     orig_img = batch['orig_image'].cpu()
-    preds = batch['preds'].cpu()
+    #preds = batch['preds'].cpu()
 
-    preds_rgb = visu_fn(preds).transpose((0,3,1,2))
-    np_preds_rgb = torch.from_numpy(preds_rgb).float()
+    #preds_rgb = visu_fn(preds).transpose((0,3,1,2))
+    #np_preds_rgb = torch.from_numpy(preds_rgb).float()
 
-    if batch['mask'] is not None: 
-        labels = batch['mask'].cpu()
-        labels_rgb = visu_fn(labels).transpose((0,3,1,2))
-        np_labels_rgb = torch.from_numpy(labels_rgb).float()
+    #if batch['mask'] is not None: 
+    #    labels = batch['mask'].cpu()
+    #    labels_rgb = visu_fn(labels).transpose((0,3,1,2))
+    #    np_labels_rgb = torch.from_numpy(labels_rgb).float()
 
     # Number of grids to log depends on the batch size
     quotient, remainder = divmod(img.shape[0], nb_col)
@@ -37,12 +37,12 @@ def display_batch(batch, visu_fn):
 
         img_grid = torchvision.utils.make_grid(img[start:end, :, :, :], padding=10, normalize=True)
         orig_img_grid = torchvision.utils.make_grid(orig_img[start:end, :, :, :], padding=10, normalize=True)
-        out_grid = torchvision.utils.make_grid(np_preds_rgb[start:end, :, :, :], padding=10, normalize=True)
-        grids = [orig_img_grid, img_grid, out_grid]
+        #out_grid = torchvision.utils.make_grid(np_preds_rgb[start:end, :, :, :], padding=10, normalize=True)
+        grids = [orig_img_grid, img_grid]
 
-        if batch['mask'] is not None:
-            mask_grid = torchvision.utils.make_grid(np_labels_rgb[start:end, :, :, :], padding=10, normalize=True)
-            grids.append(mask_grid)
+        #if batch['mask'] is not None:
+        #    mask_grid = torchvision.utils.make_grid(np_labels_rgb[start:end, :, :, :], padding=10, normalize=True)
+        #    grids.append(mask_grid)
 
         final_grids.append(torch.cat(grids, dim=1))
 
@@ -56,7 +56,7 @@ def log_batch_images(batch, trainer, visu_fn, prefix):
     )
     for i, grid in enumerate(display_grids):
         trainer.logger.experiment.add_image(
-            f'mages/{prefix}_batch_part_{i}',
+            f'Images/{prefix}_batch_part_{i}',
             grid,
             global_step=trainer.global_step
         )

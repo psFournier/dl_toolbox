@@ -75,11 +75,9 @@ class BaseModule(pl.LightningModule):
             log_batch_images(
                 batch,
                 self.trainer,
-                visu_fn=self.trainer.datamodule.val_set.datasets[0].labels_to_rgb,
                 prefix='Val'
             )
             
-
         ignore_idx = None
         stat_scores = torchmetrics.stat_scores(
             preds,

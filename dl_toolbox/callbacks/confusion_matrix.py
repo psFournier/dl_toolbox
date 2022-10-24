@@ -34,7 +34,7 @@ def plot_confusion_matrix(cm, class_names, norm):
         ax.set_title("Precision matrix")
 
     ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-    ax.set_xticks(tick_marks, class_names, rotation=90, fontsize=5)
+    ax.set_xticks(tick_marks, class_names, rotation=90, fontsize=8)
     ax.set_yticks(tick_marks, class_names, fontsize=8)
     # Compute the labels from the normalized confusion matrix.
     labels = np.around(cm.astype('float') * 100).astype('int')
