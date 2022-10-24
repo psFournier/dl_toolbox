@@ -19,7 +19,7 @@ def plot_confusion_matrix(cm, class_names, norm):
     """
     tick_marks = np.arange(len(class_names))
     
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
     
     if norm=='recall':
 
@@ -35,14 +35,14 @@ def plot_confusion_matrix(cm, class_names, norm):
 
     ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
     ax.set_xticks(tick_marks, class_names, rotation=90, fontsize=5)
-    ax.set_yticks(tick_marks, class_names, fontsize=5)
+    ax.set_yticks(tick_marks, class_names, fontsize=8)
     # Compute the labels from the normalized confusion matrix.
     labels = np.around(cm.astype('float') * 100).astype('int')
     # Use white text if squares are dark; otherwise black.
     threshold = cm.max() / 2.0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         color = "white" if cm[i, j] > threshold else "black"
-        ax.text(j, i, labels[i, j], fontsize=5, horizontalalignment="center", color=color)
+        ax.text(j, i, labels[i, j], fontsize=8, horizontalalignment="center", color=color)
     ax.set_ylabel("True label")
     ax.set_xlabel("Predicted label")
     
