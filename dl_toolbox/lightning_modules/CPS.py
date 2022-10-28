@@ -78,6 +78,7 @@ class CPS(BaseModule):
     def forward(self, x):
 
         logits1 = self.network1(x)
+        #print(logits1)
         logits2 = self.network2(x)
         
         return (logits1 + logits2) / 2
@@ -108,7 +109,6 @@ class CPS(BaseModule):
             log_batch_images(
                 batch,
                 self.trainer,
-                visu_fn=self.trainer.datamodule.val_set.datasets[0].labels_to_rgb,
                 prefix='Train'
             )
 
@@ -152,7 +152,7 @@ class CPS(BaseModule):
         self.log('Train_sup_CE', loss1)
         #self.log('Pseudo_loss_sup', pseudo_loss_sup)
 
-        if self.trainer.current_epoch > self.alpha_milestones[0]:
+        if self.trainer.current_epoch >= self.alpha_milestones[0]:
 
             unsup_inputs = unsup_batch['image']
             unsup_outputs_1 = self.network1(unsup_inputs)
@@ -170,7 +170,7 @@ class CPS(BaseModule):
                 pseudo_preds_2
             ) # B,H,W
             pseudo_certain_2 = (top_probs_2 > self.pseudo_threshold).float() # B,H,W
-            certain_2 = torch.sum(pseudo_certain_2)
+            certain_2 = torch.sum(pseudo_certain_2) + 1e-5
             self.log('Pseudo_certain_2_unsup', torch.mean(pseudo_certain_2))
             pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / certain_2
 
@@ -183,7 +183,7 @@ class CPS(BaseModule):
                 pseudo_preds_1
             )
             pseudo_certain_1 = (top_probs_1 > self.pseudo_threshold).float()
-            certain_1 = torch.sum(pseudo_certain_1)
+            certain_1 = torch.sum(pseudo_certain_1) + 1e-5
             pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / certain_1
 
             pseudo_loss_unsup = (pseudo_loss_1 + pseudo_loss_2) / 2
@@ -196,7 +196,6 @@ class CPS(BaseModule):
                 log_batch_images(
                     unsup_batch,
                     self.trainer,
-                    visu_fn=self.trainer.datamodule.unsup_train_set.datasets[0].labels_to_rgb,
                     prefix='Unsup_train'
                 )
 

@@ -48,7 +48,7 @@ def display_batch(batch, visu_fn):
 
     return final_grids
 
-def log_batch_images(batch, trainer, visu_fn, prefix):
+def log_batch_images(batch, trainer, prefix, visu_fn=None):
     
     display_grids = display_batch(
         batch,

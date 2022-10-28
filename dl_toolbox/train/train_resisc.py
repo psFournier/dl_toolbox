@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--exp_name", type=str)
     parser.add_argument("--datamodule", type=str)
     parser.add_argument("--model", type=str)
+    parser.add_argument("--checkpoint", type=str, default=None)
 
     args = parser.parse_known_args()[0]
 
@@ -58,8 +59,11 @@ def main():
         check_val_every_n_epoch=1,
         benchmark=True
     )
-
-    trainer.fit(model=module, datamodule=datamodule)
+    
+    if args.checkpoint is None:
+        trainer.fit(model=module, datamodule=datamodule)
+    else:
+        trainer.fit(model=module, datamodule=datamodule, ckpt_path=args.checkpoint)
 
 
 if __name__ == "__main__":

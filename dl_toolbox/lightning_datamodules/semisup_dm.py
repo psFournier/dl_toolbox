@@ -49,7 +49,8 @@ class SemisupDm(SupervisedDm):
             collate_fn=CustomCollate(batch_aug='no'),
             num_workers=self.num_workers,
             pin_memory=True,
-            worker_init_fn=worker_init_function
+            worker_init_fn=worker_init_function,
+            drop_last=True
         )
 
         train_dataloaders = {
