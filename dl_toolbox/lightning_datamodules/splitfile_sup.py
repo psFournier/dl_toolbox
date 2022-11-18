@@ -50,7 +50,7 @@ class SplitfileSup(SupervisedDm):
                     **{**kwargs, **read_kwargs}
                 ) for dataset, read_kwargs in val_args
             ])
-        self.labels = self.val_set.datasets[0].labels.keys()
+        self.class_names = self.val_set.datasets[0].labels.keys()
 
 
     @classmethod

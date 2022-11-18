@@ -53,14 +53,6 @@ class BaseModule(pl.LightningModule):
 
         return [self.optimizer], [scheduler]
 
-    def _compute_probas(self, logits):
-
-        return logits.softmax(dim=1)
-    
-    def _compute_conf_preds(self, probas):
-        
-        return torch.max(probas, dim=1)
-
     def validation_step(self, batch, batch_idx):
 
         inputs = batch['image']
@@ -78,11 +70,10 @@ class BaseModule(pl.LightningModule):
                 prefix='Val'
             )
             
-        ignore_idx = None
         stat_scores = torchmetrics.stat_scores(
             preds,
             labels,
-            ignore_index=ignore_idx,
+            ignore_index=None,
             mdmc_reduce='global',
             reduce='macro',
             num_classes=self.num_classes
@@ -100,7 +91,7 @@ class BaseModule(pl.LightningModule):
             labels.flatten(),
             confidences.flatten(),
             preds.flatten(),
-            ignore_idx=ignore_idx
+            ignore_idx=None
         )
         
 

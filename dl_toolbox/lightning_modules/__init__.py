@@ -10,4 +10,5 @@ from .MT import MT
 from .PLM import PLM
 from .CE import CE
 #from .DCT import DCT
+from .BCE import BCE
 from .module_factory import ModuleFactory

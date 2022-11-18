@@ -3,7 +3,8 @@ from dl_toolbox.networks import *
 
 networks = {
     'Vgg': Vgg,
-    'Unet': Unet
+    'Unet': Unet,
+    'SmpUnet': SmpUnet
 }
 
 class NetworkFactory:
