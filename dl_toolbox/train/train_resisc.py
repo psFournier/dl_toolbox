@@ -53,8 +53,6 @@ def main():
             ModelCheckpoint(),
             #DeviceStatsMonitor(),
         ],
-        log_every_n_steps=100,
-        flush_logs_every_n_steps=100,
         num_sanity_val_steps=0,
         check_val_every_n_epoch=1,
         benchmark=True

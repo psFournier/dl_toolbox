@@ -121,11 +121,11 @@ class DigitanieOldDs(RasterDs):
 
 class DigitanieDs(RasterDs):
 
-    def __init__(self, labels, label_merger, full_raster_path, *args, **kwargs):
+    def __init__(self, labels, full_raster_path, *args, **kwargs):
  
         self.labels = digitanie_labels[labels]
         super().__init__(*args, **kwargs)
-        self.label_merger = MergeLabels(digitanie_label_mergers[label_merger])
+        self.label_merger = MergeLabels(digitanie_label_mergers[labels])
         self.full_raster_path = full_raster_path
 
     def read_image(self, image_path, window):
