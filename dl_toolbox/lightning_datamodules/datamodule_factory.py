@@ -2,8 +2,8 @@ from dl_toolbox.lightning_datamodules import *
 
 
 datamodules = {
-    'ResiscSup': ResiscSup,
-    'ResiscSemisup': ResiscSemisup,
+    'SplitIdxSup': SplitIdxSup,
+    'SplitIdxSemisup': SplitIdxSemisup,
     'SplitfileSup': SplitfileSup,
     'SplitfileSemisup': SplitfileSemisup
 }

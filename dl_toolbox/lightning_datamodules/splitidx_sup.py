@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from dl_toolbox.lightning_datamodules import SemisupDm
+from dl_toolbox.lightning_datamodules import SupervisedDm
 from torch.utils.data import DataLoader, RandomSampler
 from torch.utils.data._utils.collate import default_collate
 import torch
@@ -10,13 +10,12 @@ from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.torch_datasets import *
 
 
-class ResiscSemisup(SemisupDm):
+class SplitIdxSup(SupervisedDm):
 
     def __init__(
         self,
         dataset,
         split,
-        n_unsup_img,
         *args,
         **kwargs
     ):
@@ -33,13 +32,7 @@ class ResiscSemisup(SemisupDm):
             *args,
             **kwargs
         )
-        self.unsup_train_set = dataset_factory.create(dataset)(
-            idxs=tuple(range(1, n_unsup_img)),
-            *args,
-            **kwargs
-        )
         self.class_names = self.val_set.cls_names
-
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
@@ -47,18 +40,21 @@ class ResiscSemisup(SemisupDm):
         parser = super().add_model_specific_args(parent_parser)
         parser.add_argument("--split", nargs=2, type=int)
         parser.add_argument("--dataset", type=str)
-        parser.add_argument("--n_unsup_img", type=int)
 
         return parser
-    
+
 
 def main():
 
-    datamodule = ResiscDm(
+    datamodule = SplitIdxSup(
+        dataset='Resisc',
+        img_aug='d4',
+        data_path='/home/pfournie/ai4geo/data/NWPU-RESISC45',
+        labels='base',
+        split=(2,5),
         epoch_len=10,
         sup_batch_size=4,
         workers=0,
-        img_aug='no',
         batch_aug='no'
     )
 
