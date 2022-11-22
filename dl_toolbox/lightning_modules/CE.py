@@ -28,11 +28,12 @@ class CE(BaseModule):
         net_cls = self.net_factory.create(network)
         self.network = net_cls(*args, **kwargs)
         self.num_classes = self.network.out_channels
-        self.weights = list(weights) if len(weights)>0 else [1]*self.num_classes
+        out_dim = self.network.out_dim
+        weights = torch.Tensor(weights).reshape(1, -1, *out_dim) if len(weights)>0 else None
         self.ignore_index = ignore_index
         self.loss = nn.CrossEntropyLoss(
             ignore_index=self.ignore_index,
-            weight=torch.Tensor(self.weights)
+            weight=weights
         )
         self.save_hyperparameters()
 
@@ -50,7 +51,8 @@ class CE(BaseModule):
         
         return self.network(x)
 
-    def _compute_probas(self, logits):
+    @classmethod
+    def _compute_probas(cls, logits):
 
         return logits.softmax(dim=1)
     
