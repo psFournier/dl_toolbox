@@ -14,6 +14,7 @@ from dl_toolbox.lightning_modules.utils import *
 from dl_toolbox.lightning_modules import BaseModule
 from dl_toolbox.utils import TorchOneHot
 from dl_toolbox.networks import *
+import dl_toolbox.augmentations as aug
 
 
 
@@ -25,6 +26,7 @@ class BCE(BaseModule):
                  network,
                  weights,
                  no_pred_zero,
+                 mixup,
                  *args,
                  **kwargs):
 
@@ -33,14 +35,15 @@ class BCE(BaseModule):
         self.network = net_cls(*args, **kwargs)
         self.no_pred_zero = no_pred_zero
         self.num_classes = self.network.out_channels + int(self.no_pred_zero)
-        self.weights = list(weights) if len(weights)>0 else [1]*self.network.out_channels
+        out_dim = self.network.out_dim
+
+        weights = torch.Tensor(weights).reshape(1, -1, *out_dim) if len(weights)>0 else None
         self.ignore_index = -1
-        self.loss = nn.BCEWithLogitsLoss(
-            pos_weight=torch.Tensor(self.weights).reshape(1, -1, 1, 1)
-        )
+        self.loss = nn.BCEWithLogitsLoss(pos_weight=weights)
         self.onehot = TorchOneHot(
             range(int(self.no_pred_zero), self.num_classes)
         )
+        self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else aug.NoOp
         self.save_hyperparameters()
 
     @classmethod
@@ -50,6 +53,7 @@ class BCE(BaseModule):
         parser.add_argument("--network", type=str)
         parser.add_argument("--weights", type=float, nargs="+", default=())
         parser.add_argument("--no_pred_zero", action='store_true')
+        parser.add_argument("--mixup", type=float, default=0.)
         
         return parser
 
@@ -77,8 +81,9 @@ class BCE(BaseModule):
         inputs = batch['image']
         labels = batch['mask']
         onehot_labels = self.onehot(labels).float() # B,C or C-1,H,W
-        logits = self.network(inputs) # B,C or C-1,H,W
-        loss = self.loss(logits, onehot_labels)
+        mixed_inputs, mixed_labels = self.mixup(inputs, onehot_labels) 
+        logits = self.network(mixed_inputs) # B,C or C-1,H,W
+        loss = self.loss(logits, mixed_labels)
         self.log('Train_sup_BCE', loss)
         batch['logits'] = logits.detach()
 

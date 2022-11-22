@@ -80,6 +80,7 @@ class Unet(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.out_dim = (1,1)
         self.bilinear = bilinear
 
         self.inc = DoubleConv(in_channels, 64)

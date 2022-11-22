@@ -11,11 +11,21 @@ from torch.optim.lr_scheduler import LambdaLR
 import time
 import tabulate
 from dl_toolbox.torch_collate import CustomCollate
-
+from dl_toolbox.lightning_datamodules import SplitfilSup
+from dl_toolbox.lightning_modules import CE
 
 def main():
 
     parser = ArgumentParser()
+    parser.add_argument("--output_dir", type=str, default="./outputs")
+    parser.add_argument("--version", type=str, default=None)
+    parser.add_argument("--exp_name", type=str)
+    parser.add_argument("--checkpoint", type=str, default=None)
+
+    parser = SplitfileSup.add_model_specific_args(parser)
+    parser = CE.add_model_specific_args(parser)
+
+
     parser.add_argument("--output_dir", type=str, default="./outputs")
     parser.add_argument("--num_classes", type=int)
     parser.add_argument("--train_with_void", action='store_true')
@@ -41,6 +51,8 @@ def main():
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
+
+    datamodule = SplitfileSup(**args)
 
     dataset1 = SemcityBdsdDs(
         image_path=os.path.join(args.data_path, 'BDSD_M_3_4_7_8.tif'),

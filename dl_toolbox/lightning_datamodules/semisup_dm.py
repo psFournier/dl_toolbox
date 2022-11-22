@@ -46,7 +46,7 @@ class SemisupDm(SupervisedDm):
             dataset=self.unsup_train_set,
             batch_size=self.unsup_batch_size,
             sampler=unsup_train_sampler,
-            collate_fn=CustomCollate(batch_aug='no'),
+            collate_fn=CustomCollate(),
             num_workers=self.num_workers,
             pin_memory=True,
             worker_init_fn=worker_init_function,

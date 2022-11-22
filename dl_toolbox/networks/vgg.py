@@ -44,6 +44,7 @@ class Vgg(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.out_dim = ()
         self.inc = DoubleConv(in_channels, 16)
         self.down1 = Down(16, 32)
         self.down2 = Down(32, 64)

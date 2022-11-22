@@ -4,10 +4,6 @@ from dl_toolbox.torch_datasets.utils import *
 
 class CustomCollate():
 
-    def __init__(self, batch_aug):
-
-        self.batch_aug = get_transforms(batch_aug)
-
     def __call__(self, batch, *args, **kwargs):
 
         windows = [elem['window'] for elem in batch if 'window' in elem.keys()]
@@ -16,7 +12,6 @@ class CustomCollate():
         batch = default_collate(to_collate)
         if 'mask' not in batch.keys():
             batch['mask'] = None
-        batch['image'], batch['mask'] = self.batch_aug(batch['image'], batch['mask'])
         
         batch['window'] = windows
 

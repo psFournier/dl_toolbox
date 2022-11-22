@@ -21,6 +21,7 @@ class SmpUnet(smp.Unet):
         )
         self.out_channels = out_channels
         self.in_channels = in_channels
+        self.out_dim = (1,1)
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):

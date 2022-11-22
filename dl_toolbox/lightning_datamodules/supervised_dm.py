@@ -18,7 +18,6 @@ class SupervisedDm(LightningDataModule):
                  epoch_len,
                  sup_batch_size,
                  workers,
-                 batch_aug,
                  *args,
                  **kwargs):
 
@@ -26,7 +25,6 @@ class SupervisedDm(LightningDataModule):
         self.epoch_len = epoch_len
         self.sup_batch_size = sup_batch_size
         self.num_workers = workers
-        self.batch_aug = batch_aug
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
@@ -35,7 +33,6 @@ class SupervisedDm(LightningDataModule):
         parser.add_argument("--epoch_len", type=int)
         parser.add_argument("--sup_batch_size", type=int)
         parser.add_argument("--workers", type=int)
-        parser.add_argument('--batch_aug', type=str)
 
         return parser
    
@@ -50,7 +47,7 @@ class SupervisedDm(LightningDataModule):
         train_dataloader = DataLoader(
             dataset=self.train_set,
             batch_size=self.sup_batch_size,
-            collate_fn=CustomCollate(batch_aug=self.batch_aug),
+            collate_fn=CustomCollate(),
             sampler=train_sampler,
             num_workers=self.num_workers,
             pin_memory=True,
@@ -65,7 +62,7 @@ class SupervisedDm(LightningDataModule):
         val_dataloader = DataLoader(
             dataset=self.val_set,
             shuffle=False,
-            collate_fn=CustomCollate(batch_aug='no'),
+            collate_fn=CustomCollate(),
             batch_size=self.sup_batch_size,
             num_workers=self.num_workers,
             pin_memory=True,
