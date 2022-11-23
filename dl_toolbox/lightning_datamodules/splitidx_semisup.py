@@ -16,7 +16,7 @@ class SplitIdxSemisup(SemisupDm):
         self,
         dataset,
         split,
-        n_unsup_img,
+        unsup_img,
         *args,
         **kwargs
     ):
@@ -34,7 +34,7 @@ class SplitIdxSemisup(SemisupDm):
             **kwargs
         )
         self.unsup_train_set = dataset_factory.create(dataset)(
-            idxs=tuple(range(1, n_unsup_img)),
+            idxs=tuple(range(unsup_img[0], unsup_img[1])),
             *args,
             **kwargs
         )
@@ -47,7 +47,7 @@ class SplitIdxSemisup(SemisupDm):
         parser = super().add_model_specific_args(parent_parser)
         parser.add_argument("--split", nargs=2, type=int)
         parser.add_argument("--dataset", type=str)
-        parser.add_argument("--n_unsup_img", type=int)
+        parser.add_argument("--unsup_img", nargs=2, type=int)
 
         return parser
     
