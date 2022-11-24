@@ -7,6 +7,7 @@ from dl_toolbox.lightning_modules import *
 from dl_toolbox.lightning_datamodules import *
 from dl_toolbox.networks import *
 from dl_toolbox.torch_datasets import *
+from torch.utils.data import DataLoader
 
 def main():
 
@@ -39,14 +40,14 @@ def main():
         ]
     )
 
-    train_set = Resisc(
-        idx=tuple(range(1, 50)),
+    train_set = ResiscDs(
+        idxs=tuple(range(1, 50)),
         data_path='/d/pfournie/ai4geo/data/NWPU-RESISC45',
         img_aug='d4',
         labels='base'
     )
-    val_set = Resisc(
-        idx=tuple(range(50, 100)),
+    val_set = ResiscDs(
+        idxs=tuple(range(50, 100)),
         data_path='/d/pfournie/ai4geo/data/NWPU-RESISC45',
         img_aug='no',
         labels='base'
@@ -63,7 +64,7 @@ def main():
         drop_last=True
     )
 
-    val_dataloader = Dataloader(
+    val_dataloader = DataLoader(
         dataset=val_set,
         shuffle=False,
         collate_fn=CustomCollate(),
@@ -75,18 +76,18 @@ def main():
 
     trainer.fit(
         model=module,
-        train_dataloaders=train_dataloader,
+        train_dataloader=train_dataloader,
         val_dataloaders=val_dataloader
     )
 
-    pred_set = Resisc(
-        idx=tuple(range(50, 150)),
+    pred_set = ResiscDs(
+        idxs=tuple(range(50, 150)),
         data_path='/d/pfournie/ai4geo/data/NWPU-RESISC45',
         labels='base',
         img_aug='no'
     )
     
-    pred_dataloader = Dataloader(
+    pred_dataloader = DataLoader(
         dataset=pred_set,
         shuffle=False,
         collate_fn=CustomCollate(),
@@ -122,7 +123,7 @@ def main():
         img_aug='d4_color-5'
     )
 
-    pl_dataloader = Dataloader(
+    pl_dataloader = DataLoader(
         dataset=pl_set,
         shuffle=True,
         collate_fn=CustomCollate(),
