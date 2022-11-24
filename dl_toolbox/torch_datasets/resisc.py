@@ -1,4 +1,5 @@
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
+from torchvision.datasets.folder import DatasetFolder
 from argparse import ArgumentParser
 from PIL import Image
 from dl_toolbox.torch_datasets.utils import *
@@ -7,6 +8,7 @@ import os
 import torch
 
 from dl_toolbox.utils import MergeLabels, OneHot
+from dl_toolbox.torch_collate import CustomCollate
 
 cls_names = [
     'airplane',
@@ -56,31 +58,31 @@ cls_names = [
 ]
 
 resisc_labels = {
-    'base': {key: {} for key in cls_names}
+    'base': {key: {} for key in cls_names},
+    'small': {key: {} for key in ['stadium', 'wetland']}
 }
 
-resisc_label_mergers = {
-    'base': [[i] for i in range(len(cls_names))]
-}
+def pil_to_torch_loader(path: str):
 
-class ResiscDs(Dataset):
+    with open(path, "rb") as f:
+        img = np.asarray(Image.open(f))
+        img = torch.from_numpy(img).permute(2,0,1).float() / 255.
+        return img
+
+class ResiscDs(DatasetFolder):
 
     def __init__(
         self,
         data_path,
-        idxs,
         img_aug,
-        labels,
-        *args,
-        **kwargs
     ):
-        
-        self.data_path = data_path
-        self.idxs = idxs
+        super().__init__(
+            root=data_path,
+            loader=pil_to_torch_loader,
+            extensions=('jpg',)
+        )
         self.img_aug = get_transforms(img_aug)
-        self.labels = resisc_labels[labels]
-        self.cls_names = list(self.labels.keys())
-        self.label_merger = MergeLabels(resisc_label_mergers[labels])
+        self.class_names = self.classes
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
@@ -88,53 +90,105 @@ class ResiscDs(Dataset):
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--data_path", type=str)
         parser.add_argument("--img_aug", type=str)
-        parser.add_argument("--labels", type=str)
 
         return parser
 
-    def __len__(self):
-        
-        return len(self.cls_names) * len(self.idxs)
-
     def __getitem__(self, idx):
-        
-        cls_idx = idx // len(self.idxs)
-        cls_name = self.cls_names[cls_idx]
-        img_idx = self.idxs[idx % len(self.idxs)]
-        path = os.path.join(self.data_path, cls_name, f'{cls_name}_{img_idx:03}.jpg')
-        img_array = np.asarray(Image.open(path))
-        image = torch.from_numpy(img_array).permute(2,0,1).float() / 255.
 
-        label = torch.tensor(cls_idx)
-
-        if self.img_aug is not None:
-            end_image, _ = self.img_aug(img=image)
-        else:
-            end_image = image
+        path, label = self.samples[idx]
+        image = self.loader(path)
+        end_image, _ = self.img_aug(img=image)
 
         return {
             'orig_image': image,
             'image': end_image,
-            'mask': label
+            'mask': label,
+            'path': path
         }
+
+
+
+
+
+#class ResiscDs2(Dataset):
+#
+#    def __init__(
+#        self,
+#        data_path,
+#        idxs,
+#        img_aug,
+#        labels,
+#        *args,
+#        **kwargs
+#    ):
+#        
+#        self.data_path = data_path
+#        self.idxs = idxs
+#        self.img_aug = get_transforms(img_aug)
+#        self.labels = resisc_labels[labels]
+#        self.cls_names = list(self.labels.keys())
+#
+#    @classmethod
+#    def add_model_specific_args(cls, parent_parser):
+#
+#        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+#        parser.add_argument("--data_path", type=str)
+#        parser.add_argument("--img_aug", type=str)
+#        parser.add_argument("--labels", type=str)
+#
+#        return parser
+#
+#    def __len__(self):
+#        
+#        return len(self.cls_names) * len(self.idxs)
+#
+#    def __getitem__(self, idx):
+#        
+#        cls_idx = idx // len(self.idxs)
+#        cls_name = self.cls_names[cls_idx]
+#        img_idx = self.idxs[idx % len(self.idxs)]
+#        path = os.path.join(self.data_path, cls_name, f'{cls_name}_{img_idx:03}.jpg')
+#        img_array = np.asarray(Image.open(path))
+#        image = torch.from_numpy(img_array).permute(2,0,1).float() / 255.
+#        label = torch.tensor(cls_idx)
+#        if self.img_aug is not None:
+#            end_image, _ = self.img_aug(img=image)
+#        else:
+#            end_image = image
+#
+#        return {
+#            'orig_image': image,
+#            'image': end_image,
+#            'mask': label,
+#            'path': path
+#        }
         
 def main():
 
     dataset = ResiscDs(
-        datadir='/d/pfournie/ai4geo/data/NWPU-RESISC45',
-        n_img=3,
+        data_path='/d/pfournie/ai4geo/data/NWPU-RESISC45',
         img_aug='d4'
     )
-
+    dataloader = DataLoader(
+        dataset=dataset,
+        shuffle=False,
+        collate_fn=CustomCollate(),
+        batch_size=4,
+        num_workers=1,
+    )
+    for batch in dataloader:
+        print(batch['path'])
+        break
+    
     print(len(dataset))
-    res = dataset[3]
+    res = dataset[700]
     print(res['image'].shape)
     orig_image = res['orig_image'].numpy().transpose(1,2,0)
     image = res['image'].numpy().transpose(1,2,0)
     f, ax = plt.subplots(1, 2, figsize=(10, 10))
     ax[0].imshow(orig_image)
     ax[1].imshow(image)
-    ax[0].set_title(dataset.cls_list[int(res['mask'])])
+    ax[0].set_title(res['path'])
     plt.show()
 
 

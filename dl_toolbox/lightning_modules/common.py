@@ -23,6 +23,7 @@ class BaseModule(pl.LightningModule):
                  initial_lr=0.05,
                  final_lr=0.001,
                  lr_milestones=(0.5,0.9),
+                 plot_calib=False,
                  *args,
                  **kwargs):
 
@@ -31,6 +32,7 @@ class BaseModule(pl.LightningModule):
         self.initial_lr = initial_lr
         self.final_lr = final_lr
         self.lr_milestones = list(lr_milestones)
+        self.plot_calib = plot_calib
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
@@ -39,6 +41,7 @@ class BaseModule(pl.LightningModule):
         parser.add_argument("--initial_lr", type=float)
         parser.add_argument("--final_lr", type=float)
         parser.add_argument("--lr_milestones", nargs='+', type=float)
+        parser.add_argument("--plot_calib", action='store_true')
 
         return parser
     
@@ -85,23 +88,26 @@ class BaseModule(pl.LightningModule):
             self.num_classes,
             ignore_idx=None
         )
-        
-        acc_bins, conf_bins, count_bins = compute_calibration_bins(
-            torch.linspace(0, 1, 100 + 1).to(self.device),
-            labels.flatten(),
-            confidences.flatten(),
-            preds.flatten(),
-            ignore_idx=None
-        )
-        
 
-        return {'acc_bins': acc_bins.detach(),
-                'conf_bins': conf_bins.detach(),
-                'count_bins': count_bins.detach(),
-                'stat_scores': stat_scores.detach(),
-                'conf_mat': conf_mat.detach(),
-                'logits': logits.detach()
-                }
+        res = {
+            'stat_scores': stat_scores.detach(),
+            'conf_mat': conf_mat.detach(),
+            'logits': logits.detach()
+        }
+
+        if self.plot_calib:
+            acc_bins, conf_bins, count_bins = compute_calibration_bins(
+                torch.linspace(0, 1, 100 + 1).to(self.device),
+                labels.flatten(),
+                confidences.flatten(),
+                preds.flatten(),
+                ignore_idx=None
+            )
+            res['acc_bins'] = acc_bins.detach()
+            res['conf_bins'] = conf_bins.detach()
+            res['count_bins'] = count_bins.detach()
+
+        return res
 
     def validation_epoch_end(self, outs):
         
@@ -138,12 +144,16 @@ class BaseModule(pl.LightningModule):
         #cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.)
         #cm_recall = np.divide(cm, sum_col, out=np.zeros_like(cm), where=sum_col!=0)
         #cm_precision = np.divide(cm, sum_lin, out=np.zeros_like(cm), where=sum_lin!=0)
+        try:
+            class_names = self.trainer.val_dataloaders[0].dataset.class_names
+        except:
+            class_names = [str(i) for i in range(num_classes)]
         
         self.trainer.logger.experiment.add_figure(
             "Precision matrix", 
             plot_confusion_matrix(
                 cm,
-                class_names=self.trainer.datamodule.class_names,
+                class_names=class_names,
                 norm='precision'
             ), 
             global_step=self.trainer.global_step
@@ -152,35 +162,35 @@ class BaseModule(pl.LightningModule):
             "Recall matrix", 
             plot_confusion_matrix(
                 cm,
-                class_names=self.trainer.datamodule.class_names,
+                class_names=class_names,
                 norm='recall'
             ), 
             global_step=self.trainer.global_step
         )
 
+        if self.plot_calib:
+            count_bins = torch.stack([out['count_bins'] for out in outs])
+            conf_bins = torch.stack([out['conf_bins'] for out in outs])
+            acc_bins = torch.stack([out['acc_bins'] for out in outs])
+            
+            counts = torch.sum(count_bins, dim=0)
+            accs = torch.sum(torch.mul(acc_bins, count_bins), dim=0)
+            accs = torch.div(accs, counts)
+            confs = torch.sum(torch.mul(conf_bins, count_bins), dim=0)
+            confs = torch.div(confs, counts)
 
-        count_bins = torch.stack([out['count_bins'] for out in outs])
-        conf_bins = torch.stack([out['conf_bins'] for out in outs])
-        acc_bins = torch.stack([out['acc_bins'] for out in outs])
-        
-        counts = torch.sum(count_bins, dim=0)
-        accs = torch.sum(torch.mul(acc_bins, count_bins), dim=0)
-        accs = torch.div(accs, counts)
-        confs = torch.sum(torch.mul(conf_bins, count_bins), dim=0)
-        confs = torch.div(confs, counts)
+            figure = plot_calib(
+                counts.cpu().numpy(),
+                accs.cpu().numpy(),
+                confs.cpu().numpy(),
+                max_points=10000
+            )
 
-        figure = plot_calib(
-            counts.cpu().numpy(),
-            accs.cpu().numpy(),
-            confs.cpu().numpy(),
-            max_points=10000
-        )
-
-        self.trainer.logger.experiment.add_figure(
-            f"Calibration",
-            figure,
-            global_step=self.trainer.global_step
-        )
+            self.trainer.logger.experiment.add_figure(
+                f"Calibration",
+                figure,
+                global_step=self.trainer.global_step
+            )
 
 
     def on_train_epoch_end(self):
