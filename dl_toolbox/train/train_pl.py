@@ -27,7 +27,9 @@ def main():
         network='Vgg',
         weights=[],
         in_channels=3,
-        out_channels=45
+        out_channels=45,
+        initial_lr=0.001,
+        final_lr=0.0005
     )
 
     logger = TensorBoardLogger(
@@ -50,7 +52,7 @@ def main():
     )
     train_set = Subset(
         dataset=resisc_train,
-        indices=[700*i+j for i in range(45) for j in range(650)]
+        indices=[700*i+j for i in range(45) for j in range(50)]
     )
 
     resisc_val = ResiscDs(
@@ -59,7 +61,7 @@ def main():
     )
     val_set = Subset(
         dataset=resisc_val,
-        indices=[700*i+j for i in range(45) for j in range(650, 700)]
+        indices=[700*i+j for i in range(45) for j in range(50, 100)]
     )
 
     train_dataloader = DataLoader(
@@ -122,10 +124,10 @@ def main():
         probas = module._compute_probas(logits)
         _, preds = module._compute_conf_preds(probas)
 
-        for pred in preds:
+        for i,pred in enumerate(preds):
 
             pred = int(pred)
-            cls_name = resisc.classes[pred]
+            cls_name = resisc_pred.classes[pred]
             num = counts[pred]
             class_dir = Path(pl_dir) / cls_name
             class_dir.mkdir(parents=True, exist_ok=True)
@@ -134,7 +136,7 @@ def main():
                 batch['path'][i],
                 dst
             )
-            counts[preds[i]] += 1
+            counts[pred] += 1
 
     pl_set = ResiscDs(
         data_path=pl_dir,
