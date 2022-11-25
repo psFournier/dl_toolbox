@@ -9,6 +9,8 @@ from dl_toolbox.torch_datasets import ResiscDs
 from torch.utils.data import DataLoader, Subset, ConcatDataset
 from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.torch_sample import BalancedConcat
+from dl_toolbox.utils import worker_init_function
+
 import os
 from pathlib import Path
 import torch
@@ -17,7 +19,7 @@ def main():
 
     sup_batch_size = 16
     num_workers = 4
-    max_epochs = 5
+    max_epochs = 100
     output_dir = '/d/pfournie/ai4geo/outputs'
 
     module = CE(
@@ -25,7 +27,7 @@ def main():
         network='Vgg',
         weights=[],
         in_channels=3,
-        out_channels=2
+        out_channels=45
     )
 
     logger = TensorBoardLogger(
@@ -42,18 +44,22 @@ def main():
         gpus=1
     )
 
-    resisc = ResiscDs(
+    resisc_train = ResiscDs(
         data_path='/d/pfournie/ai4geo/data/NWPU-RESISC45',
         img_aug='d4',
     )
-
     train_set = Subset(
-        dataset=resisc,
-        indices=[700*i+j for i in range(2) for j in range(16)]
+        dataset=resisc_train,
+        indices=[700*i+j for i in range(45) for j in range(650)]
+    )
+
+    resisc_val = ResiscDs(
+        data_path='/d/pfournie/ai4geo/data/NWPU-RESISC45',
+        img_aug='no'
     )
     val_set = Subset(
-        dataset=resisc,
-        indices=[700*i+j for i in range(2) for j in range(16, 24)]
+        dataset=resisc_val,
+        indices=[700*i+j for i in range(45) for j in range(650, 700)]
     )
 
     train_dataloader = DataLoader(
@@ -63,7 +69,8 @@ def main():
         shuffle=True,
         num_workers=num_workers,
         pin_memory=True,
-        drop_last=True
+        drop_last=True,
+        worker_init_fn=worker_init_function
     )
 
     val_dataloader = DataLoader(
@@ -72,19 +79,23 @@ def main():
         collate_fn=CustomCollate(),
         batch_size=sup_batch_size,
         num_workers=num_workers,
-        pin_memory=True
+        pin_memory=True,
+        worker_init_fn=worker_init_function
     )
 
     trainer.fit(
         model=module,
-        train_dataloader=train_dataloader,
+        train_dataloaders=train_dataloader,
         val_dataloaders=val_dataloader
     )
 
-
+    resisc_pred = ResiscDs(
+        data_path='/d/pfournie/ai4geo/data/NWPU-RESISC45',
+        img_aug='no'
+    )
     pred_set = Subset(
-        dataset=resisc,
-        indices=[700*i+j for i in range(2) for j in range(16, 48)]
+        dataset=resisc_pred,
+        indices=[700*i+j for i in range(45) for j in range(50, 500)]
     )
 
     pred_dataloader = DataLoader(
@@ -103,7 +114,7 @@ def main():
         'NWPU-RESISC45'
     )
 
-    counts = [0]*2
+    counts = [0]*45
 
     for batch in pred_dataloader:
 
@@ -111,9 +122,9 @@ def main():
         probas = module._compute_probas(logits)
         _, preds = module._compute_conf_preds(probas)
 
-        for i in range(sup_batch_size):
+        for pred in preds:
 
-            pred = int(preds[i])
+            pred = int(pred)
             cls_name = resisc.classes[pred]
             num = counts[pred]
             class_dir = Path(pl_dir) / cls_name
@@ -151,7 +162,7 @@ def main():
         network='Vgg',
         weights=[],
         in_channels=3,
-        out_channels=2
+        out_channels=45
     )
 
     trainer = Trainer(

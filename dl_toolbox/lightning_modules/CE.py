@@ -30,10 +30,12 @@ class CE(BaseModule):
         self.num_classes = self.network.out_channels
         out_dim = self.network.out_dim
         weights = torch.Tensor(weights).reshape(1, -1, *out_dim) if len(weights)>0 else None
+        self.weights = list(weights) if len(weights)>0 else [1]*self.num_classes
         self.ignore_index = ignore_index
         self.loss = nn.CrossEntropyLoss(
             ignore_index=self.ignore_index,
-            weight=weights
+            weight=torch.Tensor(self.weights)
+            #weight=torch.Tensor(self.weights).reshape(1,-1,*out_dim)
         )
         self.save_hyperparameters()
 

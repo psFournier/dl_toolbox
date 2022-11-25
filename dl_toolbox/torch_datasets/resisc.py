@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision.datasets.folder import DatasetFolder
 from argparse import ArgumentParser
 from PIL import Image
@@ -102,7 +102,7 @@ class ResiscDs(DatasetFolder):
         return {
             'orig_image': image,
             'image': end_image,
-            'mask': label,
+            'mask': torch.tensor(label),
             'path': path
         }
 
@@ -169,28 +169,28 @@ def main():
         data_path='/d/pfournie/ai4geo/data/NWPU-RESISC45',
         img_aug='d4'
     )
-    dataloader = DataLoader(
+    train_set = Subset(
         dataset=dataset,
-        shuffle=False,
+        indices=[700*i+j for i in range(45) for j in range(50)]
+    )
+    print(len(train_set))
+
+    dataloader = DataLoader(
+        dataset=train_set,
+        shuffle=True,
         collate_fn=CustomCollate(),
         batch_size=4,
         num_workers=1,
+        drop_last=True
     )
-    for batch in dataloader:
-        print(batch['path'])
-        break
-    
-    print(len(dataset))
-    res = dataset[700]
-    print(res['image'].shape)
-    orig_image = res['orig_image'].numpy().transpose(1,2,0)
-    image = res['image'].numpy().transpose(1,2,0)
-    f, ax = plt.subplots(1, 2, figsize=(10, 10))
-    ax[0].imshow(orig_image)
-    ax[1].imshow(image)
-    ax[0].set_title(res['path'])
-    plt.show()
-
+    #for i, batch in enumerate(dataloader):
+    #    f, ax = plt.subplots(4, 2, figsize=(20, 10))
+    #    for j in range(4):
+    #        ax[j, 0].imshow(batch['orig_image'][j].numpy().transpose(1,2,0))
+    #        ax[j, 1].imshow(batch['image'][j].numpy().transpose(1,2,0))
+    #        ax[j,0].set_title(batch['path'][j])
+    #        ax[j, 1].set_title(int(batch['mask'][j]))
+    #    plt.show()  
 
 if __name__ == '__main__':
     main()
