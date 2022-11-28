@@ -48,11 +48,10 @@ def compute_probas(
     batch_size,
     workers,
     tta,
-    merge
+    merge,
+    device
 ):
     
-    device = module.device
-
     dataloader = DataLoader(
         dataset=dataset,
         shuffle=False,
@@ -92,12 +91,12 @@ def compute_probas(
         print('batch ', i)
         inputs, labels, windows = batch['image'], batch['mask'], batch['window']
 
-        outputs = batch_forward(inputs, module)
+        outputs = batch_forward(inputs, module, device)
         window_list = windows[:]
 
         for t in tta:
 
-            outputs_tta = batch_forward(inputs, module, t)
+            outputs_tta = batch_forward(inputs, module, device, t)
             outputs = torch.vstack([outputs, outputs_tta])
             window_list += windows[:]
             
@@ -119,12 +118,12 @@ def compute_probas(
 
     return probas.detach().cpu()
 
-def batch_forward(inputs, module, tta=None):
+def batch_forward(inputs, module, device, tta=None):
     
     if tta:
         inputs, _ = aug_dict[tta](p=1)(inputs)
     with torch.no_grad():
-        outputs = module.forward(inputs.to(module.device)).cpu()
+        outputs = module.forward(inputs.to(device)).cpu()
     if tta and tta in anti_t_dict:
         outputs, _ = aug_dict[anti_t_dict[tta]](p=1)(outputs)
 

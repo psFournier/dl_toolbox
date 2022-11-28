@@ -74,6 +74,10 @@ digitanie_labels = {
     'building' : {
         'background': {'color': (0,0,0)},
         'building': {'color': (255, 255, 255)}
+    },
+    'road': {
+        'background': {'color': (0,0,0)},
+        'road': {'color': (255,255,255)}
     }
 }
 
@@ -84,16 +88,17 @@ digitanie_label_mergers = {
     '5class' : [[0, 1, 6, 7, 9, 10], [2, 5], [3], [4], [8]],
     '5class2' : [[0, 1, 7, 9, 10], [2, 5], [3], [4], [6, 8]],
     'semcity' : [[0, 9], [1, 2], [3, 10], [4], [5], [6, 7, 8]],
-    'building' : [[0,1,2,3,5,6,7,8,9,10],[4]]
+    'building' : [[0,1,2,3,5,6,7,8,9,10],[4]],
+    'road' : [[0,1,2,3,4,5,6,7,9,10],[8]]
 }
 
 class DigitanieOldDs(RasterDs):
 
-    def __init__(self, labels, label_merger, *args, **kwargs):
+    def __init__(self, labels, *args, **kwargs):
  
         self.labels = digitanie_labels[labels]
         super().__init__(*args, **kwargs)
-        self.label_merger = MergeLabels(digitanie_label_mergers[label_merger])
+        self.label_merger = MergeLabels(digitanie_label_mergers[labels])
 
     def read_image(self, image_path, window):
 
