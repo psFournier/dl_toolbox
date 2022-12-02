@@ -1,6 +1,6 @@
 from torch.utils.data._utils.collate import default_collate
 import torch
-from dl_toolbox.torch_datasets.utils import *
+
 
 class CustomCollate():
 

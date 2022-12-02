@@ -135,16 +135,21 @@ class DigitanieDs(RasterDs):
 
     def read_image(self, image_path, window):
         
-        if self.full_raster_path == image_path:
-            image = read_window_basic(
+#        if self.full_raster_path == image_path:
+#            image = read_window_basic(
+#                window=window,
+#                path=image_path
+#            )
+#        else:
+#            image = read_window_from_big_raster(
+#                window=window,
+#                path=image_path,
+#                raster_path=self.full_raster_path
+#            )
+        
+        image = read_window_basic(
                 window=window,
                 path=image_path
-            )
-        else:
-            image = read_window_from_big_raster(
-                window=window,
-                path=image_path,
-                raster_path=self.full_raster_path
             )
 
         image = image[:3,...]

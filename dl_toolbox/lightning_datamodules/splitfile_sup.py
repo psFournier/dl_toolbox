@@ -9,8 +9,54 @@ from rasterio.windows import Window
 from dl_toolbox.utils import worker_init_function 
 from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.torch_datasets import *
-from .utils import read_splitfile
 
+
+def read_splitfile(
+    splitfile,
+    data_path,
+    train_folds,
+    test_folds
+):
+
+    test_datasets_args, train_datasets_args = [], []
+
+    reader = csv.reader(splitfile)
+    next(reader)
+    for row in reader:
+              
+        dataset, _, image_path, label_path, x0, y0, w, h, fold = row[:9]
+        is_train = int(fold) in train_folds 
+        is_test = int(fold) in test_folds
+        window = Window(
+            col_off=int(x0),
+            row_off=int(y0),
+            width=int(w),
+            height=int(h)
+        )
+
+        kwargs = {
+            'image_path':os.path.join(data_path, image_path),
+            'fixed_crops':is_test,
+            'tile':window,
+        }
+
+        try:
+            orig_img = row[9]
+            kwargs['full_raster_path'] = os.path.join(data_path, orig_img)
+        except:
+            pass
+
+        if label_path != 'none': 
+            kwargs['label_path'] = os.path.join(data_path, label_path)
+ 
+        if is_train:
+            train_datasets_args.append((dataset, kwargs))
+        elif is_test:
+            test_datasets_args.append((dataset, kwargs))
+        else:
+            pass
+
+    return train_datasets_args, test_datasets_args
 
 class SplitfileSup(SupervisedDm):
 

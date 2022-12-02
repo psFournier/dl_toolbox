@@ -39,19 +39,10 @@ class RasterDs(Dataset):
             col_offset=tile.col_off)) if fixed_crops else None
         self.crop_size = crop_size
         self.img_aug = get_transforms(img_aug)
-
-       # self.merge_labels = merge_labels
-       # if merge_labels is None:
-       #     self.labels, self.label_names = map(list, zip(*self.DATASET_DESC['labels']))
-       #     self.label_merger = None
-       # else:
-       #     labels, self.label_names = merge_labels
-       #     self.labels = list(range(len(labels)))
-       #     self.label_merger = MergeLabels(labels)
-
         self.one_hot = OneHot(list(range(len(self.labels)))) if one_hot else None
         self.labels_to_rgb = LabelsToRGB(self.labels)
         self.rgb_to_labels = RGBToLabels(self.labels)
+        self.stats = self.init_stats()
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
@@ -63,12 +54,16 @@ class RasterDs(Dataset):
         parser.add_argument('--labels', type=str)
 
         return parser
-
-    def read_label(self, label_path, window):
-        pass
-
-    def read_image(self, image_path, window):
-        pass
+    
+    def init_stats(self):
+        
+        stats = {'channel_stats':[]}
+        stats['width'], stats['height'] = imagesize.get(self.image_path)
+        with rasterio.open(self.image_path) as image_file:
+            for i in range(1,5):
+                stats['channel_stats'].append(image_file.statistics(bidx=i, approx=True))
+        
+        return stats        
 
     def __len__(self):
 
@@ -82,19 +77,12 @@ class RasterDs(Dataset):
             cx = self.tile.col_off + np.random.randint(0, self.tile.width - self.crop_size + 1)
             cy = self.tile.row_off + np.random.randint(0, self.tile.height - self.crop_size + 1)
             window = Window(cx, cy, self.crop_size, self.crop_size)
-
-        image = self.read_image(
-            image_path=self.image_path,
-            window=window
-        )
-        image = torch.from_numpy(image).float().contiguous()
+            
+        image = self.read_image(self.image_path, window)
        
         label = None
         if self.label_path:
-            label = self.read_label(
-                label_path=self.label_path,
-                window=window
-            )
+            label = self.read_label(self.label_path, window)
             if self.one_hot: label = self.one_hot(label)
             label = torch.from_numpy(label).long().contiguous()
 
