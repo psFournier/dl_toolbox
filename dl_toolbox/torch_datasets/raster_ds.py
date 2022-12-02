@@ -79,7 +79,8 @@ class RasterDs(Dataset):
             window = Window(cx, cy, self.crop_size, self.crop_size)
             
         image = self.read_image(self.image_path, window)
-       
+        image = torch.from_numpy(image).float().contiguous()
+
         label = None
         if self.label_path:
             label = self.read_label(self.label_path, window)

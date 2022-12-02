@@ -55,10 +55,9 @@ class DigitanieV2(RasterDs):
         with rasterio.open(image_path) as image_file:
             image = image_file.read(window=window, out_dtype=np.float32)
             
-        image = torch.from_numpy(image).float().contiguous()[:3]
         mins = np.array([stat.min for stat in self.stats['channel_stats']])
         maxs = np.array([stat.max for stat in self.stats['channel_stats']])
-        image = minmax(image, mins[:3], maxs[:3])
+        image = minmax(image[:3], mins[:3], maxs[:3])
 
         return image
 
