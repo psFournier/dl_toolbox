@@ -92,37 +92,6 @@ digitanie_label_mergers = {
     'road' : [[0,1,2,3,4,5,6,7,9,10],[8]]
 }
 
-class DigitanieOldDs(RasterDs):
-
-    def __init__(self, labels, *args, **kwargs):
- 
-        self.labels = digitanie_labels[labels]
-        super().__init__(*args, **kwargs)
-        self.label_merger = MergeLabels(digitanie_label_mergers[labels])
-
-    def read_image(self, image_path, window):
-
-        image = read_window_basic(
-            window=window,
-            path=image_path
-        )
-
-        image = image[:3,...]
-
-        return image
-
-    def read_label(self, label_path, window):
-    
-        label = read_window_basic(
-            window=window,
-            path=label_path
-        )
-        label = np.squeeze(label)
-        label = self.label_merger(label)
-        
-
-        return label
-
 
 class DigitanieDs(RasterDs):
 

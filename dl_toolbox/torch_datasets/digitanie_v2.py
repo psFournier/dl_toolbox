@@ -1,14 +1,8 @@
-import os
-from torch.utils.data import Dataset
 import torch
-from dl_toolbox.torch_datasets.commons import minmax
-from dl_toolbox.utils import get_tiles
 import rasterio
-import imagesize
 import numpy as np
-from rasterio.windows import Window, bounds, from_bounds
-from dl_toolbox.utils import MergeLabels, OneHot
-import matplotlib.pyplot as plt
+
+from dl_toolbox.utils import minmax, MergeLabels
 from dl_toolbox.torch_datasets import RasterDs
 
 
@@ -55,8 +49,8 @@ class DigitanieV2(RasterDs):
         with rasterio.open(image_path) as image_file:
             image = image_file.read(window=window, out_dtype=np.float32)
             
-        mins = np.array([stat.min for stat in self.stats['channel_stats']])
-        maxs = np.array([stat.max for stat in self.stats['channel_stats']])
+        mins = np.array([stat.min for stat in self.info['stats']])
+        maxs = np.array([stat.max for stat in self.info['stats']])
         image = minmax(image[:3], mins[:3], maxs[:3])
 
         return image

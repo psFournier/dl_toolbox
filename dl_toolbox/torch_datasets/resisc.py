@@ -24,7 +24,8 @@ cls_names = [
     'chaparral',
     'dense_residential',
     'ground_track_field',
-    'lake', 'overpass',
+    'lake', 
+    'overpass',
     'rectangular_farmland',
     'ship',
     'tennis_court',
@@ -194,6 +195,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-        
-
-

@@ -1,48 +1,50 @@
-from argparse import ArgumentParser 
-import os
-from torch.utils.data import Dataset
 import torch
-from dl_toolbox.utils import get_tiles
 import rasterio
 import imagesize
 import numpy as np
+
 from rasterio.windows import Window
+from argparse import ArgumentParser 
+
+from dl_toolbox.utils import get_tiles
 from dl_toolbox.utils import MergeLabels, OneHot, LabelsToRGB, RGBToLabels
 from dl_toolbox.torch_datasets.utils import *
 
 
-class RasterDs(Dataset):
+class RasterDs(torch.utils.data.Dataset):
 
     def __init__(
-            self,
-            image_path,
-            tile,
-            fixed_crops,
-            crop_size,
-            crop_step,
-            img_aug,
-            label_path=None,
-            one_hot=False,
-            *args,
-            **kwargs
-            ):
+        self,
+        image_path,
+        tile,
+        crop_size,
+        img_aug='no',
+        label_path=None,
+        fixed_crops=False,
+        crop_step=None,
+        one_hot=False,
+        *args,
+        **kwargs
+    ):
 
         self.image_path = image_path
-        self.label_path = label_path
         self.tile = tile
+        self.crop_size = crop_size
+        self.img_aug = get_transforms(img_aug)
+        self.info = self.init_stats()
+        
+        self.label_path = label_path
         self.crop_windows = list(get_tiles(
             nols=tile.width, 
             nrows=tile.height, 
             size=crop_size, 
-            step=crop_step,
+            step=crop_step if crop_step else crop_size,
             row_offset=tile.row_off, 
             col_offset=tile.col_off)) if fixed_crops else None
-        self.crop_size = crop_size
-        self.img_aug = get_transforms(img_aug)
         self.one_hot = OneHot(list(range(len(self.labels)))) if one_hot else None
         self.labels_to_rgb = LabelsToRGB(self.labels)
         self.rgb_to_labels = RGBToLabels(self.labels)
-        self.stats = self.init_stats()
+        
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
@@ -57,13 +59,13 @@ class RasterDs(Dataset):
     
     def init_stats(self):
         
-        stats = {'channel_stats':[]}
-        stats['width'], stats['height'] = imagesize.get(self.image_path)
-        with rasterio.open(self.image_path) as image_file:
-            for i in range(1,5):
-                stats['channel_stats'].append(image_file.statistics(bidx=i, approx=True))
+        with rasterio.open(self.image_path) as f:
+            infos = {}
+            # technically we should not compute stats on the whole image if the dataset is built only on a subtile
+            infos['stats'] = [f.statistics(bidx=i, approx=True) for i in range(1, f.count+1)]
+            infos['shape'] = f.shape
         
-        return stats        
+        return infos        
 
     def __len__(self):
 
