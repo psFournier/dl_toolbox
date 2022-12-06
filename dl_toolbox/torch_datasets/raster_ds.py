@@ -94,11 +94,14 @@ class RasterDs(torch.utils.data.Dataset):
         else:
             end_image, end_mask = image, label
 
-        return {'orig_image':image,
-                'orig_mask':label,
-                'image':end_image,
-                'window':window,
-                'mask':end_mask}
+        return {
+            'orig_image':image,
+            'orig_mask':label,
+            'image':end_image,
+            'window':window,
+            'mask':end_mask,
+            'path': self.image_path
+        }
 
     
 #    @classmethod

@@ -10,7 +10,6 @@ from dl_toolbox.lightning_datamodules import SupervisedDm
 from dl_toolbox.utils import worker_init_function
 from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.torch_datasets import *
-from .utils import read_splitfile
 
 
 class SemisupDm(SupervisedDm):
