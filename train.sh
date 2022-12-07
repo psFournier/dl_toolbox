@@ -12,15 +12,15 @@
 --train_folds 5 6 7 8 \
 --sup_batch_size 8 \
 --workers 6 \
---max_epochs 50 \
---epoch_len 10000 \
---model BCE \
---no_pred_zero \
---weights 10 \
+--max_epochs 10 \
+--epoch_len 2000 \
+--model CE \
+--weights 1 2 \
 --network SmpUnet \
 --encoder efficientnet-b0 \
+--ignore_index -1 \
 --in_channels 3 \
---out_channels 1 \
+--out_channels 2 \
 --initial_lr 0.001 \
 --final_lr 0.0005 \
 --lr_milestones 30 \

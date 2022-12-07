@@ -17,7 +17,6 @@ from dl_toolbox.networks import *
 import dl_toolbox.augmentations as aug
 
 
-
 class BCE(BaseModule):
 
     # BCE_multilabel = Binary Cross Entropy for multilabel prediction

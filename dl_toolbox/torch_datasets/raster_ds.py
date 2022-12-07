@@ -32,7 +32,6 @@ class RasterDs(torch.utils.data.Dataset):
         self.crop_size = crop_size
         self.img_aug = get_transforms(img_aug)
         self.info = self.init_stats()
-        
         self.label_path = label_path
         self.crop_windows = list(get_tiles(
             nols=tile.width, 
@@ -90,38 +89,3 @@ class RasterDs(torch.utils.data.Dataset):
             'mask':end_mask,
             'path': self.image_path
         }
-
-    
-#    @classmethod
-#    def raw_labels_to_labels(cls, labels):
-#
-#
-#
-#        if dataset=='semcity':
-#            return rgb_to_labels(labels, dataset=dataset)
-#        elif dataset=='digitanie':
-#            return torch.squeeze(torch.from_numpy(labels)).long()
-#        else:
-#            raise NotImplementedError
-
-def main():
-
-    dataset = DigitanieDs(
-        image_path='/d/pfournie/ai4geo/data/DIGITANIE/Toulouse/toulouse_tuile_7_img_normalized.tif',
-        label_path='/d/pfournie/ai4geo/data/DIGITANIE/Toulouse/toulouse_tuile_7.tif',
-        crop_size=256,
-        crop_step=256,
-        img_aug='no',
-        tile=Window(col_off=500, row_off=502, width=400, height=400),
-        fixed_crops=False
-    )
-
-    for data in dataset:
-        pass
-    img = plt.imshow(dataset[0]['image'].numpy().transpose(1,2,0))
-
-    plt.show()
-
-
-if __name__ == '__main__':
-    main()
