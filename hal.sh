@@ -11,6 +11,6 @@ cd "${TMPDIR}"
 #cp -r "${USRDIR}"/digitanie .
 #cp -r /work/OT/ai4geo/DATA/DATASETS/DIGITANIE .
 
-bash $HOME/ai4geo/bash_scripts/train.sh
+bash $HOME/dl_toolbox/train.sh
 
 module unload python/3.7.2

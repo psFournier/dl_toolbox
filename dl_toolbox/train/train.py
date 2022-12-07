@@ -42,6 +42,7 @@ def main():
     args_dict = vars(args)
 
     #dataset = dataset_cls(**args_dict)
+    print("Creating datamodule and module")
     datamodule = datamodule_cls(**args_dict)
     module = module_cls(**args_dict)
 
@@ -58,10 +59,7 @@ def main():
         benchmark=True
     )
     
-    if args.checkpoint is None:
-        trainer.fit(model=module, datamodule=datamodule)
-    else:
-        trainer.fit(model=module, datamodule=datamodule, ckpt_path=args.checkpoint)
+    trainer.fit(model=module, datamodule=datamodule, ckpt_path=args.checkpoint)
 
 
 if __name__ == "__main__":

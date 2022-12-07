@@ -18,13 +18,13 @@ class RasterDs(torch.utils.data.Dataset):
         image_path,
         tile,
         crop_size,
-        img_aug='no',
+        img_aug=None,
         label_path=None,
         fixed_crops=False,
         crop_step=None,
-        one_hot=False,
-        *args,
-        **kwargs
+        #one_hot=False,
+        #*args,
+        #**kwargs
     ):
 
         self.image_path = image_path
@@ -41,21 +41,9 @@ class RasterDs(torch.utils.data.Dataset):
             step=crop_step if crop_step else crop_size,
             row_offset=tile.row_off, 
             col_offset=tile.col_off)) if fixed_crops else None
-        self.one_hot = OneHot(list(range(len(self.labels)))) if one_hot else None
+        #self.one_hot = OneHot(list(range(len(self.labels)))) if one_hot else None
         self.labels_to_rgb = LabelsToRGB(self.labels)
         self.rgb_to_labels = RGBToLabels(self.labels)
-        
-
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
-
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument('--img_aug', type=str)
-        parser.add_argument('--crop_size', type=int)
-        parser.add_argument('--crop_step', type=int)
-        parser.add_argument('--labels', type=str)
-
-        return parser
     
     def init_stats(self):
         
@@ -86,7 +74,7 @@ class RasterDs(torch.utils.data.Dataset):
         label = None
         if self.label_path:
             label = self.read_label(self.label_path, window)
-            if self.one_hot: label = self.one_hot(label)
+            #if self.one_hot: label = self.one_hot(label)
             label = torch.from_numpy(label).long().contiguous()
 
         if self.img_aug is not None:

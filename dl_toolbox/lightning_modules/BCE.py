@@ -42,7 +42,7 @@ class BCE(BaseModule):
         self.onehot = TorchOneHot(
             range(int(self.no_pred_zero), self.num_classes)
         )
-        self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else aug.NoOp
+        self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else aug.NoOp()
         self.save_hyperparameters()
 
     @classmethod

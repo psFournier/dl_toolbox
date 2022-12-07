@@ -58,16 +58,19 @@ aug_dict = {
     'mixup': aug.Mixup
 }
 
-def get_transforms(name: str):
+def get_transforms(name):
     
-    parts = name.split('_')
-    aug_list = []
-    for part in parts:
-        if part.startswith('color'):
-            bounds = part.split('-')[-1]
-            augment = aug.Color(bound=0.1*int(bounds))
-        else:
-            augment = aug_dict[part]()
-        aug_list.append(augment)
-    return aug.Compose(aug_list)
+    if name:
+        parts = name.split('_')
+        aug_list = []
+        for part in parts:
+            if part.startswith('color'):
+                bounds = part.split('-')[-1]
+                augment = aug.Color(bound=0.1*int(bounds))
+            else:
+                augment = aug_dict[part]()
+            aug_list.append(augment)
+        return aug.Compose(aug_list)
+    else:
+        return aug.NoOp()
 
