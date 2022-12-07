@@ -22,14 +22,6 @@ class SemisupDm(SupervisedDm):
     ):
         
         super().__init__(*args, **kwargs)
-        self.unsup_batch_size = unsup_batch_size
-
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
-
-        parser = super().add_model_specific_args(parent_parser)
-        parser.add_argument("--unsup_batch_size", type=int, default=16)
-        return parser
 
     def train_dataloader(self):
 
@@ -43,12 +35,11 @@ class SemisupDm(SupervisedDm):
 
         unsup_train_dataloader = DataLoader(
             dataset=self.unsup_train_set,
-            batch_size=self.unsup_batch_size,
+            batch_size=self.sup_batch_size,
             sampler=unsup_train_sampler,
             collate_fn=CustomCollate(),
             num_workers=self.num_workers,
             pin_memory=True,
-            worker_init_fn=worker_init_function,
             drop_last=True
         )
 

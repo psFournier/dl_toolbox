@@ -1,19 +1,14 @@
 from argparse import ArgumentParser
-import segmentation_models_pytorch as smp
 import torch.nn as nn
 import pytorch_lightning as pl
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
+from torch.optim import Adam
+from torch.optim.lr_scheduler import MultiStepLR
 import torch
 import torchmetrics.functional as torchmetrics
-from dl_toolbox.losses import DiceLoss
-from copy import deepcopy
-import torch.nn.functional as F
 from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat, log_batch_images
-
-from dl_toolbox.lightning_modules.utils import *
 import numpy as np
-from dl_toolbox.networks import *
+from dl_toolbox.networks import NetworkFactory
+
 
 class BaseModule(pl.LightningModule):
 

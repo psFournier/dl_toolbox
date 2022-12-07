@@ -1,16 +1,5 @@
-from argparse import ArgumentParser
-import segmentation_models_pytorch as smp
-import torch.nn as nn
-import pytorch_lightning as pl
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
 import torch
-import torchmetrics.functional as torchmetrics
-from dl_toolbox.losses import DiceLoss
-from copy import deepcopy
-import torch.nn.functional as F
-
-from dl_toolbox.lightning_modules.utils import *
+import torch.nn as nn
 from dl_toolbox.lightning_modules import BaseModule
 
 
@@ -19,7 +8,7 @@ class CE(BaseModule):
     def __init__(self,
                  network,
                  weights,
-                 ignore_index,
+                 ignore_index=-1,
                  *args,
                  **kwargs):
 
@@ -42,7 +31,7 @@ class CE(BaseModule):
     def add_model_specific_args(cls, parent_parser):
 
         parser = super().add_model_specific_args(parent_parser)
-        parser.add_argument("--ignore_index", type=int)
+        parser.add_argument("--ignore_index", type=int, default=-1)
         parser.add_argument("--network", type=str)
         parser.add_argument("--weights", type=float, nargs="+", default=())
 
@@ -57,12 +46,14 @@ class CE(BaseModule):
 
         return logits.softmax(dim=1)
     
-    def _compute_conf_preds(self, probas):
+    @classmethod
+    def _compute_conf_preds(cls, probas):
         
         return torch.max(probas, dim=1)
 
     def training_step(self, batch, batch_idx):
 
+        batch = batch["sup"]
         inputs = batch['image']
         labels = batch['mask']
         logits = self.network(inputs)

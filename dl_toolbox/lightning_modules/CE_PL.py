@@ -1,19 +1,10 @@
-from argparse import ArgumentParser
-import segmentation_models_pytorch as smp
-import torch.nn as nn
-import pytorch_lightning as pl
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
 import torch
-import torchmetrics.functional as torchmetrics
-from dl_toolbox.losses import DiceLoss
-from copy import deepcopy
-import torch.nn.functional as F
+import torch.nn as nn
 
-from dl_toolbox.lightning_modules.utils import *
 from dl_toolbox.lightning_modules import CE
-from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat, log_batch_images
-from dl_toolbox.torch_datasets.utils import *
+import dl_toolbox.utils as utils
+from dl_toolbox.torch_datasets.utils import get_transforms
+
 
 class CE_PL(CE):
 
@@ -22,7 +13,7 @@ class CE_PL(CE):
         final_alpha,
         alpha_milestones,
         pseudo_threshold,
-        unsup_aug,
+        consist_aug,
         *args,
         **kwargs
     ):
@@ -30,8 +21,7 @@ class CE_PL(CE):
         self.final_alpha = final_alpha
         self.alpha_milestones = alpha_milestones
         self.pseudo_threshold = pseudo_threshold
-        self.unsup_aug = get_transforms(unsup_aug)
-        self.alpha = 0.
+        self.consist_aug = get_transforms(consist_aug)
         self.pl_loss = nn.CrossEntropyLoss(
             reduction='none'
         )
@@ -43,36 +33,30 @@ class CE_PL(CE):
         parser.add_argument("--final_alpha", type=float)
         parser.add_argument("--alpha_milestones", nargs=2, type=int)
         parser.add_argument("--pseudo_threshold", type=float)
-        parser.add_argument("--unsup_aug", type=str)
+        parser.add_argument("--consist_aug", type=str)
 
         return parser
 
     def on_train_epoch_start(self):
-
-        start = self.alpha_milestones[0]
-        end = self.alpha_milestones[1]
-        e = self.trainer.current_epoch
-        alpha = self.final_alpha
-
-        if e <= start:
-            self.alpha = 0.
-        elif e <= end:
-            self.alpha = ((e - start) / (end - start)) * alpha
-        else:
-            self.alpha = alpha
+        
+        self.alpha = utils.ramp_down(
+            self.trainer.current_epoch,
+            *self.alpha_milestones,
+            self.final_alpha
+        )
 
     def training_step(self, batch, batch_idx):
-
+        
+        outs = super().training_step(batch, batch_idx)
         batch, unsup_batch = batch["sup"], batch["unsup"]
         self.log('Prop unsup train', self.alpha)
-        outs = super().training_step(batch, batch_idx)
         
-        if self.trainer.current_epoch >= self.alpha_milestones[0]:
-
+        if self.alpha > 0:
+            
             unsup_inputs = unsup_batch['image']
             pl_logits = self.network(unsup_inputs).detach()
             pl_probas = self._compute_probas(pl_logits)
-            aug_unsup_inputs, aug_pl_probas = self.unsup_aug(
+            aug_unsup_inputs, aug_pl_probas = self.consist_aug(
                 img=unsup_inputs,
                 label=pl_probas
             )

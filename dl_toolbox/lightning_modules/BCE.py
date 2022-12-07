@@ -1,19 +1,7 @@
-from argparse import ArgumentParser
-import segmentation_models_pytorch as smp
-import torch.nn as nn
-import pytorch_lightning as pl
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
 import torch
-import torchmetrics.functional as torchmetrics
-from dl_toolbox.losses import DiceLoss
-from copy import deepcopy
-import torch.nn.functional as F
-
-from dl_toolbox.lightning_modules.utils import *
+import torch.nn as nn
 from dl_toolbox.lightning_modules import BaseModule
 from dl_toolbox.utils import TorchOneHot
-from dl_toolbox.networks import *
 import dl_toolbox.augmentations as aug
 
 
@@ -74,7 +62,8 @@ class BCE(BaseModule):
         return aux_confs, aux_preds
 
     def training_step(self, batch, batch_idx):
-
+        
+        batch = batch["sup"]
         inputs = batch['image']
         labels = batch['mask']
         onehot_labels = self.onehot(labels).float() # B,C or C-1,H,W

@@ -3,6 +3,15 @@ import torch
 import rasterio
 
 
+def ramp_down(current, start, end, final_val):
+    
+    if current <= start:
+        return 0.
+    elif current <= end:
+        return ((current - start) / (end - start)) * final_val
+    else:
+        return final_val      
+    
 def read_window_from_big_raster(window, path, raster_path):
     
     with rasterio.open(path) as image_file:

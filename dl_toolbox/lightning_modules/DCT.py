@@ -10,7 +10,6 @@ from dl_toolbox.losses import DiceLoss
 from copy import deepcopy
 import torch.nn.functional as F
 
-from dl_toolbox.lightning_modules.utils import *
 from dl_toolbox.lightning_modules import BaseModule
 import numpy as np
 

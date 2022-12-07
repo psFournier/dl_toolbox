@@ -10,7 +10,6 @@ from dl_toolbox.losses import DiceLoss
 from copy import deepcopy
 import torch.nn.functional as F
 
-from dl_toolbox.lightning_modules.utils import *
 from dl_toolbox.lightning_modules import BaseModule
 from dl_toolbox.augmentations import Mixup, Mixup2
 from dl_toolbox.utils import TorchOneHot

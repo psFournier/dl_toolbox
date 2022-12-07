@@ -67,6 +67,9 @@ def get_transforms(name):
             if part.startswith('color'):
                 bounds = part.split('-')[-1]
                 augment = aug.Color(bound=0.1*int(bounds))
+            elif part.startswith('cutmix2'):
+                alpha = part.split('-')[-1]
+                augment = aug.Cutmix(alpha=0.1*int(alpha))
             else:
                 augment = aug_dict[part]()
             aug_list.append(augment)
