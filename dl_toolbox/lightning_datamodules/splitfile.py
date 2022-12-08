@@ -74,7 +74,6 @@ class Splitfile(LightningDataModule):
         self.epoch_len = epoch_len
         self.batch_size = batch_size
         self.num_workers = workers
-        dataset_factory = DatasetFactory()
         test_sets, train_sets = [], []
         data_path = Path(data_path)
         train_sets = read_splitfile(

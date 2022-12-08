@@ -6,4 +6,5 @@ from .CE_MT import CE_MT
 from .CE_PL import CE_PL
 #from .DCT import DCT
 from .BCE import BCE
+from .BCE_PL import BCE_PL
 from .module_factory import ModuleFactory

@@ -2,7 +2,8 @@ from dl_toolbox.lightning_datamodules import *
 
 
 datamodules = {
-    'Splitfile': Splitfile
+    'Splitfile': Splitfile,
+    'FromFolderDataset': FromFolderDataset
     #'SplitIdxSup': SplitIdxSup,
     #'SplitIdxSemisup': SplitIdxSemisup,
     #'SplitfileSup': SplitfileSup,

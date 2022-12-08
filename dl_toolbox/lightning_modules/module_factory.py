@@ -6,6 +6,7 @@ modules = {
     'CE_PL': CE_PL,
     'CE_MT': CE_MT,
     'BCE': BCE,
+    'BCE_PL':BCE_PL,
     'CPS': CPS
 }
 

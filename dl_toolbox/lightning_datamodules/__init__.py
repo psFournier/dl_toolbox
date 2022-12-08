@@ -1,6 +1,7 @@
 #from .supervised_dm import SupervisedDm
 #from .semisup_dm import SemisupDm
 from .splitfile import *
+from .from_folder_dataset import *
 #from .splitfile_sup import SplitfileSup
 #from .splitfile_semisup import SplitfileSemisup
 #from .splitidx_sup import SplitIdxSup
