@@ -5,6 +5,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from dl_toolbox.lightning_modules import *
 from dl_toolbox.lightning_datamodules import *
 from pathlib import Path, PurePath
+import os
 
 
 def main():
@@ -21,7 +22,7 @@ def main():
         logger=TensorBoardLogger(
             #save_dir='/data/outputs',
             save_dir='/work/OT/ai4usr/fournip/outputs',
-            name='digiv2paris',
+            name='digiv2sc1b',
             version='ce_d4color3',
             sub_dir='0'
         ),
@@ -53,11 +54,12 @@ def main():
     datamodule = Splitfile(
         epoch_len=1000,
         batch_size=16,
-        workers=1,
-        splitfile_path=Path.home() / f'ai4geo/splits/digitanieV2/paris.csv',
+        workers=6,
+        splitfile_path=Path.home() / f'ai4geo/splits/digitanieV2/sc1b.csv',
         test_folds=(9,),
         train_folds=tuple(range(9)),
-        data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE'),
+        data_path=Path(os.environ['TMPDIR']) / 'DIGITANIE',
+        #data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE'),
         crop_size=256,
         img_aug='d4_color-3',
         unsup_img_aug=None,
@@ -82,7 +84,7 @@ def main():
         #alphas=(0., 1.),
         #ramp=(0, 40000),
         #pseudo_threshold=0.9,
-        #consist_aug='d4_color-3',
+        #consist_aug='color-3',
         #emas=(0.9, 0.999)
     )
 
