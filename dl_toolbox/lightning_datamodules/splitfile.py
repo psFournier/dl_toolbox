@@ -96,7 +96,7 @@ class Splitfile(LightningDataModule):
         )
         self.train_set = ConcatDataset(train_sets)
         self.val_set = ConcatDataset(test_sets)
-        self.class_names = self.val_set.datasets[0].labels.keys()
+        self.class_names = list(self.val_set.datasets[0].labels.keys())
         
         if unsup_train_folds:
             unsup_train_sets = read_splitfile(

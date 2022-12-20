@@ -33,6 +33,7 @@ class CE(BaseModule):
             range(self.num_classes)
         )
         self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else None
+        #self.save_hyperparameters('network', 'weights', 'mixup', 'ignore_index')
         self.save_hyperparameters()
 
     @classmethod
