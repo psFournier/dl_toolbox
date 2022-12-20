@@ -6,9 +6,9 @@ class SmpUnet(smp.Unet):
     def __init__(
         self,
         encoder,
-        pretrained,
         in_channels,
         out_channels,
+        pretrained=False,
         *args,
         **kwargs
     ):
