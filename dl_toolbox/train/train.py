@@ -20,7 +20,7 @@ def main():
         logger=TensorBoardLogger(
             save_dir='/data/outputs',
             name='resisc50',
-            version='ce_d4color3mixup',
+            version='cemt_d4color3mixup',
             sub_dir='0'
         ),
         #profiler=SimpleProfiler(),
@@ -46,7 +46,7 @@ def main():
         unsup_img_aug=None
     )
 
-    module = CE(
+    module = CE_MT(
         #ignore_index=-1,
         #no_pred_zero=False,
         mixup=0.4,
@@ -58,11 +58,11 @@ def main():
         final_lr=0.0005,
         plot_calib=True,
         class_names=datamodule.val_set.dataset.class_names,
-        #alphas=(0., 1.),
-        #ramp=(0, 40000),
-        #pseudo_threshold=0.9,
-        #consist_aug='color-3',
-        #emas=(0.9, 0.999)
+        alphas=(0., 1.),
+        ramp=(0, 40000),
+        pseudo_threshold=0.9,
+        consist_aug='d4_color-3',
+        emas=(0.9, 0.999)
     )
 
     #ckpt_path='/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
