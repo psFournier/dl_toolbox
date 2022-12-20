@@ -3,14 +3,23 @@ import torch
 import rasterio
 
 
-def ramp_down(current, start, end, final_val):
+def ramp(current, start, end, start_val, end_val):
     
-    if current <= start:
-        return 0.
-    elif current <= end:
-        return ((current - start) / (end - start)) * final_val
+    if current < start:
+        return start_val
+    elif current < end:
+        return start_val + ((current - start) / (end - start)) * (end_val - start_val)
     else:
-        return final_val      
+        return end_val     
+    
+def sigm_ramp(current, start, end, start_val, end_val):
+    
+    if current < start:
+        return start_val
+    elif current < end:
+        return start_val + np.exp(-5 * (1 - (current-start)/(end-start))**2) * (end_val - start_val)
+    else:
+        return end_val     
     
 def read_window_from_big_raster(window, path, raster_path):
     

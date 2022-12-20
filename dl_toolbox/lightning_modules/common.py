@@ -19,6 +19,7 @@ class BaseModule(pl.LightningModule):
                  final_lr=0.001,
                  lr_milestones=(0.5,0.9),
                  plot_calib=False,
+                 class_names=None,
                  *args,
                  **kwargs):
 
@@ -28,6 +29,7 @@ class BaseModule(pl.LightningModule):
         self.final_lr = final_lr
         self.lr_milestones = list(lr_milestones)
         self.plot_calib = plot_calib
+        self.class_names = class_names if class_names else [str(i) for i in range(self.num_classes)]
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
@@ -113,8 +115,7 @@ class BaseModule(pl.LightningModule):
         tp_sum = 0
         supp_sum = 0
         nc = 0
-        num_classes = 2 if self.num_classes == 1 else self.num_classes
-        for i in range(num_classes):
+        for i in range(self.num_classes):
             if i != self.ignore_index:
                 tp, fp, tn, fn, supp = class_stat_scores[i, :]
                 if supp > 0:
@@ -139,16 +140,12 @@ class BaseModule(pl.LightningModule):
         #cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.)
         #cm_recall = np.divide(cm, sum_col, out=np.zeros_like(cm), where=sum_col!=0)
         #cm_precision = np.divide(cm, sum_lin, out=np.zeros_like(cm), where=sum_lin!=0)
-        try:
-            class_names = self.trainer.val_dataloaders[0].dataset.class_names
-        except:
-            class_names = [str(i) for i in range(num_classes)]
-        
+               
         self.trainer.logger.experiment.add_figure(
             "Precision matrix", 
             plot_confusion_matrix(
                 cm,
-                class_names=class_names,
+                class_names=self.class_names,
                 norm='precision'
             ), 
             global_step=self.trainer.global_step
@@ -157,7 +154,7 @@ class BaseModule(pl.LightningModule):
             "Recall matrix", 
             plot_confusion_matrix(
                 cm,
-                class_names=class_names,
+                class_names=self.class_names,
                 norm='recall'
             ), 
             global_step=self.trainer.global_step

@@ -14,7 +14,6 @@ class FromFolderDataset(LightningDataModule):
         self,
         folder_dataset,
         data_path,
-        epoch_len,
         batch_size,
         workers,
         train_idxs,
@@ -27,7 +26,6 @@ class FromFolderDataset(LightningDataModule):
     ):
 
         super().__init__()
-        self.epoch_len = epoch_len
         self.batch_size = batch_size
         self.num_workers = workers
         dataset_factory = DatasetFactory()
@@ -66,7 +64,6 @@ class FromFolderDataset(LightningDataModule):
     def add_model_specific_args(cls, parent_parser):
         
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--epoch_len", type=int)
         parser.add_argument("--batch_size", type=int)
         parser.add_argument("--workers", type=int)
         parser.add_argument("--folder_dataset", type=str)
@@ -82,15 +79,12 @@ class FromFolderDataset(LightningDataModule):
     def train_dataloader(self):
         
         train_dataloaders = {}
+        
         train_dataloaders['sup'] = DataLoader(
             dataset=self.train_set,
             batch_size=self.batch_size,
             collate_fn=CustomCollate(),
-            sampler=RandomSampler(
-                data_source=self.train_set,
-                replacement=True,
-                num_samples=self.epoch_len
-            ),
+            shuffle=True,
             num_workers=self.num_workers,
             pin_memory=True,
             drop_last=True
@@ -101,11 +95,7 @@ class FromFolderDataset(LightningDataModule):
             train_dataloaders['unsup'] = DataLoader(
                 dataset=self.unsup_train_set,
                 batch_size=self.batch_size,
-                sampler=RandomSampler(
-                    data_source=self.unsup_train_set,
-                    replacement=True,
-                    num_samples=self.epoch_len
-                ),
+                shuffle=True,
                 collate_fn=CustomCollate(),
                 num_workers=self.num_workers,
                 pin_memory=True,

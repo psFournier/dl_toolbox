@@ -5,27 +5,28 @@ from copy import deepcopy
 from dl_toolbox.lightning_modules import CE
 import dl_toolbox.utils as utils
 from dl_toolbox.torch_datasets.utils import get_transforms
+from dl_toolbox.callbacks import log_batch_images
 
 
 class CE_MT(CE):
 
     def __init__(
         self,
-        final_alpha,
-        alpha_milestones,
+        alphas,
+        ramp,
         pseudo_threshold,
         consist_aug,
-        ema,
+        emas,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.teacher_network = deepcopy(self.network)
-        self.final_alpha = final_alpha
-        self.alpha_milestones = alpha_milestones
+        self.alphas = alphas
+        self.ramp = ramp
         self.pseudo_threshold = pseudo_threshold
         self.consist_aug = get_transforms(consist_aug)
-        self.ema = ema
+        self.emas = emas
         self.pl_loss = nn.CrossEntropyLoss(
             reduction='none'
         )
@@ -34,9 +35,9 @@ class CE_MT(CE):
     def add_model_specific_args(cls, parent_parser):
 
         parser = super().add_model_specific_args(parent_parser)
-        parser.add_argument("--ema", type=float)
-        parser.add_argument("--final_alpha", type=float)
-        parser.add_argument("--alpha_milestones", nargs=2, type=int)
+        parser.add_argument("--emas", nargs=2, type=float)
+        parser.add_argument("--alphas", nargs=2, type=float)
+        parser.add_argument("--ramp", nargs=2, type=int)
         parser.add_argument("--pseudo_threshold", type=float)
         parser.add_argument("--consist_aug", type=str)
 
@@ -44,19 +45,17 @@ class CE_MT(CE):
 
     def on_train_epoch_start(self):
         
-        self.alpha = utils.ramp_down(
-            self.trainer.current_epoch,
-            *self.alpha_milestones,
-            self.final_alpha
+        self.alpha = utils.sigm_ramp(
+            self.trainer.global_step,
+            *self.ramp,
+            *self.alphas
         )
-        
-    def on_train_epoch_end(self):
-        
-        # Update teacher model in place AFTER EACH BATCH?
-        ema = min(1.0 - 1.0 / float(self.global_step + 1), self.ema)
-        for param_t, param in zip(self.teacher_network.parameters(),
-                                  self.network.parameters()):
-            param_t.data.mul_(ema).add_(param.data, alpha=1 - ema)
+
+        self.ema = utils.sigm_ramp(
+            self.trainer.global_step,
+            *self.ramp,
+            *self.emas
+        )
 
     def training_step(self, batch, batch_idx):
         
@@ -89,6 +88,11 @@ class CE_MT(CE):
                     self.trainer,
                     prefix='Unsup_train'
                 )
+
+        ema = min(1.0 - 1.0 / float(self.global_step + 1), self.ema)
+        for param_t, param in zip(self.teacher_network.parameters(),
+                                  self.network.parameters()):
+            param_t.data.mul_(ema).add_(param.data, alpha=1 - ema)
 
         return outs
 

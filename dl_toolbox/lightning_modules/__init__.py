@@ -7,4 +7,5 @@ from .CE_PL import CE_PL
 #from .DCT import DCT
 from .BCE import BCE
 from .BCE_PL import BCE_PL
+from .fgsm import FGSM
 from .module_factory import ModuleFactory

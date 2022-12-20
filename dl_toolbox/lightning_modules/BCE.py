@@ -29,7 +29,7 @@ class BCE(BaseModule):
         self.onehot = TorchOneHot(
             range(int(self.no_pred_zero), self.num_classes)
         )
-        self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else aug.NoOp()
+        self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else None
         self.save_hyperparameters()
 
     @classmethod
@@ -66,10 +66,11 @@ class BCE(BaseModule):
         batch = batch["sup"]
         inputs = batch['image']
         labels = batch['mask']
-        onehot_labels = self.onehot(labels).float() # B,C or C-1,H,W
-        mixed_inputs, mixed_labels = self.mixup(inputs, onehot_labels)
-        logits = self.network(mixed_inputs) # B,C or C-1,H,W
-        loss = self.loss(logits, mixed_labels)
+        labels = self.onehot(labels).float() # B,C or C-1,H,W
+        if self.mixup:
+            inputs, labels = self.mixup(inputs, onehot_labels)
+        logits = self.network(inputs) # B,C or C-1,H,W
+        loss = self.loss(logits, labels)
         self.log('Train_sup_BCE', loss)
         batch['logits'] = logits.detach()
 

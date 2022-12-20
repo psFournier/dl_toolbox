@@ -13,7 +13,8 @@ class Vflip(torch.nn.Module):
 
         if torch.rand(1).item() < self.p:
             img = F.vflip(img)
-            if label is not None: label = F.vflip(label)
+            if label and label.dim>2:
+                label = F.vflip(label)
             return img, label
 
         return img, label
@@ -28,7 +29,8 @@ class Hflip:
 
         if torch.rand(1).item() < self.p:
             img = F.hflip(img)
-            if label is not None: label = F.hflip(label)
+            if label and label.dim>2:
+                label = F.hflip(label)
             return img, label
 
         return img, label
@@ -43,7 +45,7 @@ class Transpose1(torch.nn.Module):
 
         if torch.rand(1).item() < self.p:
             img = torch.transpose(img, -2, -1)
-            if label is not None: label = torch.transpose(label, -2, -1)
+            if label and label.dim>2: label = torch.transpose(label, -2, -1)
             return img, label
 
         return img, label
@@ -60,7 +62,7 @@ class Transpose2(torch.nn.Module):
             img = img.flip(-1)
             img = img.flip(-2)
             img = torch.transpose(img, -2, -1)
-            if label is not None:
+            if label and label.dim>2:
                 label = label.flip(-1)
                 label = label.flip(-2)
                 label = torch.transpose(label, -2, -1)
@@ -78,7 +80,7 @@ class Rot90:
 
         if torch.rand(1).item() < self.p:
             img = torch.transpose(F.hflip(img), -2, -1)
-            if label is not None:
+            if label and label.dim>2:
                 label = torch.transpose(F.hflip(label), -2, -1)
             return img, label
 
@@ -95,7 +97,7 @@ class Rot180:
 
         if torch.rand(1).item() < self.p:
             img = F.vflip(F.hflip(img))
-            if label is not None:
+            if label and label.dim>2:
                 label = F.vflip(F.hflip(label))
             return img, label
 
@@ -112,7 +114,7 @@ class Rot270:
 
         if torch.rand(1).item() < self.p:
             img = torch.transpose(F.vflip(img), -2, -1)
-            if label is not None:
+            if label and label.dim>2:
                 label = torch.transpose(F.vflip(label), -2, -1)
             return img, label
 

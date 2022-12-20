@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 from dl_toolbox.lightning_modules import BaseModule
+import dl_toolbox.augmentations as aug
+from dl_toolbox.utils import TorchOneHot
+from dl_toolbox.callbacks import log_batch_images
 
 
 class CE(BaseModule):
@@ -8,6 +11,7 @@ class CE(BaseModule):
     def __init__(self,
                  network,
                  weights,
+                 mixup=0.,
                  ignore_index=-1,
                  *args,
                  **kwargs):
@@ -25,6 +29,10 @@ class CE(BaseModule):
             weight=torch.Tensor(self.weights)
             #weight=torch.Tensor(self.weights).reshape(1,-1,*out_dim)
         )
+        self.onehot = TorchOneHot(
+            range(self.num_classes)
+        )
+        self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else None
         self.save_hyperparameters()
 
     @classmethod
@@ -34,6 +42,7 @@ class CE(BaseModule):
         parser.add_argument("--ignore_index", type=int, default=-1)
         parser.add_argument("--network", type=str)
         parser.add_argument("--weights", type=float, nargs="+", default=())
+        parser.add_argument("--mixup", type=float, default=0.)
 
         return parser
 
@@ -56,10 +65,21 @@ class CE(BaseModule):
         batch = batch["sup"]
         inputs = batch['image']
         labels = batch['mask']
+        if self.mixup:
+            labels = self.onehot(labels).float()
+            inputs, labels = self.mixup(inputs, labels)
+            #batch['image'] = inputs
         logits = self.network(inputs)
         loss = self.loss(logits, labels)
         self.log('Train_sup_CE', loss)
         batch['logits'] = logits.detach()
+        
+        if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
+            log_batch_images(
+                batch,
+                self.trainer,
+                prefix='Train'
+            )
 
         return {'batch': batch, "loss": loss}
 
