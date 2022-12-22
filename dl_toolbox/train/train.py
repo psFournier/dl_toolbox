@@ -20,9 +20,9 @@ def main():
         limit_train_batches=1.,
         limit_val_batches=1.,
         logger=TensorBoardLogger(
-            #save_dir='/data/outputs',
-            save_dir='/work/OT/ai4usr/fournip/outputs',
-            name='digiv2sc1b',
+            save_dir='/scratchl/pfournie/outputs',
+            #save_dir='/work/OT/ai4usr/fournip/outputs',
+            name='resisc50',
             version='ce_d4color3',
             sub_dir='0'
         ),
@@ -37,11 +37,12 @@ def main():
         enable_progress_bar=True
     )
     
-    """
+    
     datamodule = FromFolderDataset(
         folder_dataset='Resisc',
-        data_path='/data/NWPU-RESISC45',
-        batch_size=16,
+        #data_path='/data/NWPU-RESISC45',
+        data_path='/scratchf/NWPU-RESISC45',
+        batch_size=4,
         workers=6,
         train_idxs=[700*i+j for i in range(45) for j in range(50)],
         test_idxs=[700*i+j for i in range(45) for j in range(650,700)],
@@ -49,8 +50,9 @@ def main():
         img_aug='d4_color-3',
         unsup_img_aug=None
     )
-    """
     
+    
+    """
     datamodule = Splitfile(
         epoch_len=1000,
         batch_size=16,
@@ -66,17 +68,18 @@ def main():
         labels='6',
         unsup_train_folds=None
     )
+    """
 
     module = CE(
         ignore_index=-1,
         #no_pred_zero=False,
         #mixup=0.4,
-        network='SmpUnet',
-        encoder='efficientnet-b1',
-        pretrained=False,
+        network='Vgg',
+        #encoder='efficientnet-b1',
+        #pretrained=False,
         weights=[],
         in_channels=3,
-        out_channels=6,
+        out_channels=45,
         initial_lr=0.001,
         final_lr=0.0005,
         plot_calib=True,
