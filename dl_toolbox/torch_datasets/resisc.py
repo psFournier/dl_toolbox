@@ -66,7 +66,7 @@ resisc_labels = {
 def pil_to_torch_loader(path: str):
 
     with open(path, "rb") as f:
-        img = np.asarray(Image.open(f))
+        img = np.array(Image.open(f))
         img = torch.from_numpy(img).permute(2,0,1).float() / 255.
         return img
 
