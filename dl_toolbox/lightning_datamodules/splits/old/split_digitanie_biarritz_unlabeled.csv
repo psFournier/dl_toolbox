@@ -1,0 +1,2 @@
+city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,origin tile
+DigitanieBiarritz,0,Biarritz/biarritz_full_tiled.tif,none,0,0,10000,10000,0,Biarritz/biarritz_full_tiled.tif

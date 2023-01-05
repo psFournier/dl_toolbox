@@ -1,0 +1,11 @@
+city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,origin_tile
+DigitanieParis,1,Paris/paris_tuile_1_img_normalized.tif,Paris/paris_tuile_1.tif,0,0,2000,2000,0,Paris/paris_full_tiled.tif
+DigitanieParis,2,Paris/paris_tuile_2_img_normalized.tif,Paris/paris_tuile_2.tif,0,0,2000,2000,1,Paris/paris_full_tiled.tif
+DigitanieParis,3,Paris/paris_tuile_3_img_normalized.tif,Paris/paris_tuile_3.tif,0,0,2000,2000,2,Paris/paris_full_tiled.tif
+DigitanieParis,4,Paris/paris_tuile_4_img_normalized.tif,Paris/paris_tuile_4.tif,0,0,2000,2000,3,Paris/paris_full_tiled.tif
+DigitanieParis,5,Paris/paris_tuile_5_img_normalized.tif,Paris/paris_tuile_5.tif,0,0,2000,2000,4,Paris/paris_full_tiled.tif
+DigitanieParis,6,Paris/paris_tuile_6_img_normalized.tif,Paris/paris_tuile_6.tif,0,0,2000,2000,5,Paris/paris_full_tiled.tif
+DigitanieParis,7,Paris/paris_tuile_7_img_normalized.tif,Paris/paris_tuile_7.tif,0,0,2000,2000,6,Paris/paris_full_tiled.tif
+DigitanieParis,8,Paris/paris_tuile_8_img_normalized.tif,Paris/paris_tuile_8.tif,0,0,2000,2000,7,Paris/paris_full_tiled.tif
+DigitanieParis,9,Paris/paris_tuile_9_img_normalized.tif,Paris/paris_tuile_9.tif,0,0,2000,2000,8,Paris/paris_full_tiled.tif
+DigitanieParis,10,Paris/paris_tuile_10_img_normalized.tif,Paris/paris_tuile_10.tif,0,0,2000,2000,0,Paris/paris_full_tiled.tif

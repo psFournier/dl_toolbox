@@ -1,0 +1,11 @@
+city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,origin_tile
+DigitanieToulouse,1,Toulouse/toulouse_tuile_1_img_normalized.tif,Toulouse/toulouse_tuile_1.tif,0,0,2000,2000,0,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,2,Toulouse/toulouse_tuile_2_img_normalized.tif,Toulouse/toulouse_tuile_2.tif,0,0,2000,2000,1,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,3,Toulouse/toulouse_tuile_3_img_normalized.tif,Toulouse/toulouse_tuile_3.tif,0,0,2000,2000,2,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,4,Toulouse/toulouse_tuile_4_img_normalized.tif,Toulouse/toulouse_tuile_4.tif,0,0,2000,2000,3,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,5,Toulouse/toulouse_tuile_5_img_normalized.tif,Toulouse/toulouse_tuile_5.tif,0,0,2000,2000,4,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,6,Toulouse/toulouse_tuile_6_img_normalized.tif,Toulouse/toulouse_tuile_6.tif,0,0,2000,2000,5,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,7,Toulouse/toulouse_tuile_7_img_normalized.tif,Toulouse/toulouse_tuile_7.tif,0,0,1800,2000,6,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,8,Toulouse/toulouse_tuile_8_img_normalized.tif,Toulouse/toulouse_tuile_8.tif,0,0,2000,2000,7,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,9,Toulouse/toulouse_tuile_9_img_normalized.tif,Toulouse/toulouse_tuile_9.tif,0,0,2000,2000,8,Toulouse/toulouse_full_tiled.tif
+DigitanieToulouse,10,Toulouse/toulouse_tuile_10_img_normalized.tif,Toulouse/toulouse_tuile_10.tif,0,0,2000,2000,9,Toulouse/toulouse_full_tiled.tif
