@@ -15,7 +15,7 @@ def main():
     """
 
     trainer = Trainer(
-        max_steps=100000,
+        max_steps=1000000,
         gpus=1,
         multiple_trainloader_mode='min_size',
         limit_train_batches=1.,
@@ -55,8 +55,8 @@ def main():
     
     
     datamodule = Splitfile(
-        epoch_len=1000,
-        batch_size=16,
+        epoch_len=10000,
+        batch_size=32,
         workers=6,
         splitfile_path=Path.home() / f'ai4geo/splits/digitanieV2/sc1b.csv',
         test_folds=(9,),
@@ -77,7 +77,7 @@ def main():
         #mixup=0.4,
         #network='Vgg',
         network='SmpUnet',
-        encoder='efficientnet-b1',
+        encoder='efficientnet-b5',
         pretrained=False,
         weights=[],
         in_channels=3,
