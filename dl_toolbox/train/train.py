@@ -21,8 +21,8 @@ def main():
         limit_train_batches=1.,
         limit_val_batches=1.,
         logger=TensorBoardLogger(
-            #save_dir='/scratchl/pfournie/outputs',
-            save_dir='/work/OT/ai4usr/fournip/outputs',
+            save_dir='/scratchl/pfournie/outputs',
+            #save_dir='/work/OT/ai4usr/fournip/outputs',
             name='digitaniev2',
             version='ce_d4color3',
             sub_dir=f'{datetime.now():%d%b%y-%Hh%M}'
@@ -57,12 +57,13 @@ def main():
     datamodule = Splitfile(
         epoch_len=10000,
         batch_size=32,
-        workers=6,
-        splitfile_path=Path.home() / f'ai4geo/splits/digitanieV2/sc1b.csv',
+        workers=16,
+        splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanieV2/sc1b.csv',
         test_folds=(9,),
         train_folds=tuple(range(9)),
-        data_path=Path(os.environ['TMPDIR']) / 'DIGITANIE',
+        #data_path=Path(os.environ['TMPDIR']) / 'DIGITANIE',
         #data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE'),
+        data_path=Path('/scratchf/AI4GEO/DIGITANIE'),
         crop_size=256,
         img_aug='d4_color-3',
         unsup_img_aug=None,
