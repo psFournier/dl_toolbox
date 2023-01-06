@@ -30,6 +30,10 @@ matplotlib==3.6.2
 multidict==6.0.3
 munch==2.5.0
 numpy==1.22.1
+nvidia-cublas-cu11==11.10.3.66
+nvidia-cuda-nvrtc-cu11==11.7.99
+nvidia-cuda-runtime-cu11==11.7.99
+nvidia-cudnn-cu11==8.5.0.96
 oauthlib==3.2.2
 packaging==22.0
 pandas==1.5.2
@@ -56,9 +60,9 @@ tensorboard==2.11.0
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
 timm==0.4.12
-torch==1.10.2
+torch==1.13.1
 torchmetrics==0.10.3
-torchvision==0.11.3
+torchvision==0.14.1
 tqdm==4.64.1
 typing_extensions==4.4.0
 urllib3==1.26.13
