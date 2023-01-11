@@ -9,7 +9,7 @@ from dl_toolbox.torch_datasets import RasterDs
 labels_dict = {
     
     'base':{
-        'other': {'color': (0, 0, 0)},
+        'nodata': {'color': (0, 0, 0)},
         'bare_ground': {'color':(100, 50, 0)},
         'low_vegetation': {'color':(0, 250, 50)},
         'water': {'color':(0, 50, 250)},
@@ -30,7 +30,8 @@ labels_dict = {
         'road': {'color':(100, 100, 100)}
     },
     '5': {
-        'other': {'color': (0, 0, 0)},
+        'nodata': {'color': (0, 0, 0)},
+        'other': {'color': (250, 250, 250)},
         'vegetation': {'color':(0, 250, 50)},
         'water': {'color':(0, 50, 250)},
         'building': {'color':(250, 50, 50)},
@@ -42,7 +43,7 @@ labels_dict = {
 mergers = {
     'base' : [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],
     '6' : [[0, 1, 6, 8, 9], [2], [3], [4], [5], [7]],
-    '5' : [[0, 1, 6, 8, 9], [2, 5], [3], [4], [7]]
+    '5' : [[0], [1, 6, 8, 9], [2, 5], [3], [4], [7]]
 }
 
 class DigitanieV2(RasterDs):
