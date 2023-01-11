@@ -16,16 +16,15 @@ def main():
 
     trainer = Trainer(
         max_steps=1000000,
-        gpus=1,
+        gpus=None,
         multiple_trainloader_mode='min_size',
         limit_train_batches=1.,
         limit_val_batches=1.,
         logger=TensorBoardLogger(
-            save_dir='/scratchl/pfournie/outputs',
+            save_dir='/scratchl/pfournie/outputs/digitaniev2',
             #save_dir='/work/OT/ai4usr/fournip/outputs',
-            name='digitaniev2',
-            version='ce_d4color3',
-            sub_dir=f'{datetime.now():%d%b%y-%Hh%M}'
+            name='bceno0_d4color3',
+            version=f'{datetime.now():%d%b%y-%Hh%M}'
         ),
         #profiler=SimpleProfiler(),
         callbacks=[
@@ -74,15 +73,15 @@ def main():
 
     module = BCE(
         ignore_index=-1,
-        #no_pred_zero=False,
+        no_pred_zero=True,
         #mixup=0.4,
         #network='Vgg',
         network='SmpUnet',
         encoder='efficientnet-b5',
         pretrained=False,
         weights=[],
-        in_channels=3,
-        out_channels=6,
+        in_channels=4,
+        out_channels=4,
         initial_lr=0.001,
         final_lr=0.0005,
         plot_calib=True,

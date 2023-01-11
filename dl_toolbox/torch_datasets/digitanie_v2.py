@@ -42,7 +42,7 @@ labels_dict = {
 mergers = {
     'base' : [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],
     '6' : [[0, 1, 6, 8, 9], [2], [3], [4], [5], [7]],
-    '5' : 
+    '5' : [[0, 1, 6, 8, 9], [2, 5], [3], [4], [7]]
 }
 
 class DigitanieV2(RasterDs):
@@ -60,7 +60,7 @@ class DigitanieV2(RasterDs):
             
         mins = np.array([stat.min for stat in self.info['stats']])
         maxs = np.array([stat.max for stat in self.info['stats']])
-        image = minmax(image[:3], mins[:3], maxs[:3])
+        image = minmax(image, mins, maxs)
 
         return image
 
