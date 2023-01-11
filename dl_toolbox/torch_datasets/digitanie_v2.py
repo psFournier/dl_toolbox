@@ -60,7 +60,7 @@ class DigitanieV2(RasterDs):
             
         mins = np.array([stat.min for stat in self.info['stats']])
         maxs = np.array([stat.max for stat in self.info['stats']])
-        image = minmax(image, mins, maxs)
+        image = minmax(image[:3], mins[:3], maxs[:3])
 
         return image
 

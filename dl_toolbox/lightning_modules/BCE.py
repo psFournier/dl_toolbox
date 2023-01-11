@@ -13,7 +13,7 @@ class BCE(BaseModule):
                  network,
                  weights,
                  no_pred_zero,
-                 mixup,
+                 mixup=0.,
                  *args,
                  **kwargs):
 
