@@ -55,14 +55,14 @@ def compute_probas(
     dataloader = DataLoader(
         dataset=dataset,
         shuffle=False,
-        collate_fn=CustomCollate(batch_aug='no'),
+        collate_fn=CustomCollate(),
         batch_size=batch_size,
         num_workers=workers,
         pin_memory=True,
         worker_init_fn=worker_init_function
     )
 
-    num_classes = module.out_channels
+    num_classes = module.network.out_channels
     pred_sum = torch.zeros(size=(num_classes, dataset.tile.height, dataset.tile.width))
     mask_sum = torch.zeros(size=(dataset.tile.height, dataset.tile.width))
     
