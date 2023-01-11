@@ -67,12 +67,12 @@ def main():
         crop_size=256,
         img_aug='d4_color-3',
         unsup_img_aug=None,
-        labels='6',
+        labels='5',
         unsup_train_folds=None
     )
     
 
-    module = CE(
+    module = BCE(
         ignore_index=-1,
         #no_pred_zero=False,
         #mixup=0.4,
