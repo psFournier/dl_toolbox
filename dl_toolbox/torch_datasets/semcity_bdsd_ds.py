@@ -58,7 +58,7 @@ class SemcityBdsdDs(RasterDs):
             
         mins = np.array([stat.min for stat in self.info['stats']])
         maxs = np.array([stat.max for stat in self.info['stats']])
-        image = minmax(image[[3,2,1]], mins[[3,2,1]], maxs[[3,2,1]])
+        image = minmax(image[[3,2,1, 0]], mins[[3,2,1,0]], maxs[[3,2,1,0]])
 
         return image
 

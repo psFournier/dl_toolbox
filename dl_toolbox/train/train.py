@@ -16,14 +16,15 @@ def main():
 
     trainer = Trainer(
         max_steps=1000000,
-        gpus=1,
+        gpus=None,
         multiple_trainloader_mode='min_size',
-        limit_train_batches=1.,
-        limit_val_batches=1.,
+        limit_train_batches=1,
+        limit_val_batches=1,
         logger=TensorBoardLogger(
-            save_dir='/scratchl/pfournie/outputs/digitaniev2',
+            #save_dir='/scratchl/pfournie/outputs/digitaniev2',
             #save_dir='/work/OT/ai4usr/fournip/outputs',
             #save_dir='/data/outputs/digitaniev2',
+            save_dir='/home/pfournie/ai4geo/ouputs/semcity',
             name='bceno0_d4color3',
             version=f'{datetime.now():%d%b%y-%Hh%M}'
         ),
@@ -56,19 +57,20 @@ def main():
     
     datamodule = Splitfile(
         epoch_len=10000,
-        batch_size=32,
-        workers=16,
-        splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanieV2/sc1b.csv',
-        test_folds=(9,),
-        train_folds=tuple(range(9)),
+        batch_size=2,
+        workers=2,
+        splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/semcity/split_semcity.csv',
+        test_folds=(8,),
+        train_folds=tuple(range(8)),
         #data_path=Path(os.environ['TMPDIR']) / 'DIGITANIE',
         #data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE'),
-        data_path=Path('/scratchf/AI4GEO/DIGITANIE'),
+        #data_path=Path('/scratchf/AI4GEO/DIGITANIE'),
         #data_path=Path('/data/DIGITANIE'),
+        data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench'),
         crop_size=256,
-        img_aug='d4_color-3',
+        img_aug='d4',
         unsup_img_aug=None,
-        labels='5',
+        labels='base',
         unsup_train_folds=None
     )
     
@@ -82,8 +84,8 @@ def main():
         encoder='efficientnet-b1',
         pretrained=False,
         weights=[],
-        in_channels=3,
-        out_channels=4,
+        in_channels=4,
+        out_channels=7,
         initial_lr=0.001,
         final_lr=0.0005,
         plot_calib=True,
