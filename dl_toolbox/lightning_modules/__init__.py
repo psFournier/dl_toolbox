@@ -8,4 +8,5 @@ from .CE_PL import CE_PL
 from .BCE import BCE
 from .BCE_PL import BCE_PL
 from .fgsm import FGSM
+from .flair import *
 from .module_factory import ModuleFactory

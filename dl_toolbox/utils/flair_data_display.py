@@ -214,3 +214,4 @@ def display_predictions(images, predictions, nb_samples: int, palette=lut_colors
         leg = ax1.legend(handles=handles, ncol=1, bbox_to_anchor=(1.4,1.01), fontsize=12, facecolor='k') 
         for txt in leg.get_texts():
           txt.set_color('w')
+    plt.show()
