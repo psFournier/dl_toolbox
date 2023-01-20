@@ -1,9 +1,130 @@
 from torch.utils.data import DataLoader
 from pytorch_lightning import LightningDataModule
 
-from dl_toolbox.torch_datasets import Fit_Dataset, Predict_Dataset
+
+def _gather_data(path_folders, path_metadata: str, use_metadata: bool, test_set: bool) -> dict:
+
+    #### return data paths
+    def get_data_paths (path, filter):
+        for path in Path(path).rglob(filter):
+             yield path.resolve().as_posix()        
+
+    #### encode metadata
+    def coordenc_opt(coords, enc_size=32) -> np.array:
+        d = int(enc_size/2)
+        d_i = np.arange(0, d / 2)
+        freq = 1 / (10e7 ** (2 * d_i / d))
+
+        x,y = coords[0]/10e7, coords[1]/10e7
+        enc = np.zeros(d * 2)
+        enc[0:d:2]    = np.sin(x * freq)
+        enc[1:d:2]    = np.cos(x * freq)
+        enc[d::2]     = np.sin(y * freq)
+        enc[d + 1::2] = np.cos(y * freq)
+        return list(enc)           
+
+    def norm_alti(alti: int) -> float:
+        min_alti = 0
+        max_alti = 3164.9099121094
+        return [(alti-min_alti) / (max_alti-min_alti)]        
+
+    def format_cam(cam: str) -> np.array:
+        return [[1,0] if 'UCE' in cam else [0,1]][0]
+
+    def cyclical_enc_datetime(date: str, time: str) -> list:
+        def norm(num: float) -> float:
+            return (num-(-1))/(1-(-1))
+        year, month, day = date.split('-')
+        if year == '2018':   enc_y = [1,0,0,0]
+        elif year == '2019': enc_y = [0,1,0,0]
+        elif year == '2020': enc_y = [0,0,1,0]
+        elif year == '2021': enc_y = [0,0,0,1]    
+        sin_month = np.sin(2*np.pi*(int(month)-1/12)) ## months of year
+        cos_month = np.cos(2*np.pi*(int(month)-1/12))    
+        sin_day = np.sin(2*np.pi*(int(day)/31)) ## max days
+        cos_day = np.cos(2*np.pi*(int(day)/31))     
+        h,m=time.split('h')
+        sec_day = int(h) * 3600 + int(m) * 60
+        sin_time = np.sin(2*np.pi*(sec_day/86400)) ## total sec in day
+        cos_time = np.cos(2*np.pi*(sec_day/86400))
+        return enc_y+[norm(sin_month),norm(cos_month),norm(sin_day),norm(cos_day),norm(sin_time),norm(cos_time)]        
 
 
+    data = {'IMG':[],'MSK':[],'MTD':[]}
+    for domain in path_folders:
+        data['IMG'] += sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+        if test_set == False:
+            data['MSK'] += sorted(list(get_data_paths(domain, 'MSK*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+
+    if use_metadata == True:
+
+        with open(path_metadata, 'r') as f:
+            metadata_dict = json.load(f)              
+        for img in data['IMG']:
+            curr_img = img.split('/')[-1][:-4]
+            enc_coords   = coordenc_opt([metadata_dict[curr_img]["patch_centroid_x"], metadata_dict[curr_img]["patch_centroid_y"]])
+            enc_alti     = norm_alti(metadata_dict[curr_img]["patch_centroid_z"])
+            enc_camera   = format_cam(metadata_dict[curr_img]['camera'])
+            enc_temporal = cyclical_enc_datetime(metadata_dict[curr_img]['date'], metadata_dict[curr_img]['time'])
+            mtd_enc = enc_coords+enc_alti+enc_camera+enc_temporal 
+            data['MTD'].append(mtd_enc)
+
+    if test_set == False:
+        if len(data['IMG']) != len(data['MSK']): 
+            print('[WARNING !!] UNMATCHING NUMBER OF IMAGES AND MASKS ! Please check load_data function for debugging.')
+        if data['IMG'][0][-10:-4] != data['MSK'][0][-10:-4] or data['IMG'][-1][-10:-4] != data['MSK'][-1][-10:-4]: 
+            print('[WARNING !!] UNSORTED IMAGES AND MASKS FOUND ! Please check load_data function for debugging.')                
+
+    return data
+
+class Flair(LightningDataModule):
+    
+    def __init__(
+        self,
+        data_path,
+        batch_size,
+        labels,
+        workers,
+        use_metadata,
+        train_domains,
+        val_domains,
+        test_domains,
+        unsup_train_idxs=None,
+        img_aug=None,
+        unsup_img_aug=None,
+        *args,
+        **kwargs
+    ):
+
+        super().__init__()
+        self.batch_size = batch_size
+        self.num_workers = workers
+        self.data_path = Path(data_path)
+        
+        dict_train = _gather_data(train_domains, path_metadata=None, use_metadata=use_metadata, test_set=False)
+        dict_val = _gather_data(val_domains, path_metadata=None, use_metadata=use_metadata, test_set=False)
+        dict_test = _gather_data(test_domains, path_metadata=None, use_metadata=use_metadata, test_set=True)
+                
+        self.train_set = Flair(
+            dict_files=dict_train,
+            labels=labels,
+            use_metadata=False,
+            img_aug=None
+        )
+        
+        self.val_set = Flair(
+            dict_files=dict_val,
+            labels=labels
+        )
+        
+        self.test_set = Flair(
+            dict_files=dict_test,
+            labels=labels
+        )
+
+        self.class_names = self.val_set.dataset.class_names
+
+    
 class OCS_DataModule(LightningDataModule):
 
     def __init__(
