@@ -1,5 +1,15 @@
 from torch.utils.data import DataLoader
 from pytorch_lightning import LightningDataModule
+import dl_toolbox.torch_datasets as datasets
+from dl_toolbox.torch_collate import CustomCollate
+
+import os
+import numpy as np
+from os.path import join
+from pathlib import Path
+import json
+import random
+import re
 
 
 def _gather_data(path_folders, path_metadata: str, use_metadata: bool, test_set: bool) -> dict:
@@ -81,7 +91,7 @@ class Flair(LightningDataModule):
     
     def __init__(
         self,
-        data_path,
+        #data_path,
         batch_size,
         labels,
         workers,
@@ -99,30 +109,73 @@ class Flair(LightningDataModule):
         super().__init__()
         self.batch_size = batch_size
         self.num_workers = workers
-        self.data_path = Path(data_path)
+        #self.data_path = data_path
         
         dict_train = _gather_data(train_domains, path_metadata=None, use_metadata=use_metadata, test_set=False)
         dict_val = _gather_data(val_domains, path_metadata=None, use_metadata=use_metadata, test_set=False)
         dict_test = _gather_data(test_domains, path_metadata=None, use_metadata=use_metadata, test_set=True)
                 
-        self.train_set = Flair(
+        self.train_set = datasets.Flair(
             dict_files=dict_train,
             labels=labels,
             use_metadata=False,
-            img_aug=None
+            img_aug=img_aug
         )
         
-        self.val_set = Flair(
+        self.unsup_train_set = None
+        
+        self.val_set = datasets.Flair(
             dict_files=dict_val,
             labels=labels
         )
         
-        self.test_set = Flair(
+        self.test_set = datasets.Flair(
             dict_files=dict_test,
             labels=labels
         )
 
-        self.class_names = self.val_set.dataset.class_names
+        self.class_names = list(self.val_set.labels.keys())
+        
+    def train_dataloader(self):
+        
+        train_dataloaders = {}
+        train_dataloaders['sup'] = DataLoader(
+            dataset=self.train_set,
+            batch_size=self.batch_size,
+            collate_fn=CustomCollate(),
+            shuffle=True,
+            num_workers=self.num_workers,
+            pin_memory=True,
+            drop_last=True
+        )
+        
+        if self.unsup_train_set:
+    
+            train_dataloaders['unsup'] = DataLoader(
+                dataset=self.unsup_train_set,
+                batch_size=self.batch_size,
+                shuffle=True,
+                collate_fn=CustomCollate(),
+                num_workers=self.num_workers,
+                pin_memory=True,
+                drop_last=True
+            )
+
+        return train_dataloaders
+
+    def val_dataloader(self):
+
+        val_dataloader = DataLoader(
+            dataset=self.val_set,
+            shuffle=False,
+            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True
+        )
+        self.nb_val_batch = len(self.val_set) // self.batch_size
+
+        return val_dataloader
 
     
 class OCS_DataModule(LightningDataModule):
