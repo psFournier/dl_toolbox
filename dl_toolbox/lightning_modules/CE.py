@@ -75,12 +75,12 @@ class CE(BaseModule):
         self.log('Train_sup_CE', loss)
         batch['logits'] = logits.detach()
         
-        if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
-            log_batch_images(
-                batch,
-                self.trainer,
-                prefix='Train'
-            )
+        #if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
+        #    log_batch_images(
+        #        batch,
+        #        self.trainer,
+        #        prefix='Train'
+        #    )
 
         return {'batch': batch, "loss": loss}
 

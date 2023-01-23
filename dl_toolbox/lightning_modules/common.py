@@ -10,6 +10,13 @@ import numpy as np
 from dl_toolbox.networks import NetworkFactory
 
 
+def calc_miou(cm_array):
+    m = np.nan
+    with np.errstate(divide='ignore', invalid='ignore'):
+        ious = np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1) - np.diag(cm_array))
+    m = np.nansum(ious[:-1]) / (np.logical_not(np.isnan(ious[:-1]))).sum()
+    return m.astype(float), ious[:-1]  
+
 class BaseModule(pl.LightningModule):
 
     # Validation step common to all modules if possible
@@ -57,18 +64,19 @@ class BaseModule(pl.LightningModule):
 
         inputs = batch['image']
         labels = batch['mask']
-        logits = self.forward(inputs).detach()
-
-        probas = self._compute_probas(logits)
-        confidences, preds = self._compute_conf_preds(probas)
-        batch['preds'] = preds
-
-        if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
-            log_batch_images(
-                batch,
-                self.trainer,
-                prefix='Val'
-            )
+        
+        with torch.no_grad():
+            logits = self.forward(inputs)
+            probas = self._compute_probas(logits)
+            confidences, preds = self._compute_conf_preds(probas)
+            batch['preds'] = preds
+        
+        #if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
+        #    log_batch_images(
+        #        batch,
+        #        self.trainer,
+        #        prefix='Val'
+        #    )
             
         stat_scores = torchmetrics.stat_scores(
             preds,
@@ -109,9 +117,10 @@ class BaseModule(pl.LightningModule):
     def validation_epoch_end(self, outs):
         
         stat_scores = [out['stat_scores'] for out in outs]
-
         class_stat_scores = torch.sum(torch.stack(stat_scores), dim=0)
+        
         f1_sum = 0
+        iou_sum = 0
         tp_sum = 0
         supp_sum = 0
         nc = 0
@@ -121,17 +130,22 @@ class BaseModule(pl.LightningModule):
                 if supp > 0:
                     nc += 1
                     f1 = tp / (tp + 0.5 * (fp + fn))
+                    iou = tp / (tp + fn + fp)
                     #self.log(f'Val_f1_{i}', f1)
                     f1_sum += f1
+                    iou_sum += iou
                     tp_sum += tp
                     supp_sum += supp
         
         self.log('Val_acc', tp_sum / supp_sum)
         self.log('Val_f1', f1_sum / nc) 
+        self.log('Val_iou', iou_sum / nc)
 
         conf_mats = [out['conf_mat'] for out in outs]
-
         cm = torch.stack(conf_mats, dim=0).sum(dim=0).cpu()
+        
+        mIou, ious = calc_miou(cm.numpy())
+        self.log('Val_miou', mIou)
         
         #sum_col = torch.sum(cm,dim=1, keepdim=True)
         #sum_lin = torch.sum(cm,dim=0, keepdim=True)
