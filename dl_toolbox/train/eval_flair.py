@@ -4,6 +4,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 import dl_toolbox.lightning_modules as modules
 import dl_toolbox.lightning_datamodules as datamodules
+import dl_toolbox.callbacks as callbacks
 from dl_toolbox.lightning_modules import *
 from dl_toolbox.lightning_datamodules import *
 from pathlib import Path, PurePath
@@ -18,10 +19,7 @@ def main():
     TODO
     """
     data_path = Path('/data/toy_dataset_flair-one')
-    trainval_domains = [data_path / "train" / domain for domain in os.listdir(data_path / "train")]
-    shuffle(trainval_domains)
-    idx_split = int(len(trainval_domains) * 0.9)
-    train_domains, val_domains = trainval_domains[:idx_split], trainval_domains[idx_split:] 
+    test_domains = [data_path / "test" / domain for domain in os.listdir(data_path / "test")]
 
     datamodule = datamodules.Flair(
         #data_path,
@@ -29,12 +27,10 @@ def main():
         labels='13',
         workers=4,
         use_metadata=False,
-        train_domains=train_domains,
-        val_domains=val_domains,
-        test_domains=None,
-        unsup_train_idxs=None,
-        img_aug='d4',
-        unsup_img_aug=None,
+        train_domains=None,
+        val_domains=None,
+        test_domains=test_domains,
+        img_aug='no',
     )
     
 
@@ -59,37 +55,23 @@ def main():
         #consist_aug='color-3',
         #emas=(0.9, 0.999)
     )
-    
 
     trainer = Trainer(
-        max_steps=1000,
         gpus=1,
-        multiple_trainloader_mode='min_size',
-        limit_train_batches=1.,
-        limit_val_batches=1.,
-        logger=TensorBoardLogger(
-            #save_dir='/scratchl/pfournie/outputs/digitaniev2',
-            save_dir='/data/outputs/flair',
-            #save_dir='/home/pfournie/ai4geo/ouputs/semcity',
-            name='ce_d4',
-            version=f'{datetime.now():%d%b%y-%Hh%M}'
-        ),
-        #profiler=SimpleProfiler(),
         callbacks=[
-            ModelCheckpoint(),
-            #DeviceStatsMonitor(),
+            callbacks.PredictionWriter(        
+                output_dir=os.path.join('/data/outputs/flair', "predictions"+"_ce_d4"),
+                write_interval="batch",
+            )
         ],
-        num_sanity_val_steps=0,
-        check_val_every_n_epoch=1,
-        benchmark=True,
         enable_progress_bar=True
     )
 
-    #ckpt_path='/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
-    trainer.fit(
+    ckpt_path='/data/outputs/flair/ce_d4/23Jan23-10h22/checkpoints/epoch=2-step=999.ckpt'
+    trainer.predict(
         model=module,
         datamodule=datamodule,
-        ckpt_path=None
+        ckpt_path=ckpt_path
     )
 
 if __name__ == "__main__":

@@ -59,17 +59,26 @@ class BaseModule(pl.LightningModule):
         )
 
         return [self.optimizer], [scheduler]
+    
+    def predict_step(self, batch, batch_idx):
+        
+        inputs = batch['image']
+        logits = self.forward(inputs)
+        probas = self._compute_probas(logits)
+        confidences, preds = self._compute_conf_preds(probas)
+        batch['preds'] = preds
+        
+        return batch
 
     def validation_step(self, batch, batch_idx):
 
         inputs = batch['image']
         labels = batch['mask']
         
-        with torch.no_grad():
-            logits = self.forward(inputs)
-            probas = self._compute_probas(logits)
-            confidences, preds = self._compute_conf_preds(probas)
-            batch['preds'] = preds
+        logits = self.forward(inputs)
+        probas = self._compute_probas(logits)
+        confidences, preds = self._compute_conf_preds(probas)
+        batch['preds'] = preds
         
         #if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
         #    log_batch_images(

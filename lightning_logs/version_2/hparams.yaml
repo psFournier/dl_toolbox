@@ -1,0 +1,25 @@
+class_names:
+- building
+- pervious surface
+- impervious surface
+- bare soil
+- water
+- coniferous
+- deciduous
+- brushwood
+- vineyard
+- herbaceous vegetation
+- agricultural land
+- plowed land
+- other
+encoder: efficientnet-b1
+final_lr: 0.0005
+ignore_index: -1
+in_channels: 5
+initial_lr: 0.001
+mixup: 0.0
+network: SmpUnet
+out_channels: 13
+plot_calib: true
+pretrained: false
+weights: []

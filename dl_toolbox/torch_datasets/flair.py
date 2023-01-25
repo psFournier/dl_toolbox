@@ -136,7 +136,7 @@ class Flair(Dataset):
             'orig_mask':label,
             'image':end_image,
             'mask':end_mask,
-            'path': image_file
+            'path': '/'.join(image_file.split('/')[-4:])
         }
 
 #        if self.use_metadata == True:

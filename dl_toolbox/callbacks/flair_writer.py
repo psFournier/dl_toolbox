@@ -33,7 +33,7 @@ class PredictionWriter(BasePredictionWriter):
         batch_idx,
         dataloader_idx,
     ):
-        preds, filenames = prediction["preds"], prediction["id"]
+        preds, filenames = prediction["preds"], prediction["path"]
         preds = preds.cpu().numpy().astype('uint8')  # Pass prediction on CPU
         
         for prediction, filename in zip(preds, filenames):

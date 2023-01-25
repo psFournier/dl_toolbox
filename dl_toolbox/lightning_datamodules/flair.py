@@ -61,29 +61,30 @@ def _gather_data(path_folders, path_metadata: str, use_metadata: bool, test_set:
 
 
     data = {'IMG':[],'MSK':[],'MTD':[]}
-    for domain in path_folders:
-        data['IMG'] += sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+    if path_folders:
+        for domain in path_folders:
+            data['IMG'] += sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+            if test_set == False:
+                data['MSK'] += sorted(list(get_data_paths(domain, 'MSK*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+
+        if use_metadata == True:
+
+            with open(path_metadata, 'r') as f:
+                metadata_dict = json.load(f)              
+            for img in data['IMG']:
+                curr_img = img.split('/')[-1][:-4]
+                enc_coords   = coordenc_opt([metadata_dict[curr_img]["patch_centroid_x"], metadata_dict[curr_img]["patch_centroid_y"]])
+                enc_alti     = norm_alti(metadata_dict[curr_img]["patch_centroid_z"])
+                enc_camera   = format_cam(metadata_dict[curr_img]['camera'])
+                enc_temporal = cyclical_enc_datetime(metadata_dict[curr_img]['date'], metadata_dict[curr_img]['time'])
+                mtd_enc = enc_coords+enc_alti+enc_camera+enc_temporal 
+                data['MTD'].append(mtd_enc)
+
         if test_set == False:
-            data['MSK'] += sorted(list(get_data_paths(domain, 'MSK*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
-
-    if use_metadata == True:
-
-        with open(path_metadata, 'r') as f:
-            metadata_dict = json.load(f)              
-        for img in data['IMG']:
-            curr_img = img.split('/')[-1][:-4]
-            enc_coords   = coordenc_opt([metadata_dict[curr_img]["patch_centroid_x"], metadata_dict[curr_img]["patch_centroid_y"]])
-            enc_alti     = norm_alti(metadata_dict[curr_img]["patch_centroid_z"])
-            enc_camera   = format_cam(metadata_dict[curr_img]['camera'])
-            enc_temporal = cyclical_enc_datetime(metadata_dict[curr_img]['date'], metadata_dict[curr_img]['time'])
-            mtd_enc = enc_coords+enc_alti+enc_camera+enc_temporal 
-            data['MTD'].append(mtd_enc)
-
-    if test_set == False:
-        if len(data['IMG']) != len(data['MSK']): 
-            print('[WARNING !!] UNMATCHING NUMBER OF IMAGES AND MASKS ! Please check load_data function for debugging.')
-        if data['IMG'][0][-10:-4] != data['MSK'][0][-10:-4] or data['IMG'][-1][-10:-4] != data['MSK'][-1][-10:-4]: 
-            print('[WARNING !!] UNSORTED IMAGES AND MASKS FOUND ! Please check load_data function for debugging.')                
+            if len(data['IMG']) != len(data['MSK']): 
+                print('[WARNING !!] UNMATCHING NUMBER OF IMAGES AND MASKS ! Please check load_data function for debugging.')
+            if data['IMG'][0][-10:-4] != data['MSK'][0][-10:-4] or data['IMG'][-1][-10:-4] != data['MSK'][-1][-10:-4]: 
+                print('[WARNING !!] UNSORTED IMAGES AND MASKS FOUND ! Please check load_data function for debugging.')                
 
     return data
 
@@ -176,7 +177,18 @@ class Flair(LightningDataModule):
         self.nb_val_batch = len(self.val_set) // self.batch_size
 
         return val_dataloader
-
+    
+    def predict_dataloader(self):
+        
+        predict_dataloader = DataLoader(
+            dataset=self.test_set,
+            shuffle=False,
+            batch_size=1,
+            collate_fn=CustomCollate(),
+            num_workers=self.num_workers
+        )
+        
+        return predict_dataloader
     
 class OCS_DataModule(LightningDataModule):
 
