@@ -64,6 +64,7 @@ def main():
                 write_interval="batch",
             )
         ],
+        logger=None,
         enable_progress_bar=True
     )
 
