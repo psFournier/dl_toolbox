@@ -88,8 +88,7 @@ class CE(BaseModule):
 
         outs = super().validation_step(batch, batch_idx)
         labels = batch['mask']
-        logits = outs['logits']
-        loss = self.loss(logits, labels)
+        loss = self.loss(outs['logits'], labels)
         self.log('Val_CE', loss)
 
-        return outs    
+        return {'conf_mat': outs['conf_mat']}    

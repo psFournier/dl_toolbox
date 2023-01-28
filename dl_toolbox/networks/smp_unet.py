@@ -9,6 +9,7 @@ class SmpUnet(smp.Unet):
         in_channels,
         out_channels,
         pretrained=False,
+        bn=True,
         *args,
         **kwargs
     ):
@@ -17,7 +18,7 @@ class SmpUnet(smp.Unet):
             encoder_weights='imagenet' if pretrained else None,
             in_channels=in_channels,
             classes=out_channels,
-            decoder_use_batchnorm=True
+            decoder_use_batchnorm=bn
         )
         self.out_channels = out_channels
         self.in_channels = in_channels

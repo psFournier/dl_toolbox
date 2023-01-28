@@ -12,22 +12,28 @@ import os
 from random import shuffle
 
 
-
 def main():
     """
     TODO
     """
-    data_path = Path('/data/toy_dataset_flair-one')
-    trainval_domains = [data_path / "train" / domain for domain in os.listdir(data_path / "train")]
+    #data_path = Path('/data/toy_dataset_flair-one')
+    data_path = Path('/scratchf/CHALLENGE_IGN')
+    baseline_val_domains = ['D004_2021', 'D014_2020', 'D029_2021', 'D031_2019', 'D058_2020', 'D077_2021', 'D067_2021', 'D066_2021']
+    baseline_train_domains = ['D033_2021', 'D055_2018', 'D072_2019', 'D044_2020', 'D017_2018', 'D086_2020', 'D049_2020', 'D016_2020', 'D063_2019', 'D091_2021', 'D070_2020', 'D013_2020', 'D023_2020', 'D074_2020', 'D021_2020', 'D080_2021', 'D078_2021', 'D032_2019', 'D081_2020', 'D046_2019', 'D052_2019', 'D051_2019', 'D038_2021', 'D009_2019', 'D034_2021', 'D006_2020', 'D008_2019', 'D041_2021', 'D035_2020', 'D007_2020', 'D060_2021', 'D030_2021']
+    domains = baseline_val_domains + baseline_train_domains
+    trainval_domains = [data_path / "train" / domain for domain in domains]
+    #train_domains, val_domains = trainval_domains[:39], trainval_domains[39:]
     shuffle(trainval_domains)
-    idx_split = int(len(trainval_domains) * 0.9)
+    idx_split = int(len(trainval_domains) * 0.95)
     train_domains, val_domains = trainval_domains[:idx_split], trainval_domains[idx_split:] 
 
     datamodule = datamodules.Flair(
         #data_path,
-        batch_size=4,
+        batch_size=32,
+        crop_size=256,
+        epoch_len=10000,
         labels='13',
-        workers=4,
+        workers=12,
         use_metadata=False,
         train_domains=train_domains,
         val_domains=val_domains,
@@ -46,12 +52,13 @@ def main():
         network='SmpUnet',
         encoder='efficientnet-b1',
         pretrained=False,
-        weights=[],
+        bn=True,
+        weights=[2.3, 2.3, 1.3, 5.1, 3.7, 7.0, 1.2, 2.7, 5.7, 1.0, 1.8, 5.3, 0.],
         in_channels=5,
         out_channels=13,
         initial_lr=0.001,
         final_lr=0.0005,
-        plot_calib=True,
+        plot_calib=False,
         class_names=datamodule.class_names,
         #alphas=(0., 1.),
         #ramp=(0, 40000),
@@ -62,17 +69,17 @@ def main():
     
 
     trainer = Trainer(
-        max_steps=1000,
+        max_steps=1000000,
         gpus=1,
         multiple_trainloader_mode='min_size',
         limit_train_batches=1.,
         limit_val_batches=1.,
         logger=TensorBoardLogger(
-            #save_dir='/scratchl/pfournie/outputs/digitaniev2',
-            save_dir='/data/outputs/flair',
+            save_dir='/d/pfournie/outputs/flair',
+            #save_dir='/data/outputs/flair',
             #save_dir='/home/pfournie/ai4geo/ouputs/semcity',
-            name='ce_d4',
-            version=f'{datetime.now():%d%b%y-%Hh%M}'
+            name='TBlogs_wce_d4',
+            version=f'{datetime.now():%d%b%y-%Hh%Mm%S}'
         ),
         #profiler=SimpleProfiler(),
         callbacks=[

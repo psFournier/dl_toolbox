@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from pytorch_lightning import LightningDataModule
 import dl_toolbox.torch_datasets as datasets
 from dl_toolbox.torch_collate import CustomCollate
@@ -94,6 +94,8 @@ class Flair(LightningDataModule):
         self,
         #data_path,
         batch_size,
+        crop_size,
+        epoch_len,
         labels,
         workers,
         use_metadata,
@@ -109,6 +111,8 @@ class Flair(LightningDataModule):
 
         super().__init__()
         self.batch_size = batch_size
+        self.epoch_len = epoch_len
+        self.crop_size = crop_size
         self.num_workers = workers
         #self.data_path = data_path
         
@@ -119,6 +123,7 @@ class Flair(LightningDataModule):
         self.train_set = datasets.Flair(
             dict_files=dict_train,
             labels=labels,
+            crop_size=crop_size,
             use_metadata=False,
             img_aug=img_aug
         )
@@ -127,12 +132,14 @@ class Flair(LightningDataModule):
         
         self.val_set = datasets.Flair(
             dict_files=dict_val,
-            labels=labels
+            labels=labels,
+            crop_size=512
         )
         
         self.test_set = datasets.Flair(
             dict_files=dict_test,
-            labels=labels
+            labels=labels,
+            crop_size=512
         )
 
         self.class_names = list(self.val_set.labels.keys())
@@ -144,7 +151,11 @@ class Flair(LightningDataModule):
             dataset=self.train_set,
             batch_size=self.batch_size,
             collate_fn=CustomCollate(),
-            shuffle=True,
+            sampler=RandomSampler(
+                data_source=self.train_set,
+                replacement=True,
+                num_samples=self.epoch_len
+            ),
             num_workers=self.num_workers,
             pin_memory=True,
             drop_last=True
@@ -155,7 +166,11 @@ class Flair(LightningDataModule):
             train_dataloaders['unsup'] = DataLoader(
                 dataset=self.unsup_train_set,
                 batch_size=self.batch_size,
-                shuffle=True,
+                sampler=RandomSampler(
+                    data_source=self.train_set,
+                    replacement=True,
+                    num_samples=self.epoch_len
+                ),
                 collate_fn=CustomCollate(),
                 num_workers=self.num_workers,
                 pin_memory=True,
@@ -170,7 +185,7 @@ class Flair(LightningDataModule):
             dataset=self.val_set,
             shuffle=False,
             collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
+            batch_size=8,
             num_workers=self.num_workers,
             pin_memory=True
         )
@@ -183,7 +198,7 @@ class Flair(LightningDataModule):
         predict_dataloader = DataLoader(
             dataset=self.test_set,
             shuffle=False,
-            batch_size=1,
+            batch_size=8,
             collate_fn=CustomCollate(),
             num_workers=self.num_workers
         )

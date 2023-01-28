@@ -2,6 +2,7 @@ import os
 import numpy as np
 import rasterio
 from skimage import img_as_float
+from rasterio.windows import Window
 
 import torch
 from torch.utils.data import Dataset
@@ -33,18 +34,18 @@ lut_colors = {
 
 lut_classes = {
 1   : 'building',
-2   : 'pervious surface',
-3   : 'impervious surface',
+2   : 'pervious',
+3   : 'impervious',
 4   : 'bare soil',
 5   : 'water',
 6   : 'coniferous',
 7   : 'deciduous',
 8   : 'brushwood',
 9   : 'vineyard',
-10  : 'herbaceous vegetation',
-11  : 'agricultural land',
+10  : 'herbaceous',
+11  : 'agricultural',
 12  : 'plowed land',
-13  : 'swimming_pool',
+13  : 'swimmingpool',
 14  : 'snow',
 15  : 'clear cut',
 16  : 'mixed',
@@ -74,6 +75,7 @@ class Flair(Dataset):
     def __init__(self,
                  dict_files,
                  labels,
+                 crop_size,
                  #num_classes=13, 
                  use_metadata=False,
                  img_aug=None,
@@ -82,6 +84,7 @@ class Flair(Dataset):
         self.list_imgs = np.array(dict_files["IMG"])
         self.list_msks = np.array(dict_files["MSK"])
         self.labels = labels_dict[labels]
+        self.crop_size = crop_size
         self.label_merger = MergeLabels(mergers[labels])
         self.use_metadata = use_metadata
         if use_metadata == True:
@@ -91,17 +94,17 @@ class Flair(Dataset):
         self.labels_to_rgb = LabelsToRGB(self.labels)
         self.rgb_to_labels = RGBToLabels(self.labels)
 
-    def read_image(self, image_path):
+    def read_image(self, image_path, window):
         
         with rasterio.open(image_path) as image_file:
-            image = image_file.read(out_dtype=np.float32)/255.
+            image = image_file.read(window=window, out_dtype=np.float32)
             
         return image
     
-    def read_label(self, label_path):
+    def read_label(self, label_path, window):
     
         with rasterio.open(label_path) as label_file:
-            label = label_file.read(out_dtype=np.float32)
+            label = label_file.read(window=window, out_dtype=np.float32)
             
         label = np.squeeze(label)
         label = self.label_merger(label)
@@ -115,13 +118,16 @@ class Flair(Dataset):
     def __getitem__(self, index):
         
         image_file = self.list_imgs[index]
-        image = self.read_image(image_file)
+        cx = np.random.randint(0, 512 - self.crop_size + 1)
+        cy = np.random.randint(0, 512 - self.crop_size + 1)
+        window = Window(cx, cy, self.crop_size, self.crop_size)
+        image = self.read_image(image_file, window)
         image = torch.from_numpy(image).float().contiguous()
         
         label = None
         if self.list_msks.size: # a changer
             mask_file = self.list_msks[index] 
-            label = self.read_label(mask_file)
+            label = self.read_label(mask_file, window)
             label = torch.from_numpy(label).long().contiguous()
 
         if self.img_aug is not None:
