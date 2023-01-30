@@ -4,7 +4,8 @@ from dl_toolbox.networks import *
 networks = {
     'Vgg': Vgg,
     'Unet': Unet,
-    'SmpUnet': SmpUnet
+    'SmpUnet': SmpUnet,
+    'EncodeThenUpsample': EncodeThenUpsample
 }
 
 class NetworkFactory:
