@@ -20,8 +20,15 @@ labels_dict = {
         'railways': {'color':(200, 100, 200)},
         'swimmingpool': {'color':(50, 150, 250)}
     },
-
     '6': {
+        'other': {'color': (0, 0, 0)},
+        'low_vegetation': {'color':(0, 250, 50)},
+        'water': {'color':(0, 50, 250)},
+        'building': {'color':(250, 50, 50)},
+        'high_vegetation': {'color':(0, 100, 50)},
+        'road': {'color':(100, 100, 100)}
+    },
+    '7': {
         'other': {'color': (0, 0, 0)},
         'low_vegetation': {'color':(0, 250, 50)},
         'water': {'color':(0, 50, 250)},
@@ -43,6 +50,7 @@ labels_dict = {
 mergers = {
     'base' : [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],
     '6' : [[0, 1, 6, 8, 9], [2], [3], [4], [5], [7]],
+    '7' : [[0, 1, 6, 8, 9], [2], [3], [4], [5], [7]],
     '5' : [[0, 1, 6, 8, 9], [2, 5], [3], [4], [7]],
     #'5' : [[0], [1, 6, 8, 9], [2, 5], [3], [4], [7]]
 }
@@ -62,7 +70,7 @@ class DigitanieV2(RasterDs):
             
         mins = np.array([stat.min for stat in self.info['stats']])
         maxs = np.array([stat.max for stat in self.info['stats']])
-        image = minmax(image[:3], mins[:3], maxs[:3])
+        image = minmax(image[:4], mins[:4], maxs[:4])
 
         return image
 

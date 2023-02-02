@@ -13,20 +13,65 @@ def main():
     """
     TODO
     """
-
+    
+    print(torch.cuda.is_available())
+    print(torch.cuda.device_count())
+    
+    datamodule = Splitfile(
+        epoch_len=500,
+        batch_size=16,
+        workers=6,
+        splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanie/arcachon.csv',
+        test_folds=(8,9),
+        train_folds=tuple(range(8)),
+        #data_path=Path(os.environ['TMPDIR']) / 'DIGITANIE',
+        #data_path=Path(os.environ['TMPDIR']) / 'Arcachon',
+        data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE'),
+        #data_path=Path('/scratchf/AI4GEO/DIGITANIE'),
+        #data_path=Path('/data/DIGITANIE'),
+        #data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench'),
+        crop_size=256,
+        img_aug='d4',
+        unsup_img_aug=None,
+        labels='base',
+        unsup_train_folds=None
+    )
+    
+    module = CE(
+        ignore_index=0,
+        #no_pred_zero=True,
+        #mixup=0.4,
+        #network='Vgg',
+        network='SmpUnet',
+        encoder='efficientnet-b4',
+        pretrained=False,
+        weights=[],
+        in_channels=4,
+        out_channels=6,
+        initial_lr=0.001,
+        final_lr=0.0005,
+        plot_calib=False,
+        class_names=datamodule.class_names,
+        #alphas=(0., 1.),
+        #ramp=(0, 40000),
+        #pseudo_threshold=0.9,
+        #consist_aug='color-3',
+        #emas=(0.9, 0.999)
+    )
+    
     trainer = Trainer(
-        max_steps=1000000,
-        gpus=None,
+        max_steps=10000,
+        gpus=1,
         multiple_trainloader_mode='min_size',
-        limit_train_batches=1,
-        limit_val_batches=1,
+        limit_train_batches=1.,
+        limit_val_batches=1.,
         logger=TensorBoardLogger(
             #save_dir='/scratchl/pfournie/outputs/digitaniev2',
-            #save_dir='/work/OT/ai4usr/fournip/outputs',
+            save_dir='/work/OT/ai4usr/fournip/outputs/digitanie',
             #save_dir='/data/outputs/digitaniev2',
-            save_dir='/home/pfournie/ai4geo/ouputs/semcity',
-            name='bceno0_d4color3',
-            version=f'{datetime.now():%d%b%y-%Hh%M}'
+            #save_dir='/home/pfournie/ai4geo/ouputs/semcity',
+            name='arcachon',
+            version=f'{datetime.now():%d%b%y-%Hh%Mm%S}'
         ),
         #profiler=SimpleProfiler(),
         callbacks=[
@@ -53,49 +98,6 @@ def main():
         unsup_img_aug=None
     )
     """
-    
-    
-    datamodule = Splitfile(
-        epoch_len=10000,
-        batch_size=2,
-        workers=2,
-        splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/semcity/split_semcity.csv',
-        test_folds=(8,),
-        train_folds=tuple(range(8)),
-        #data_path=Path(os.environ['TMPDIR']) / 'DIGITANIE',
-        #data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE'),
-        #data_path=Path('/scratchf/AI4GEO/DIGITANIE'),
-        #data_path=Path('/data/DIGITANIE'),
-        data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench'),
-        crop_size=256,
-        img_aug='d4',
-        unsup_img_aug=None,
-        labels='base',
-        unsup_train_folds=None
-    )
-    
-
-    module = BCE(
-        ignore_index=-1,
-        no_pred_zero=True,
-        #mixup=0.4,
-        #network='Vgg',
-        network='SmpUnet',
-        encoder='efficientnet-b1',
-        pretrained=False,
-        weights=[],
-        in_channels=4,
-        out_channels=7,
-        initial_lr=0.001,
-        final_lr=0.0005,
-        plot_calib=True,
-        class_names=datamodule.class_names,
-        #alphas=(0., 1.),
-        #ramp=(0, 40000),
-        #pseudo_threshold=0.9,
-        #consist_aug='color-3',
-        #emas=(0.9, 0.999)
-    )
 
     #ckpt_path='/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
     trainer.fit(

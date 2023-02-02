@@ -230,10 +230,7 @@ class BaseModule(pl.LightningModule):
 
         conf_mats = [out['conf_mat'] for out in outs]
         cm = torch.stack(conf_mats, dim=0).sum(dim=0)
-        mIou, ious = calc_miou(cm.numpy())
-        self.log('Val_miou', mIou)
-        
-        
+
         #sum_col = torch.sum(cm,dim=1, keepdim=True)
         #sum_lin = torch.sum(cm,dim=0, keepdim=True)
         #if self.ignore_index >= 0: sum_lin -= cm[self.ignore_index,:]
@@ -260,10 +257,17 @@ class BaseModule(pl.LightningModule):
             ), 
             global_step=self.trainer.global_step
         )
+        
+        cm_array = cm.numpy()
+        m = np.nan
+        with np.errstate(divide='ignore', invalid='ignore'):
+            ious = np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1) - np.diag(cm_array))
+        mIou = np.nansum(ious[1:]) / (np.logical_not(np.isnan(ious[1:]))).sum()
+        self.log('Val_miou', mIou.astype(float))
         self.trainer.logger.experiment.add_figure(
             "Class IoUs",
             plot_ious(
-                ious,
+                ious[1:],
                 class_names=self.class_names
             ),
             global_step=self.trainer.global_step
