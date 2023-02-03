@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat, log_batch_images
 import numpy as np
 from dl_toolbox.networks import NetworkFactory
+from dl_toolbox.torch_datasets.utils import aug_dict, anti_aug_dict
 
 
 def calc_miou(cm_array):
@@ -66,60 +67,47 @@ class BaseModule(pl.LightningModule):
     # Validation step common to all modules if possible
 
     def __init__(self,
-                 initial_lr=0.05,
-                 final_lr=0.001,
-                 lr_milestones=(0.5,0.9),
-                 plot_calib=False,
-                 class_names=None,
+                 initial_lr,
+                 class_names,
+                 ttas,
+                 plot_calib,
                  *args,
                  **kwargs):
 
         super().__init__()
         self.net_factory = NetworkFactory()
         self.initial_lr = initial_lr
-        self.final_lr = final_lr
-        self.lr_milestones = list(lr_milestones)
+        self.class_names = class_names
+        self.ttas = [(aug_dict[t](p=1), anti_aug_dict[t](p=1)) for t in ttas]
         self.plot_calib = plot_calib
-        self.class_names = class_names if class_names else [str(i) for i in range(self.num_classes)]
         
-        #self.val_metrics = JaccardIndex(
-        #    num_classes=len(self.class_names),
-        #    absent_score=1.0,
-        #    reduction='elementwise_mean'
-        #)
-        #self.val_loss = MeanMetric()
-
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
-
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--initial_lr", type=float)
-        parser.add_argument("--final_lr", type=float)
-        parser.add_argument("--lr_milestones", nargs='+', type=float)
-        parser.add_argument("--plot_calib", action='store_true')
-
-        return parser
+    def on_validation_epoch_start(self):
+        
+        self.confmat = torch.zeros((self.num_classes, self.num_classes))
+        if self.plot_calib: 
+            self.conf_bins = torch.zeros(100, dtype=torch.float)
+            self.acc_bins = torch.zeros(100, dtype=torch.float)
+            self.count_bins = torch.zeros(100, dtype=torch.float)
     
     def configure_optimizers(self):
 
         self.optimizer = Adam(self.parameters(), lr=self.initial_lr)
-        scheduler = MultiStepLR(
-            self.optimizer,
-            milestones=self.lr_milestones,
-            gamma=0.2
-        )
 
-        return [self.optimizer], [scheduler]
+        return self.optimizer
     
     def predict_step(self, batch, batch_idx):
         
         inputs = batch['image']
-        logits = self.forward(inputs)
-        probas = self._compute_probas(logits)
-        confidences, preds = self._compute_conf_preds(probas)
-        batch['preds'] = preds
+        logits = self(inputs)
         
-        return batch
+        if self.ttas:
+            tta_logits = [anti_aug(self(aug(inputs))) for aug, anti_aug in self.ttas]
+            logits = torch.vstack([logits]+tta_logits).mean(dim=0)
+ 
+        probas = self.logits2probas(logits)
+        confidences, preds = self.probas2confpreds(probas)
+        
+        return preds
     
     def validation_step(self, batch, batch_idx):
         
@@ -127,28 +115,8 @@ class BaseModule(pl.LightningModule):
         labels = batch['mask']
         logits = self.forward(inputs)
         
-        probas = self._compute_probas(logits)
-        confidences, preds = self._compute_conf_preds(probas)
-        #batch['preds'] = preds
-        
-        #self.val_loss.update(loss)
-        #self.val_metrics(preds=preds, target=labels)
-        
-        #if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
-        #    log_batch_images(
-        #        batch,
-        #        self.trainer,
-        #        prefix='Val'
-        #    )
-        
-        #stat_scores = torchmetrics.stat_scores(
-        #    preds,
-        #    labels,
-        #    ignore_index=None,
-        #    mdmc_reduce='global',
-        #    reduce='micro',
-        #    num_classes=self.num_classes
-        #)
+        probas = self.logits2probas(logits)
+        confidences, preds = self.probas2confpreds(probas)
         
         labels_flat = labels.cpu().flatten()
         preds_flat = preds.cpu().flatten()
@@ -159,90 +127,45 @@ class BaseModule(pl.LightningModule):
             self.num_classes,
             ignore_idx=None
         )
-
-        res = {
-            #'stat_scores': stat_scores,
-            'conf_mat': conf_mat,
-            'logits': logits
-        }
+        self.confmat += conf_mat
 
         if self.plot_calib:
+            conf_flat = confidences.cpu().flatten()
             acc_bins, conf_bins, count_bins = compute_calibration_bins(
-                torch.linspace(0, 1, 100 + 1).to(self.device),
-                labels.flatten(),
-                confidences.flatten(),
-                preds.flatten(),
+                torch.linspace(0, 1, 100 + 1),
+                labels_flat,
+                conf_flat,
+                preds_flat,
                 ignore_idx=None
             )
-            res['acc_bins'] = acc_bins
-            res['conf_bins'] = conf_bins
-            res['count_bins'] = count_bins
+            self.count_bins += count_bins
+            self.acc_bins += torch.mul(acc_bins, count_bins)
+            self.conf_bins += torch.mul(conf_bins, count_bins)
 
-        return res
+        return logits
 
     def validation_epoch_end(self, outs):
-        
-        #self.val_epoch_loss = self.val_loss.compute()
-        #self.val_epoch_metrics = self.val_metrics.compute()
-        #self.log(
-        #    "val_loss",
-        #    self.val_epoch_loss,
-        #    on_step=False,
-        #    on_epoch=True,
-        #    prog_bar=True,
-        #    logger=True,
-        #    rank_zero_only=True)
-        #self.log(
-        #    "val_miou",
-        #    self.val_epoch_metrics,
-        #    on_step=False,
-        #    on_epoch=True,
-        #    prog_bar=True,
-        #    logger=True,
-        #    rank_zero_only=True)
-        #self.val_loss.reset()
-        #self.val_metrics.reset()
-        
-        #stat_scores = [out['stat_scores'] for out in outs]
-        #class_stat_scores = torch.sum(torch.stack(stat_scores), dim=0)
-        #
-        #f1_sum = 0
-        #iou_sum = 0
-        #tp_sum = 0
-        #supp_sum = 0
-        #nc = 0
-        #for i in range(self.num_classes):
-        #    if i != self.ignore_index:
-        #        tp, fp, tn, fn, supp = class_stat_scores[i, :]
-        #        if supp > 0:
-        #            nc += 1
-        #            f1 = tp / (tp + 0.5 * (fp + fn))
-        #            iou = tp / (tp + fn + fp)
-        #            #self.log(f'Val_f1_{i}', f1)
-        #            f1_sum += f1
-        #            iou_sum += iou
-        #            tp_sum += tp
-        #            supp_sum += supp
-        #
-        #self.log('Val_acc', tp_sum / supp_sum)
-        #self.log('Val_f1', f1_sum / nc) 
-        #self.log('Val_iou', iou_sum / nc)
 
-        conf_mats = [out['conf_mat'] for out in outs]
-        cm = torch.stack(conf_mats, dim=0).sum(dim=0)
-
-        #sum_col = torch.sum(cm,dim=1, keepdim=True)
-        #sum_lin = torch.sum(cm,dim=0, keepdim=True)
-        #if self.ignore_index >= 0: sum_lin -= cm[self.ignore_index,:]
-        #cm_recall = torch.nan_to_num(cm/sum_col, nan=0., posinf=0., neginf=0.)
-        #cm_precision = torch.nan_to_num(cm/sum_lin, nan=0., posinf=0., neginf=0.)
-        #cm_recall = np.divide(cm, sum_col, out=np.zeros_like(cm), where=sum_col!=0)
-        #cm_precision = np.divide(cm, sum_lin, out=np.zeros_like(cm), where=sum_lin!=0)
-              
+        cm_array = self.confmat.numpy()
+        m = np.nan
+        with np.errstate(divide='ignore', invalid='ignore'):
+            ious = np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1) - np.diag(cm_array))
+        if self.ignore_zero: ious = ious[1:]
+        mIou = np.nansum(ious) / (np.logical_not(np.isnan(ious))).sum()
+        self.log('Val_miou', mIou.astype(float))
+        
+        self.trainer.logger.experiment.add_figure(
+            "Class IoUs",
+            plot_ious(
+                ious,
+                class_names=self.class_names
+            ),
+            global_step=self.trainer.global_step
+        )
         self.trainer.logger.experiment.add_figure(
             "Precision matrix", 
             plot_confusion_matrix(
-                cm,
+                self.confmat,
                 class_names=self.class_names,
                 norm='precision'
             ), 
@@ -251,54 +174,28 @@ class BaseModule(pl.LightningModule):
         self.trainer.logger.experiment.add_figure(
             "Recall matrix", 
             plot_confusion_matrix(
-                cm,
+                self.confmat,
                 class_names=self.class_names,
                 norm='recall'
             ), 
             global_step=self.trainer.global_step
         )
         
-        cm_array = cm.numpy()
-        m = np.nan
-        with np.errstate(divide='ignore', invalid='ignore'):
-            ious = np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1) - np.diag(cm_array))
-        mIou = np.nansum(ious[1:]) / (np.logical_not(np.isnan(ious[1:]))).sum()
-        self.log('Val_miou', mIou.astype(float))
-        self.trainer.logger.experiment.add_figure(
-            "Class IoUs",
-            plot_ious(
-                ious[1:],
-                class_names=self.class_names
-            ),
-            global_step=self.trainer.global_step
-        )
-
         if self.plot_calib:
-            count_bins = torch.stack([out['count_bins'] for out in outs])
-            conf_bins = torch.stack([out['conf_bins'] for out in outs])
-            acc_bins = torch.stack([out['acc_bins'] for out in outs])
             
-            counts = torch.sum(count_bins, dim=0)
-            accs = torch.sum(torch.mul(acc_bins, count_bins), dim=0)
-            accs = torch.div(accs, counts)
-            confs = torch.sum(torch.mul(conf_bins, count_bins), dim=0)
-            confs = torch.div(confs, counts)
-
-            figure = plot_calib(
-                counts.cpu().numpy(),
-                accs.cpu().numpy(),
-                confs.cpu().numpy(),
-                max_points=10000
-            )
-
+            self.acc_bins = torch.div(self.acc_bins, self.count_bins)
+            self.conf_bins = torch.div(self.conf_bins, self.count_bins)
             self.trainer.logger.experiment.add_figure(
                 f"Calibration",
-                figure,
+                plot_calib(
+                    self.counts_bins.numpy(),
+                    self.acc_bins.numpy(),
+                    self.conf_bins.numpy(),
+                    max_points=10000
+                ),
                 global_step=self.trainer.global_step
             )
-
 
     def on_train_epoch_end(self):
         for param_group in self.optimizer.param_groups:
             self.log(f'learning_rate', param_group['lr'])
-            break

@@ -58,6 +58,23 @@ aug_dict = {
     'mixup': aug.Mixup
 }
 
+anti_aug_dict = {
+    'no': aug.NoOp,
+    'imagenet': aug.NoOp, 
+    'hflip': aug.Hflip,
+    'vflip': aug.Vflip,
+    'd1flip': aug.Transpose1,
+    'd2flip': aug.Transpose2,
+    'rot90': aug.Rot270,
+    'rot180': aug.Rot180,
+    'rot270': aug.rot90,
+    'saturation': aug.NoOp,
+    'sharpness': aug.NoOp,
+    'contrast': aug.NoOp,
+    'gamma': aug.NoOp,
+    'brightness': aug.NoOp,
+}
+
 def get_transforms(name):
     
     if name:
