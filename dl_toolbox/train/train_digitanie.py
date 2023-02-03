@@ -11,29 +11,30 @@ import os
 
 def main():
     """
-    TODO
+    Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de l'expé.
     """
-    
-    print(torch.cuda.is_available())
-    print(torch.cuda.device_count())
-    
+    split='france'
+    data_path=Path(os.environ['TMPDIR'])/'DIGITANIE'
+    #data_path=Path('/scratchf/AI4GEO/DIGITANIE')
+    #data_path=Path('/data/DIGITANIE')
+    #data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench')
+    epoch_len=5000
+    labels='6mainFuseVege'
+    out_channels=6
+    max_steps=50000
+
     datamodule = Splitfile(
-        epoch_len=500,
+        epoch_len=epoch_len,
         batch_size=16,
         workers=6,
-        splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanie/arcachon.csv',
+        splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanie/{split}.csv',
         test_folds=(8,9),
         train_folds=tuple(range(8)),
-        #data_path=Path(os.environ['TMPDIR']) / 'DIGITANIE',
-        #data_path=Path(os.environ['TMPDIR']) / 'Arcachon',
-        data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE'),
-        #data_path=Path('/scratchf/AI4GEO/DIGITANIE'),
-        #data_path=Path('/data/DIGITANIE'),
-        #data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench'),
+        data_path=data_path,
         crop_size=256,
         img_aug='d4',
         unsup_img_aug=None,
-        labels='base',
+        labels=labels,
         unsup_train_folds=None
     )
     
@@ -47,7 +48,7 @@ def main():
         pretrained=False,
         weights=[],
         in_channels=4,
-        out_channels=6,
+        out_channels=out_channels,
         initial_lr=0.001,
         final_lr=0.0005,
         plot_calib=False,
@@ -60,7 +61,7 @@ def main():
     )
     
     trainer = Trainer(
-        max_steps=10000,
+        max_steps=max_steps,
         gpus=1,
         multiple_trainloader_mode='min_size',
         limit_train_batches=1.,
@@ -70,7 +71,7 @@ def main():
             save_dir='/work/OT/ai4usr/fournip/outputs/digitanie',
             #save_dir='/data/outputs/digitaniev2',
             #save_dir='/home/pfournie/ai4geo/ouputs/semcity',
-            name='arcachon',
+            name=split,
             version=f'{datetime.now():%d%b%y-%Hh%Mm%S}'
         ),
         #profiler=SimpleProfiler(),
