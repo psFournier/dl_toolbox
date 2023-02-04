@@ -18,6 +18,8 @@ class RasterDs(torch.utils.data.Dataset):
         image_path,
         tile,
         crop_size,
+        mins,
+        maxs,
         img_aug=None,
         label_path=None,
         fixed_crops=False,
@@ -29,9 +31,10 @@ class RasterDs(torch.utils.data.Dataset):
 
         self.image_path = image_path
         self.tile = tile
+        self.mins = mins
+        self.maxs = maxs
         self.crop_size = crop_size
         self.img_aug = get_transforms(img_aug)
-        self.info = self.init_stats()
         self.label_path = label_path
         self.crop_windows = list(get_tiles(
             nols=tile.width, 
@@ -42,17 +45,7 @@ class RasterDs(torch.utils.data.Dataset):
             col_offset=tile.col_off)) if fixed_crops else None
         #self.one_hot = OneHot(list(range(len(self.labels)))) if one_hot else None
         self.labels_to_rgb = LabelsToRGB(self.labels)
-        self.rgb_to_labels = RGBToLabels(self.labels)
-    
-    def init_stats(self):
-        
-        with rasterio.open(self.image_path) as f:
-            infos = {}
-            # technically we should not compute stats on the whole image if the dataset is built only on a subtile
-            infos['stats'] = [f.statistics(bidx=i, approx=True) for i in range(1, f.count+1)]
-            infos['shape'] = f.shape
-        
-        return infos        
+        self.rgb_to_labels = RGBToLabels(self.labels)      
 
     def __len__(self):
 

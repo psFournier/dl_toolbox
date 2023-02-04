@@ -14,7 +14,8 @@ def main():
     Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de l'expé.
     """
     split='france'
-    data_path=Path(os.environ['TMPDIR'])/'DIGITANIE'
+    #data_path=Path(os.environ['TMPDIR'])/'DIGITANIE'
+    data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE')
     #data_path=Path('/scratchf/AI4GEO/DIGITANIE')
     #data_path=Path('/data/DIGITANIE')
     #data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench')

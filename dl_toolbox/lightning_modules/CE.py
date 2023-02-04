@@ -11,8 +11,8 @@ class CE(BaseModule):
     def __init__(self,
                  network,
                  weights,
+                 ignore_zero,
                  mixup=0.,
-                 ignore_index=-1,
                  *args,
                  **kwargs):
 
@@ -23,9 +23,9 @@ class CE(BaseModule):
         self.num_classes = self.network.out_channels
         out_dim = self.network.out_dim
         self.weights = list(weights) if len(weights)>0 else [1]*self.num_classes
-        self.ignore_index = ignore_index
+        self.ignore_zero = ignore_zero
         self.loss = nn.CrossEntropyLoss(
-            ignore_index=self.ignore_index,
+            ignore_index=0 if ignore_zero else -1,
             weight=torch.Tensor(self.weights)
             #weight=torch.Tensor(self.weights).reshape(1,-1,*out_dim)
         )
@@ -33,7 +33,6 @@ class CE(BaseModule):
             range(self.num_classes)
         )
         self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else None
-        #self.save_hyperparameters('network', 'weights', 'mixup', 'ignore_index')
         self.save_hyperparameters()
 
     def forward(self, x):
@@ -73,9 +72,7 @@ class CE(BaseModule):
 
     def validation_step(self, batch, batch_idx):
 
-        outs = super().validation_step(batch, batch_idx)
+        logits = super().validation_step(batch, batch_idx)
         labels = batch['mask']
-        loss = self.loss(outs['logits'], labels)
+        loss = self.loss(logits, labels)
         self.log('Val_CE', loss)
-
-        return {'conf_mat': outs['conf_mat']}    

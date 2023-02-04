@@ -67,7 +67,7 @@ anti_aug_dict = {
     'd2flip': aug.Transpose2,
     'rot90': aug.Rot270,
     'rot180': aug.Rot180,
-    'rot270': aug.rot90,
+    'rot270': aug.Rot90,
     'saturation': aug.NoOp,
     'sharpness': aug.NoOp,
     'contrast': aug.NoOp,

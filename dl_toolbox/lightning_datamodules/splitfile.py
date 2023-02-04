@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 import csv
+import ast 
 from pytorch_lightning import LightningDataModule
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
@@ -27,7 +28,7 @@ def read_splitfile(
         next(reader)
         for row in reader:
 
-            ds_name, _, image_path, label_path, x0, y0, w, h, fold = row[:9]
+            ds_name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
             if int(fold) in folds:
                 window = Window(
                     col_off=int(x0),
@@ -42,7 +43,9 @@ def read_splitfile(
                     crop_size=crop_size,
                     fixed_crops=fixed_crops,
                     img_aug=img_aug,
-                    labels=labels
+                    labels=labels,
+                    mins=ast.literal_eval(mins),
+                    maxs=ast.literal_eval(maxs)
                 )
                 sets.append(ds)
     

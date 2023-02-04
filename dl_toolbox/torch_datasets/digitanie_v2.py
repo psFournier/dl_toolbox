@@ -67,8 +67,8 @@ class DigitanieV2(RasterDs):
         with rasterio.open(image_path) as image_file:
             image = image_file.read(window=window, out_dtype=np.float32)
             
-        mins = np.array([stat.min for stat in self.info['stats']])
-        maxs = np.array([stat.max for stat in self.info['stats']])
+        mins = np.array(self.mins)
+        maxs = np.array(self.maxs)
         image = minmax(image[:4], mins[:4], maxs[:4])
 
         return image

@@ -188,7 +188,7 @@ class BaseModule(pl.LightningModule):
             self.trainer.logger.experiment.add_figure(
                 f"Calibration",
                 plot_calib(
-                    self.counts_bins.numpy(),
+                    self.count_bins.numpy(),
                     self.acc_bins.numpy(),
                     self.conf_bins.numpy(),
                     max_points=10000
