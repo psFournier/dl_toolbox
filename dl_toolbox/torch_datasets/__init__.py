@@ -6,5 +6,6 @@ from .resisc import *
 from .airs import *
 from .miniworld import *
 from .flair import *
+from .alumhi import *
 #from .inria import *
 from .dataset_factory import DatasetFactory

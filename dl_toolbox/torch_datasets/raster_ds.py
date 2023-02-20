@@ -10,8 +10,27 @@ from dl_toolbox.utils import get_tiles
 from dl_toolbox.utils import MergeLabels, OneHot, LabelsToRGB, RGBToLabels
 from dl_toolbox.torch_datasets.utils import *
 
-
+    
 class RasterDs(torch.utils.data.Dataset):
+    """
+    A class to represent a person.
+
+    ...
+
+    Attributes
+    ----------
+    name : str
+        first name of the person
+    surname : str
+        family name of the person
+    age : int
+        age of the person
+
+    Methods
+    -------
+    info(additional=""):
+        Prints the person's name and age.
+    """
 
     def __init__(
         self,
@@ -31,8 +50,8 @@ class RasterDs(torch.utils.data.Dataset):
 
         self.image_path = image_path
         self.tile = tile
-        self.mins = mins
-        self.maxs = maxs
+        self.mins = np.array(mins).reshape(-1, 1, 1)
+        self.maxs = np.array(maxs).reshape(-1, 1, 1)
         self.crop_size = crop_size
         self.img_aug = get_transforms(img_aug)
         self.label_path = label_path
@@ -43,9 +62,8 @@ class RasterDs(torch.utils.data.Dataset):
             step=crop_step if crop_step else crop_size,
             row_offset=tile.row_off, 
             col_offset=tile.col_off)) if fixed_crops else None
-        #self.one_hot = OneHot(list(range(len(self.labels)))) if one_hot else None
-        self.labels_to_rgb = LabelsToRGB(self.labels)
-        self.rgb_to_labels = RGBToLabels(self.labels)      
+        #self.labels_to_rgb = LabelsToRGB(self.labels)
+        #self.rgb_to_labels = RGBToLabels(self.labels)      
 
     def __len__(self):
 
@@ -66,7 +84,6 @@ class RasterDs(torch.utils.data.Dataset):
         label = None
         if self.label_path:
             label = self.read_label(self.label_path, window)
-            #if self.one_hot: label = self.one_hot(label)
             label = torch.from_numpy(label).long().contiguous()
 
         if self.img_aug is not None:

@@ -10,51 +10,22 @@ labels_dict = {
     
     'base':{
         'nodata': {'color': (0, 0, 0)},
-        'bare_ground': {'color':(100, 50, 0)},
-        'low_vegetation': {'color':(0, 250, 50)},
+        'pasture': {'color':(253, 108, 158)},
         'water': {'color':(0, 50, 250)},
-        'building': {'color':(250, 50, 50)},
-        'high_vegetation': {'color':(0, 100, 50)},
-        'parking': {'color':(200, 200, 200)},
-        'road': {'color':(100, 100, 100)},
-        'railways': {'color':(200, 100, 200)},
-        'swimmingpool': {'color':(50, 150, 250)}
-    },
-    '6': {
-        'other': {'color': (0, 0, 0)},
-        'low_vegetation': {'color':(0, 250, 50)},
-        'water': {'color':(0, 50, 250)},
-        'building': {'color':(250, 50, 50)},
-        'high_vegetation': {'color':(0, 100, 50)},
+        'forest': {'color':(0, 100, 50)},
+        'cultivated forest': {'color':(0, 250, 50)},
+        'uncultivated field': {'color':(100, 50, 0)},
+        'artifical urban': {'color':(250, 50, 50)},
+        'orchard': {'color':(255, 255, 0)},
         'road': {'color':(100, 100, 100)}
-    },
-    '7main': {
-        'nodata': {'color': (0, 0, 0)},
-        'low_vegetation': {'color':(0, 250, 50)},
-        'water': {'color':(0, 50, 250)},
-        'building': {'color':(250, 50, 50)},
-        'high_vegetation': {'color':(0, 100, 50)},
-        'road': {'color':(100, 100, 100)},
-        'other': {'color': (250,250,250)}
-    },
-    '6mainFuseVege': {
-        'nodata': {'color': (0, 0, 0)},
-        'vegetation': {'color':(0, 250, 50)},
-        'water': {'color':(0, 50, 250)},
-        'building': {'color':(250, 50, 50)},
-        'road': {'color':(100, 100, 100)},
-        'other': {'color': (250,250,250)}
     }
 }
 
 mergers = {
-    'base' : [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],
-    '6' : [[0, 1, 6, 8, 9], [2], [3], [4], [5], [7]],
-    '7main' : [[0], [2], [3], [4], [5], [7], [1, 6, 8, 9]],
-    '6mainFuseVege' : [[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
+    'base' : [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]],
 }
 
-class DigitanieV2(RasterDs):
+class Alumhi(RasterDs):
 
     def __init__(self, labels, *args, **kwargs):
  
@@ -67,8 +38,8 @@ class DigitanieV2(RasterDs):
         with rasterio.open(image_path) as image_file:
             image = image_file.read(window=window, out_dtype=np.float32)
             
-        image = minmax(image[:4], self.mins[:4], self.maxs[:4])
-
+        image = -1 + 2 * (image - self.mins) / (self.maxs - self.mins)
+            
         return image
 
     def read_label(self, label_path, window):
@@ -79,8 +50,7 @@ class DigitanieV2(RasterDs):
         label = np.squeeze(label)
         label = self.label_merger(label)
         
-        return label
-
+        return label     
 
 
 def main():
