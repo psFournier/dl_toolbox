@@ -13,7 +13,7 @@ from dl_toolbox.torch_datasets.utils import *
     
 class RasterDs(torch.utils.data.Dataset):
     """
-    A class to represent a person.
+    A class to represent 
 
     ...
 

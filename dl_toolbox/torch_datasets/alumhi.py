@@ -10,7 +10,7 @@ labels_dict = {
     
     'base':{
         'nodata': {'color': (0, 0, 0)},
-        'pasture': {'color':(253, 108, 158)},
+        'pasture': {'color':(226, 224, 167)},
         'water': {'color':(0, 50, 250)},
         'forest': {'color':(0, 100, 50)},
         'cultivated forest': {'color':(0, 250, 50)},
@@ -24,6 +24,35 @@ labels_dict = {
 mergers = {
     'base' : [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9]],
 }
+
+class PolygonFromRaster(torch.utils.data.Dataset):
+    """
+    A class to represent 
+
+    ...
+
+    Attributes
+    ----------
+    name : str
+        first name of the person
+    surname : str
+        family name of the person
+    age : int
+        age of the person
+
+    Methods
+    -------
+    info(additional=""):
+        Prints the person's name and age.
+    """
+    def __init__(
+        self,
+        image_raster,
+        polygon,
+        crop_size
+    ):
+        self.image_raster = image_raster
+        
 
 class Alumhi(RasterDs):
 
