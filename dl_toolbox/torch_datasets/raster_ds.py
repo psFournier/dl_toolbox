@@ -1,6 +1,5 @@
 import torch
 import rasterio
-import imagesize
 import numpy as np
 
 from rasterio.windows import Window
