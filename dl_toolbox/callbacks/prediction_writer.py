@@ -8,37 +8,38 @@ try:
 except ImportError:
     from pytorch_lightning.utilities.rank_zero import rank_zero_only 
 from PIL import Image
-
-
+from copy import copy
+import rasterio
 
 
 class PredictionWriter(BasePredictionWriter):
 
     def __init__(
         self,
-        output_dir,
+        out_path,
         write_interval,
     ):
         super().__init__(write_interval)
-        self.output_dir = output_dir
-        Path(self.output_dir).mkdir(exist_ok=True, parents=True)
+        self.out_path = Path(out_path)
+        self.out_path.mkdir(exist_ok=True, parents=True)
 
     def write_on_batch_end(
         self,
         trainer,
         pl_module,
-        prediction,
+        outputs,
         batch_indices,
         batch,
         batch_idx,
         dataloader_idx,
     ):
-        preds, filenames = prediction["preds"], prediction["path"]
-        preds = preds.cpu().numpy().astype('uint8')  # Pass prediction on CPU
         
-        for prediction, filename in zip(preds, filenames):
-            output_file = str(self.output_dir+'/'+filename.split('/')[-1].replace('IMG', 'PRED'))
-            Image.fromarray(prediction).save(output_file,  compression='tiff_lzw')
+        logits = outputs.cpu().numpy()  # Move predictions to CPU        
+        for logit, path, crop in zip(logits, batch['path'], batch['crop']):
+            out_file = self.out_path / f'{path.stem}_{crop.col_off}_{crop.row_off}.tif'
+            meta = {'driver': 'GTiff', 'height': 256, 'width':256, 'count':6, 'dtype':np.float32}
+            with rasterio.open(out_file, 'w+', **meta) as dst:
+                dst.write(logit)
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if not self.interval.on_batch:

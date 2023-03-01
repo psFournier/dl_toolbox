@@ -51,7 +51,7 @@ class CE(BaseModule):
 
         batch = batch["sup"]
         inputs = batch['image']
-        labels = batch['mask']
+        labels = batch['label']
         if self.mixup:
             labels = self.onehot(labels).float()
             inputs, labels = self.mixup(inputs, labels)
@@ -73,6 +73,6 @@ class CE(BaseModule):
     def validation_step(self, batch, batch_idx):
 
         logits = super().validation_step(batch, batch_idx)
-        labels = batch['mask']
+        labels = batch['label']
         loss = self.loss(logits, labels)
         self.log('Val_CE', loss)

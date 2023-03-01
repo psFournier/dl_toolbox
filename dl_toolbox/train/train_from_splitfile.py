@@ -24,9 +24,9 @@ Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de
 ### Datasets parameters
 split='arcachon'
 #data_path=Path(os.environ['TMPDIR'])/'DIGITANIE'
-data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE')
+#data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE')
 #data_path=Path('/scratchf/AI4GEO/DIGITANIE')
-#data_path=Path('/data/DIGITANIE')
+data_path=Path('/data/DIGITANIE')
 #data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench')
 labels='6mainFuseVege'
 img_aug='d4'
@@ -35,7 +35,7 @@ val_folds=[8,9]
 train_folds=list(range(8))
 
 ### Dataloaders parameters
-batch_size = 16
+batch_size = 8
 epoch_len=5000
 workers=6
 
@@ -50,7 +50,6 @@ encoder='efficientnet-b4'
 pretrained=False
 weights=[]
 in_channels=4
-out_channels=out_channels
 initial_lr=0.001
 final_lr=0.0005
 plot_calib=False
@@ -58,14 +57,14 @@ ttas = ['vflip']
 
 ### Trainer parameters
 max_steps=50000
-accelerator='cpu'
+accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
 limit_train_batches = 1.
 limit_val_batches = 1.
 #save_dir='/scratchl/pfournie/outputs/digitaniev2'
-save_dir='/work/OT/ai4usr/fournip/outputs/digitanie'
-#save_dir='/data/outputs/digitaniev2'
+#save_dir='/work/OT/ai4usr/fournip/outputs/digitanie'
+save_dir='/data/outputs/digitanie'
 #save_dir='/home/pfournie/ai4geo/ouputs/semcity'
 
 ### Building training and validation datasets to concatenate from the splitfile lines

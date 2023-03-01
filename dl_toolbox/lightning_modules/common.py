@@ -21,12 +21,13 @@ def calc_miou(cm_array):
     m = np.nansum(ious[:-1]) / (np.logical_not(np.isnan(ious[:-1]))).sum()
     return m.astype(float), ious[:-1]  
 
-def plot_ious(ious, class_names):
+def plot_ious(ious, class_names, baseline=None):
     
     y_pos = np.arange(len(ious)) #- .2
     #y_pos_2 = np.arange(len(classes)-1) + .2
     ious = [round(i, 4) for i in ious]
-    baseline = [0.8004, 0.4739, 0.7078, 0.3995, 0.7818, 0.3213, 0.6537, 0.3127, 0.8016, 0.5109, 0.4520, 0.3315]
+    if baseline is None:
+        baseline = [0.]*len(ious)
     diff = [round(i-b, 4) for i,b in zip(ious, baseline)]
 
     bar_width = .8
@@ -38,7 +39,7 @@ def plot_ious(ious, class_names):
     #axs[1].barh(y_pos_2[::-1], baseline, bar_width,  align='center', alpha=0.4, color=lut_colors[:-1])
 
     axs[1].set_yticks([])
-    axs[1].set_xlabel('submission IoU')
+    axs[1].set_xlabel('IoU')
     axs[1].set_ylim(0 - .4, (len(ious)) + .4)
     axs[1].set_xlim(0, 1)
 
@@ -52,7 +53,7 @@ def plot_ious(ious, class_names):
 
     the_table = axs[0].table(cellText=cell_text,
                              cellColours=cellColours,
-                         rowLabels=class_names[:-1],
+                         rowLabels=class_names,
                          colLabels=column_labels,
                          bbox=[0.4, 0.0, 0.6, 1.0])
 
@@ -98,21 +99,25 @@ class BaseModule(pl.LightningModule):
     def predict_step(self, batch, batch_idx):
         
         inputs = batch['image']
-        logits = self(inputs)
+        logits = self.forward(inputs)
         
         if self.ttas:
-            tta_logits = [anti_aug(self(aug(inputs))) for aug, anti_aug in self.ttas]
-            logits = torch.vstack([logits]+tta_logits).mean(dim=0)
- 
-        probas = self.logits2probas(logits)
-        confidences, preds = self.probas2confpreds(probas)
+            for tta, reverse in self.ttas:
+                aux, _ = tta(img=inputs)
+                aux_logits = self.forward(aux)
+                tta_logits, _ = reverse(img=aux_logits)
+                logits = torch.stack([logits, tta_logits])
+            logits = logits.mean(dim=0)
+         
+        #probas = self.logits2probas(logits)
+        #confidences, preds = self.probas2confpreds(probas)
         
-        return preds
+        return logits
     
     def validation_step(self, batch, batch_idx):
         
         inputs = batch['image']
-        labels = batch['mask']
+        labels = batch['label']
         logits = self.forward(inputs)
         
         probas = self.logits2probas(logits)
