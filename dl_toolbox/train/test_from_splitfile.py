@@ -109,6 +109,7 @@ prediction_writer = callbacks.PredictionWriter(
 trainer = Trainer(
     accelerator='gpu',
     devices=1,
+    logger=None,
     callbacks=[prediction_writer]
 )
     
