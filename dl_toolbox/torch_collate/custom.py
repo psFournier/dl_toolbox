@@ -5,7 +5,7 @@ import torch
 class CustomCollate():
 
     def __call__(self, batch, *args, **kwargs):
-        
+                
         crops = [elem['crop'] for elem in batch if 'crop' in elem.keys()]
         #crops_tf = [elem['crop_tf'] for elem in batch if 'crop_tf' in elem.keys()]
         paths = [elem['path'] for elem in batch if 'path' in elem.keys()]
