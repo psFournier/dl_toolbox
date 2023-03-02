@@ -1,11 +1,3 @@
-# Toolbox for deep learning in pytorch
-
-This repository is intended to contain classes useful to start deep learning projects. The code is designed to ease its appropriation by others, mainly by avoiding complex heritance mechanisms and favoring one-file implementation when possible.
-
-As of May 6th 2022, the code mainly provides tools to run semantic segmentation algorithms with neural networks, both supervised and semi-supervised, on remote sensing RGB images.
-It is heavily based on the PytorchLightning library, which itself relies on PyTorch.
-Segmentation networks are taken from the segmentation-model-pytorch library.
-
 ## Installation and test
 
 First clone the repo.
