@@ -23,8 +23,13 @@ import dl_toolbox.callbacks as callbacks
 Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de l'expé.
 """
 
-data_root = Path('/mnt/d/pfournie/Documents/data')
-home = Path('/home/pfournie')
+
+if os.uname().nodename == 'WDTIS890Z': 
+    data_root = Path('/mnt/d/pfournie/Documents/data')
+    home = Path('/home/pfournie')
+elif os.uname().nodename == 'qdtis056z': 
+    data_root = Path('/data')
+    home = Path('/d/pfournie')
 
 ### Building training and validation datasets to concatenate from the splitfile lines
 val_sets, train_sets = [], []
@@ -75,7 +80,7 @@ train_dataloaders['sup'] = DataLoader(
         replacement=True,
         num_samples=5000
     ),
-    num_workers=1,
+    num_workers=6,
     pin_memory=True,
     drop_last=True
 )
@@ -85,23 +90,22 @@ val_dataloader = DataLoader(
     shuffle=False,
     collate_fn=CustomCollate(),
     batch_size=8,
-    num_workers=1,
+    num_workers=6,
     pin_memory=True
 )
 
 ### Building lightning module
 module = CE(
-    ignore_zero=True,
     #mixup=0.4, # incompatible with ignore_zero=True
     #network='Vgg',
     network='SmpUnet',
-    encoder='efficientnet-b0',
+    encoder='efficientnet-b4',
     pretrained=False,
     weights=[],
     in_channels=4,
     out_channels=6,
     initial_lr=0.001,
-    ttas=['vflip']
+    ttas=[]
     #alphas=(0., 1.),
     #ramp=(0, 40000),
     #pseudo_threshold=0.9,
@@ -118,12 +122,12 @@ metrics_from_confmat = callbacks.MetricsFromConfmat(
 ### Trainer instance
 trainer = Trainer(
     max_steps=50000,
-    accelerator='cpu',
+    accelerator='gpu',
     devices=1,
     multiple_trainloader_mode='min_size',
     num_sanity_val_steps=0,
-    limit_train_batches=2,
-    limit_val_batches=2,
+    limit_train_batches=1.,
+    limit_val_batches=1.,
     logger=TensorBoardLogger(
         save_dir=data_root / 'outputs/DIGITANIE',
         name=split_name,

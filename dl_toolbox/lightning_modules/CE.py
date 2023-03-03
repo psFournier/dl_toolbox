@@ -17,7 +17,6 @@ class CE(pl.LightningModule):
         ttas,
         network,
         weights,
-        ignore_zero,
         mixup=0.,
         *args,
         **kwargs
@@ -32,7 +31,6 @@ class CE(pl.LightningModule):
         num_classes = self.network.out_channels
         weights = list(weights) if len(weights)>0 else [1]*num_classes
         self.loss = nn.CrossEntropyLoss(
-            ignore_index=0 if ignore_zero else -1,
             weight=torch.Tensor(weights)
             #weight=torch.Tensor(self.weights).reshape(1,-1,*self.network.out_dim)
         )

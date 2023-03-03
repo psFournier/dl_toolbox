@@ -1,57 +1,54 @@
 import torch
 import torch.nn as nn
-from dl_toolbox.lightning_modules import BaseModule
+import pytorch_lightning as pl
+from torch.optim import Adam
+
+import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import TorchOneHot
-import dl_toolbox.augmentations as aug
+from dl_toolbox.networks import NetworkFactory
+from dl_toolbox.torch_datasets.utils import aug_dict, anti_aug_dict
 
 
-class BCE(BaseModule):
+class BCE(pl.LightningModule):
 
-    # BCE_multilabel = Binary Cross Entropy for multilabel prediction
+    def __init__(
+        self,
+        initial_lr,
+        ttas,
+        network,
+        weights,
+        no_pred_zero,
+        mixup=0.,
+        *args,
+        **kwargs
+    ):
 
-    def __init__(self,
-                 network,
-                 weights,
-                 no_pred_zero,
-                 mixup=0.,
-                 *args,
-                 **kwargs):
-
-        super().__init__(*args, **kwargs)
+        super().__init__()
+        
+        self.net_factory = NetworkFactory()
         net_cls = self.net_factory.create(network)
         self.network = net_cls(*args, **kwargs)
+        
+        num_classes = self.network.out_channels
         self.no_pred_zero = no_pred_zero
-        self.num_classes = self.network.out_channels + int(self.no_pred_zero)
-        out_dim = self.network.out_dim
-        weights = torch.Tensor(weights).reshape(1, -1, *out_dim) if len(weights)>0 else None
-        self.ignore_index = -1
+        weights = torch.Tensor(weights).reshape(1, -1, *self.network.out_dim) if len(weights)>0 else None
         self.loss = nn.BCEWithLogitsLoss(pos_weight=weights)
-        self.onehot = TorchOneHot(
-            range(int(self.no_pred_zero), self.num_classes)
-        )
-        self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else None
+        
+        self.onehot = TorchOneHot(range(num_classes)) # To change for no_pred_zero ?
+        self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
+        self.ttas = [(aug_dict[t](p=1), anti_aug_dict[t](p=1)) for t in ttas]
         self.save_hyperparameters()
-
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
-
-        parser = super().add_model_specific_args(parent_parser)
-        parser.add_argument("--network", type=str)
-        parser.add_argument("--weights", type=float, nargs="+", default=())
-        parser.add_argument("--no_pred_zero", action='store_true')
-        parser.add_argument("--mixup", type=float, default=0.)
-
-        return parser
+        self.initial_lr = initial_lr
 
     def forward(self, x):
 
         return self.network(x)
 
-    def _compute_probas(self, logits):
+    def logits2probas(self, logits):
 
         return torch.sigmoid(logits)
 
-    def _compute_conf_preds(self, probas):
+    def probas2confpreds(self, probas):
 
         aux_confs, aux_preds = torch.max(probas, axis=1)
         if self.no_pred_zero:
@@ -77,12 +74,12 @@ class BCE(BaseModule):
         return {'batch': batch, "loss": loss}
 
     def validation_step(self, batch, batch_idx):
-
-        outs = super().validation_step(batch, batch_idx)
-        labels = batch['mask']
-        logits = outs['logits']
+        
+        inputs = batch['image']
+        labels = batch['label']
         onehot_labels = self.onehot(labels).float() # B,C or C-1,H,W
+        logits = self.forward(inputs)
         loss = self.loss(logits, onehot_labels)
         self.log('Val_BCE', loss)
-
-        return outs
+        
+        return logits
