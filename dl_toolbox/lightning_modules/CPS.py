@@ -11,7 +11,6 @@ from copy import deepcopy
 import torch.nn.functional as F
 
 from dl_toolbox.lightning_modules import BaseModule
-from dl_toolbox.callbacks import plot_confusion_matrix, plot_calib, compute_calibration_bins, compute_conf_mat, log_batch_images
 
 class CPS(BaseModule):
 

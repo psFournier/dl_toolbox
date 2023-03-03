@@ -16,62 +16,24 @@ from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from rasterio.windows import Window
 from dl_toolbox.torch_datasets import *
+import dl_toolbox.callbacks as callbacks
+
 
 """
 Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de l'expé.
 """
 
-### Datasets parameters
-split='arcachon'
-#data_path=Path(os.environ['TMPDIR'])/'DIGITANIE'
-#data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE')
-#data_path=Path('/scratchf/AI4GEO/DIGITANIE')
-data_path=Path('/data/DIGITANIE')
-#data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench')
-labels='6mainFuseVege'
-img_aug='d4'
-crop_size=256
-val_folds=[8,9]
-train_folds=list(range(8))
-
-### Dataloaders parameters
-batch_size = 8
-epoch_len=5000
-workers=6
-
-### Module parameters
-out_channels=6
-ignore_zero=False
-#no_pred_zero=True
-#mixup=0.4
-#network='Vgg'
-network='SmpUnet'
-encoder='efficientnet-b4'
-pretrained=False
-weights=[]
-in_channels=4
-initial_lr=0.001
-final_lr=0.0005
-plot_calib=False
-ttas = ['vflip']
-
-### Trainer parameters
-max_steps=50000
-accelerator='gpu'
-devices=1
-multiple_trainloader_mode='min_size'
-limit_train_batches = 1.
-limit_val_batches = 1.
-#save_dir='/scratchl/pfournie/outputs/digitaniev2'
-#save_dir='/work/OT/ai4usr/fournip/outputs/digitanie'
-save_dir='/data/outputs/digitanie'
-#save_dir='/home/pfournie/ai4geo/ouputs/semcity'
+data_root = Path('/mnt/d/pfournie/Documents/data')
+home = Path('/home/pfournie')
 
 ### Building training and validation datasets to concatenate from the splitfile lines
 val_sets, train_sets = [], []
-data_path = Path(data_path)
-splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanie/{split}.csv'
+data_path = data_root / 'DIGITANIE'
+split_name = 'toulouse'
+splitfile_path = home / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanie/{split_name}.csv'
 dataset_factory = DatasetFactory()
+val_folds=[8,9]
+train_folds=[0,1]
 with open(splitfile_path, newline='') as splitfile:
     reader = csv.reader(splitfile)
     next(reader)
@@ -89,10 +51,10 @@ with open(splitfile_path, newline='') as splitfile:
                 image_path=data_path/image_path,
                 label_path=data_path/label_path if label_path else None,
                 tile=window,
-                crop_size=crop_size,
+                crop_size=256,
                 fixed_crops=True if is_val else False,
-                img_aug=None if is_val else img_aug,
-                labels=labels,
+                img_aug=None if is_val else 'd4',
+                labels='6mainFuseVege',
                 mins=ast.literal_eval(mins),
                 maxs=ast.literal_eval(maxs)
             )
@@ -106,14 +68,14 @@ train_set = ConcatDataset(train_sets)
 train_dataloaders = {}
 train_dataloaders['sup'] = DataLoader(
     dataset=train_set,
-    batch_size=batch_size,
+    batch_size=8,
     collate_fn=CustomCollate(),
     sampler=RandomSampler(
         data_source=train_set,
         replacement=True,
-        num_samples=epoch_len
+        num_samples=5000
     ),
-    num_workers=workers,
+    num_workers=1,
     pin_memory=True,
     drop_last=True
 )
@@ -122,28 +84,24 @@ val_dataloader = DataLoader(
     dataset=val_set,
     shuffle=False,
     collate_fn=CustomCollate(),
-    batch_size=batch_size,
-    num_workers=workers,
+    batch_size=8,
+    num_workers=1,
     pin_memory=True
 )
 
 ### Building lightning module
 module = CE(
-    ignore_zero=ignore_zero,
-    #no_pred_zero=True,
-    #mixup=0.4,
+    ignore_zero=True,
+    #mixup=0.4, # incompatible with ignore_zero=True
     #network='Vgg',
-    network=network,
-    encoder=encoder,
-    pretrained=pretrained,
-    weights=weights,
-    in_channels=in_channels,
-    out_channels=out_channels,
-    initial_lr=initial_lr,
-    final_lr=final_lr,
-    plot_calib=plot_calib,
-    class_names=list(val_set.datasets[0].labels.keys()),
-    ttas=ttas
+    network='SmpUnet',
+    encoder='efficientnet-b0',
+    pretrained=False,
+    weights=[],
+    in_channels=4,
+    out_channels=6,
+    initial_lr=0.001,
+    ttas=['vflip']
     #alphas=(0., 1.),
     #ramp=(0, 40000),
     #pseudo_threshold=0.9,
@@ -151,21 +109,29 @@ module = CE(
     #emas=(0.9, 0.999)
 )
 
+### Metrics and plots from confmat callback
+metrics_from_confmat = callbacks.MetricsFromConfmat(        
+    num_classes=6,
+    class_names=list(val_set.datasets[0].labels.keys())
+)
+
 ### Trainer instance
 trainer = Trainer(
-    max_steps=max_steps,
-    accelerator=accelerator,
-    devices=devices,
-    multiple_trainloader_mode=multiple_trainloader_mode,
-    limit_train_batches=limit_train_batches,
-    limit_val_batches=limit_val_batches,
+    max_steps=50000,
+    accelerator='cpu',
+    devices=1,
+    multiple_trainloader_mode='min_size',
+    num_sanity_val_steps=0,
+    limit_train_batches=2,
+    limit_val_batches=2,
     logger=TensorBoardLogger(
-        save_dir=save_dir,
-        name=split,
+        save_dir=data_root / 'outputs/DIGITANIE',
+        name=split_name,
         version=f'{datetime.now():%d%b%y-%Hh%Mm%S}'
     ),
     callbacks=[
         ModelCheckpoint(),
+        metrics_from_confmat
     ]
 )
     

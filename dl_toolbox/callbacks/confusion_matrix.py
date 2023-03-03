@@ -49,6 +49,48 @@ def plot_confusion_matrix(cm, class_names, norm):
     
     return fig
 
+def plot_ious(ious, class_names, baseline=None):
+    
+    y_pos = np.arange(len(ious)) #- .2
+    #y_pos_2 = np.arange(len(classes)-1) + .2
+    ious = [round(i, 4) for i in ious]
+    if baseline is None:
+        baseline = [0.]*len(ious)
+    diff = [round(i-b, 4) for i,b in zip(ious, baseline)]
+
+    bar_width = .8
+
+    fig, axs = plt.subplots(1,2, width_ratios=[2, 1])
+    #fig.subplots_adjust(wspace=0, top=1, right=1, left=0, bottom=0)
+
+    axs[1].barh(y_pos[::-1], ious, bar_width,  align='center', alpha=0.4)
+    #axs[1].barh(y_pos_2[::-1], baseline, bar_width,  align='center', alpha=0.4, color=lut_colors[:-1])
+
+    axs[1].set_yticks([])
+    axs[1].set_xlabel('IoU')
+    axs[1].set_ylim(0 - .4, (len(ious)) + .4)
+    axs[1].set_xlim(0, 1)
+
+    cell_text = list(zip(ious, baseline, diff))
+    c = ['r' if d<0 else 'g' for d in diff]
+    cellColours = list(zip(['white']*12, ['white']*12, c))
+
+    column_labels = ['iou', 'baseline', 'difference']
+
+    axs[0].axis('off')
+
+    the_table = axs[0].table(cellText=cell_text,
+                             cellColours=cellColours,
+                         rowLabels=class_names,
+                         colLabels=column_labels,
+                         bbox=[0.4, 0.0, 0.6, 1.0])
+
+    #the_table.auto_set_font_size(False)
+    #the_table.set_fontsize(12)
+    fig.tight_layout()
+    
+    return fig
+
 def compute_conf_mat(labels, preds, num_classes, ignore_idx=None):
 
     if ignore_idx is not None:
@@ -63,48 +105,71 @@ def compute_conf_mat(labels, preds, num_classes, ignore_idx=None):
     return conf_mat
     
 
-class ConfMatLogger(pl.Callback):
+class MetricsFromConfmat(pl.Callback):
 
-    def __init__(self, labels, freq, *args, **kwargs):
+    def __init__(self, num_classes, class_names, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        self.labels = labels
-        self.freq = freq
+        self.num_classes = num_classes
+        self.class_names = class_names
+        self.plot_iou = True
+        self.plot_confmat = True
 
-    def on_fit_start(self, trainer, pl_module):
-
-        self.conf_mat = ConfusionMatrix(
-            num_classes=len(self.labels),
-            normalize=None,
-            compute_on_step=False
-        )
-
-    def on_validation_batch_end(
-            self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
-    ):
+    def on_validation_epoch_start(self, trainer, pl_module):
         
-        if trainer.current_epoch % self.freq == 0:
-            
-            batch = outputs['batch']
-            labels = batch['mask'].cpu() # labels shape B,H,W, values in {0, C-1}
-            preds = batch['preds'].cpu() 
-            self.conf_mat(preds, labels)
+        self.confmat = torch.zeros((self.num_classes, self.num_classes))
 
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        
+        logits = outputs.cpu()
+        probas = pl_module.logits2probas(logits)
+        confidences, preds = pl_module.probas2confpreds(probas)
+        labels = batch['label'].cpu()
+        conf_mat = compute_conf_mat(
+            labels.flatten(),
+            preds.flatten(),
+            self.num_classes,
+            ignore_idx=None
+        )
+        self.confmat += conf_mat
+        
     def on_validation_epoch_end(self, trainer, pl_module):
         
-        if trainer.current_epoch % self.freq == 0:
-
-            cm = self.conf_mat.compute().numpy()
-            cm_recall = cm/np.sum(cm,axis=1, keepdims=True)
-            cm_precision = cm/np.sum(cm,axis=0,keepdims=True)
+        cm_array = self.confmat.numpy()
+        m = np.nan
+        
+        with np.errstate(divide='ignore', invalid='ignore'):
+            ious = np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1) - np.diag(cm_array))
             
+        mIou = np.nansum(ious) / (np.logical_not(np.isnan(ious))).sum()
+        self.log('Val_miou', mIou.astype(float))
+        
+        if self.plot_iou:
             trainer.logger.experiment.add_figure(
-                "Confusion matrix recall", 
-                plot_confusion_matrix(cm_recall, class_names=self.labels), 
+                "Class IoUs",
+                plot_ious(
+                    ious,
+                    class_names=self.class_names
+                ),
+                global_step=trainer.global_step
+            )
+            
+        if self.plot_confmat:
+            trainer.logger.experiment.add_figure(
+                "Precision matrix", 
+                plot_confusion_matrix(
+                    self.confmat,
+                    class_names=self.class_names,
+                    norm='precision'
+                ), 
                 global_step=trainer.global_step
             )
             trainer.logger.experiment.add_figure(
-                "Confusion matrix precision", 
-                plot_confusion_matrix(cm_precision, class_names=self.labels), 
+                "Recall matrix", 
+                plot_confusion_matrix(
+                    self.confmat,
+                    class_names=self.class_names,
+                    norm='recall'
+                ), 
                 global_step=trainer.global_step
             )

@@ -1,39 +1,53 @@
 import torch
 import torch.nn as nn
-from dl_toolbox.lightning_modules import BaseModule
-import dl_toolbox.augmentations as aug
+import pytorch_lightning as pl
+from torch.optim import Adam
+
+import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import TorchOneHot
-from dl_toolbox.callbacks import log_batch_images
+from dl_toolbox.networks import NetworkFactory
+from dl_toolbox.torch_datasets.utils import aug_dict, anti_aug_dict
 
 
-class CE(BaseModule):
+class CE(pl.LightningModule):
 
-    def __init__(self,
-                 network,
-                 weights,
-                 ignore_zero,
-                 mixup=0.,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        initial_lr,
+        ttas,
+        network,
+        weights,
+        ignore_zero,
+        mixup=0.,
+        *args,
+        **kwargs
+    ):
 
-        super().__init__(*args, **kwargs)
-
+        super().__init__()
+        
+        self.net_factory = NetworkFactory()
         net_cls = self.net_factory.create(network)
         self.network = net_cls(*args, **kwargs)
-        self.num_classes = self.network.out_channels
-        out_dim = self.network.out_dim
-        self.weights = list(weights) if len(weights)>0 else [1]*self.num_classes
-        self.ignore_zero = ignore_zero
+        
+        num_classes = self.network.out_channels
+        weights = list(weights) if len(weights)>0 else [1]*num_classes
         self.loss = nn.CrossEntropyLoss(
             ignore_index=0 if ignore_zero else -1,
-            weight=torch.Tensor(self.weights)
-            #weight=torch.Tensor(self.weights).reshape(1,-1,*out_dim)
+            weight=torch.Tensor(weights)
+            #weight=torch.Tensor(self.weights).reshape(1,-1,*self.network.out_dim)
         )
-        self.onehot = TorchOneHot(
-            range(self.num_classes)
-        )
-        self.mixup = aug.Mixup(alpha=mixup) if mixup > 0. else None
+        
+        self.onehot = TorchOneHot(range(num_classes))
+        self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
+        self.ttas = [(aug_dict[t](p=1), anti_aug_dict[t](p=1)) for t in ttas]
         self.save_hyperparameters()
+        self.initial_lr = initial_lr
+        
+    def configure_optimizers(self):
+
+        self.optimizer = Adam(self.parameters(), lr=self.initial_lr)
+
+        return self.optimizer
 
     def forward(self, x):
         
@@ -49,7 +63,7 @@ class CE(BaseModule):
 
     def training_step(self, batch, batch_idx):
 
-        batch = batch["sup"]
+        batch = batch['sup']
         inputs = batch['image']
         labels = batch['label']
         if self.mixup:
@@ -59,20 +73,30 @@ class CE(BaseModule):
         logits = self.network(inputs)
         loss = self.loss(logits, labels)
         self.log('Train_sup_CE', loss)
-        batch['logits'] = logits.detach()
-        
-        #if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
-        #    log_batch_images(
-        #        batch,
-        #        self.trainer,
-        #        prefix='Train'
-        #    )
 
-        return {'batch': batch, "loss": loss}
+        return loss
 
     def validation_step(self, batch, batch_idx):
 
-        logits = super().validation_step(batch, batch_idx)
+        inputs = batch['image']
         labels = batch['label']
+        logits = self.forward(inputs)
         loss = self.loss(logits, labels)
         self.log('Val_CE', loss)
+        
+        return logits
+
+    def predict_step(self, batch, batch_idx):
+        
+        inputs = batch['image']
+        logits = self.forward(inputs)
+        
+        if self.ttas:
+            for tta, reverse in self.ttas:
+                aux, _ = tta(img=inputs)
+                aux_logits = self.forward(aux)
+                tta_logits, _ = reverse(img=aux_logits)
+                logits = torch.stack([logits, tta_logits])
+            logits = logits.mean(dim=0)
+        
+        return logits
