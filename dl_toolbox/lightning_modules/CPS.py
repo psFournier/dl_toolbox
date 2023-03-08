@@ -1,42 +1,42 @@
-from argparse import ArgumentParser
-import segmentation_models_pytorch as smp
+import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
-import torch
-import torchmetrics.functional as torchmetrics
-from dl_toolbox.losses import DiceLoss
-from copy import deepcopy
-import torch.nn.functional as F
+from torch.optim import Adam
 
-from dl_toolbox.lightning_modules import BaseModule
+import dl_toolbox.augmentations as augmentations
+from dl_toolbox.utils import TorchOneHot
+from dl_toolbox.networks import NetworkFactory
+from dl_toolbox.torch_datasets.utils import aug_dict, anti_aug_dict
 
-class CPS(BaseModule):
+class CrossPseudoSupervision(pl.LightningModule):
 
-    # CPS = Cross Pseudo Supervision
+    def __init__(
+        self,
+        initial_lr,
+        ttas,
+        network,
+        weights,
+        final_alpha,
+        alpha_milestones,
+        pseudo_threshold,
+        mixup,
+        *args,
+        **kwargs
+    ):
 
-    def __init__(self,
-                 network,
-                 weights,
-                 ignore_index,
-                 final_alpha,
-                 alpha_milestones,
-                 pseudo_threshold,
-                 *args,
-                 **kwargs):
-
-        super().__init__(*args, **kwargs)
+        super().__init__()
+        
+        self.net_factory = NetworkFactory()
         net_cls = self.net_factory.create(network)
         self.network1 = net_cls(*args, **kwargs)
         self.network2 = net_cls(*args, **kwargs)
-        self.num_classes = self.network1.out_channels
-        self.weights = list(weights) if len(weights)>0 else [1]*self.num_classes
-        self.ignore_index = ignore_index
-        self.loss1 = nn.CrossEntropyLoss(
-            ignore_index=self.ignore_index,
-            weight=torch.Tensor(self.weights)
+        
+        num_classes = self.network1.out_channels
+        weights = list(weights) if len(weights)>0 else [1]*num_classes
+        self.loss = nn.CrossEntropyLoss(
+            weight=torch.Tensor(weights)
         )
+        
         self.unsup_loss = nn.CrossEntropyLoss(
             reduction='none'
         )
@@ -44,21 +44,34 @@ class CPS(BaseModule):
         self.alpha_milestones = alpha_milestones
         self.alpha = 0.
         self.pseudo_threshold = pseudo_threshold
+        
+        self.onehot = TorchOneHot(range(num_classes))
+        self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
+        self.ttas = [(aug_dict[t](p=1), anti_aug_dict[t](p=1)) for t in ttas]
         self.save_hyperparameters()
+        self.initial_lr = initial_lr
+        
+    def configure_optimizers(self):
 
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
+        self.optimizer = Adam(self.parameters(), lr=self.initial_lr)
 
-        parser = super().add_model_specific_args(parent_parser)
-        parser.add_argument("--ignore_index", type=int)
-        parser.add_argument("--network", type=str)
-        parser.add_argument("--weights", type=float, nargs="+", default=())
-        parser.add_argument("--final_alpha", type=float)
-        parser.add_argument("--alpha_milestones", nargs=2, type=int)
-        parser.add_argument("--pseudo_threshold", type=float)
+        return self.optimizer
 
-        return parser
+    def forward(self, x):
 
+        logits1 = self.network1(x)
+        logits2 = self.network2(x)
+        
+        return (logits1 + logits2) / 2
+
+    def logits2probas(cls, logits):
+
+        return logits.softmax(dim=1)
+    
+    def probas2confpreds(cls, probas):
+        
+        return torch.max(probas, dim=1)
+    
     def on_train_epoch_start(self):
 
         start = self.alpha_milestones[0]
@@ -73,51 +86,79 @@ class CPS(BaseModule):
         else:
             self.alpha = alpha
             
-    def forward(self, x):
+        self.log('Prop unsup train', self.alpha)
 
-        logits1 = self.network1(x)
-        #print(logits1)
-        logits2 = self.network2(x)
-        
-        return (logits1 + logits2) / 2
+    def training_step(self, batch, batch_idx):
 
+        batch = batch['sup']
+        inputs = batch['image']
+        labels = batch['label']
+        if self.mixup:
+            labels = self.onehot(labels).float()
+            inputs, labels = self.mixup(inputs, labels)
+            #batch['image'] = inputs
+        logits = self.network(inputs)
+        loss = self.loss(logits, labels)
+        self.log('Train_sup_CE', loss)
+
+        return loss
+    
     def training_step(self, batch, batch_idx):
 
         batch, unsup_batch = batch["sup"], batch["unsup"]
 
         inputs = batch['image']
-        labels = batch['mask']
+        labels = batch['label']
 
         logits1 = self.network1(inputs)
         logits2 = self.network2(inputs)
-        logits = (logits1 + logits2) / 2
-        loss1 = self.loss1(logits1, labels) 
-        loss1 += self.loss1(logits2, labels)
-        loss1 /= 2
-        loss = loss1 
+        loss = (self.loss(logits1, labels)+self.loss(logits2, labels))/2
+        self.log('Train_sup_loss', loss)
+        
+        cps_loss = 0.
+        if self.trainer.current_epoch >= self.alpha_milestones[0]:
 
-        batch['logits'] = logits.detach()
-        outputs = {'batch': batch}
+            unsup_inputs = unsup_batch['image']
+            unsup_logits_1 = self.network1(unsup_inputs)
+            unsup_logits_2 = self.network2(unsup_inputs)
+            
+            # Supervising network 1 with pseudolabels from network 2
+            
+            pseudo_probs_2 = self.logits2probas(unsup_logits_2).detach()
+            pseudo_confs_2, pseudo_preds_2 = self.probas2confpreds(pseudo_probs_2)
+            loss_no_reduce_1 = self.unsup_loss(
+                unsup_logits_1,
+                pseudo_preds_2
+            ) # B,H,W
+            pseudo_certain_2 = (pseudo_confs_2 > self.pseudo_threshold).float() # B,H,W
+            pseudo_certain_2_sum = torch.sum(pseudo_certain_2) + 1e-5
+            self.log('Pseudo_certain_2', torch.mean(pseudo_certain_2))
+            pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / pseudo_certain_2_sum
 
-        probas = self._compute_probas(logits).detach()
-        confidences, preds = self._compute_conf_preds(probas)
-        batch['preds'] = preds
+            # Supervising network 2 with pseudolabels from network 1
+            
+            pseudo_probs_1 = self.logits2probas(unsup_logits_1).detach()
+            pseudo_confs_1, pseudo_preds_1 = self.probas2confpreds(pseudo_probs_1)
+            loss_no_reduce_2 = self.unsup_loss(
+                unsup_logits_2,
+                pseudo_preds_1
+            ) # B,H,W
+            pseudo_certain_1 = (pseudo_confs_1 > self.pseudo_threshold).float() # B,H,W
+            pseudo_certain_1_sum = torch.sum(pseudo_certain_1) + 1e-5
+            self.log('Pseudo_certain_1', torch.mean(pseudo_certain_1))
+            pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / pseudo_certain_1_sum
+            
+            pseudo_loss = (pseudo_loss_1 + pseudo_loss_2) / 2
+            self.log('pseudo_loss', pseudo_loss)
+            cps_loss += pseudo_loss
 
-        if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
-            log_batch_images(
-                batch,
-                self.trainer,
-                prefix='Train'
-            )
+        self.log('cps loss', cps_loss)
+        
+        loss += self.alpha * cps_loss
+        self.log("Train_loss", loss)
+        
+        return loss
 
-        #conf_mat = compute_conf_mat(
-        #    labels.flatten().cpu(),
-        #    preds.flatten().cpu(),
-        #    self.num_classes,
-        #    ignore_idx=None
-        #)       
-        #outputs['conf_mat'] = conf_mat
- 
         # Supervising network 1 with pseudolabels from network 2
             
         #pseudo_probs_2 = logits2.detach().softmax(dim=1)
@@ -145,108 +186,46 @@ class CPS(BaseModule):
 
         #pseudo_loss_sup = (pseudo_loss_1 + pseudo_loss_2) / 2
         #pseudo_loss = pseudo_loss_sup
-        pseudo_loss = 0
 
-        self.log('Train_sup_CE', loss1)
-        #self.log('Pseudo_loss_sup', pseudo_loss_sup)
 
-        if self.trainer.current_epoch >= self.alpha_milestones[0]:
-
-            unsup_inputs = unsup_batch['image']
-            unsup_outputs_1 = self.network1(unsup_inputs)
-            unsup_outputs_2 = self.network2(unsup_inputs)
-            unsup_logits = (unsup_outputs_1 + unsup_outputs_2) / 2
-            unsup_batch['logits'] = unsup_logits.detach()
-            outputs['unsup_batch'] = unsup_batch
-
-            # Supervising network 1 with pseudolabels from network 2
-            
-            pseudo_probs_2 = unsup_outputs_2.detach().softmax(dim=1)
-            top_probs_2, pseudo_preds_2 = torch.max(pseudo_probs_2, dim=1)
-            loss_no_reduce_1 = self.unsup_loss(
-                unsup_outputs_1,
-                pseudo_preds_2
-            ) # B,H,W
-            pseudo_certain_2 = (top_probs_2 > self.pseudo_threshold).float() # B,H,W
-            certain_2 = torch.sum(pseudo_certain_2) + 1e-5
-            self.log('Pseudo_certain_2_unsup', torch.mean(pseudo_certain_2))
-            pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / certain_2
-
-            # Supervising network 2 with pseudolabels from network 1
-
-            pseudo_probs_1 = unsup_outputs_1.detach().softmax(dim=1)
-            top_probs_1, pseudo_preds_1 = torch.max(pseudo_probs_1, dim=1)
-            loss_no_reduce_2 = self.unsup_loss(
-                unsup_outputs_2,
-                pseudo_preds_1
-            )
-            pseudo_certain_1 = (top_probs_1 > self.pseudo_threshold).float()
-            certain_1 = torch.sum(pseudo_certain_1) + 1e-5
-            pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / certain_1
-
-            pseudo_loss_unsup = (pseudo_loss_1 + pseudo_loss_2) / 2
-            pseudo_loss += pseudo_loss_unsup
-            self.log('Pseudo_loss_unsup', pseudo_loss_unsup)
-
-            unsup_batch['preds'] = pseudo_preds_2
-
-            if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
-                log_batch_images(
-                    unsup_batch,
-                    self.trainer,
-                    prefix='Unsup_train'
-                )
-
-        self.log('Pseudo label loss', pseudo_loss)
-        loss += self.alpha * pseudo_loss
-        outputs['loss'] = loss
-
-        self.log('Prop unsup train', self.alpha)
-        self.log("Train_loss", loss)
-
-        return outputs
-
-#    def training_epoch_end(self, outs):
-#
- #       conf_mats = [out['conf_mat'] for out in outs]
-#
-#        cm = torch.stack(conf_mats, dim=0).sum(dim=0).cpu()
-#       
-#        self.trainer.logger.experiment.add_figure(
-#            "Training Confusion matrices", 
-#            plot_confusion_matrix(
-#                cm,
-#                class_names=self.trainer.datamodule.train_set.datasets[0].labels.keys()
-#            ),
-#            global_step=self.trainer.global_step
-#        )
-
-    
     def validation_step(self, batch, batch_idx):
 
-        outs = super().validation_step(batch, batch_idx)
-
-        loss1 = self.loss1(outs['logits'], batch['mask'])
-        self.log('Val_CE', loss1)
-        
+        inputs = batch['image']
+        labels = batch['label']
         logits1 = self.network1(batch['image'])
         logits2 = self.network2(batch['image'])
+        loss = self.loss((logits1 + logits2) / 2, labels)
+        self.log('Val_sup_loss', loss)
         
-        pseudo_probs_2 = logits2.detach().softmax(dim=1)
-        top_probs_2, pseudo_preds_2 = torch.max(pseudo_probs_2, dim=1)
-        pseudo_certain_2 = (top_probs_2 > self.pseudo_threshold).float() # B,H,W
-        certain_2 = torch.sum(pseudo_certain_2)
+        # Evaluating the pseudolabels and their threshold
+        pseudo_probs_2 = self.logits2probas(logits2).detach()
+        pseudo_confs_2, pseudo_preds_2 = self.probas2confpreds(pseudo_probs_2)
+        pseudo_certain_2 = (pseudo_confs_2 > self.pseudo_threshold).float() # B,H,W
+        pseudo_certain_2_sum = torch.sum(pseudo_certain_2)
         self.log('Val prop of confident pseudo labels', torch.mean(pseudo_certain_2))
-        
         loss_no_reduce_1 = self.unsup_loss(
             logits1,
             pseudo_preds_2
         ) # B,H,W
-        pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / certain_2
+        pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / pseudo_certain_2_sum
         self.log('Val_pseudo_loss_1', pseudo_loss_1)
-        
-        accus = pseudo_preds_2.eq(batch['mask']).float()
-        pseudo_accus = torch.sum(pseudo_certain_2 * accus) / certain_2
+        accus = pseudo_preds_2.eq(batch['label']).float()
+        pseudo_accus = torch.sum(pseudo_certain_2 * accus) / pseudo_certain_2_sum
         self.log('Val acc of pseudo labels', pseudo_accus)
+                
+        return logits
 
-        return outs
+    def predict_step(self, batch, batch_idx):
+        
+        inputs = batch['image']
+        logits = self.forward(inputs)
+        
+        if self.ttas:
+            for tta, reverse in self.ttas:
+                aux, _ = tta(img=inputs)
+                aux_logits = self.forward(aux)
+                tta_logits, _ = reverse(img=aux_logits)
+                logits = torch.stack([logits, tta_logits])
+            logits = logits.mean(dim=0)
+        
+        return logits

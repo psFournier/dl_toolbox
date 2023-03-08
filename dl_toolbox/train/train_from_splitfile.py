@@ -12,10 +12,10 @@ from pytorch_lightning import LightningDataModule
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from rasterio.windows import Window
-from dl_toolbox.torch_datasets import *
 
 import dl_toolbox.callbacks as callbacks
-from dl_toolbox.lightning_modules import CE
+import dl_toolbox.lightning_modules as modules 
+import dl_toolbox.torch_datasets as datasets
 from dl_toolbox.torch_collate import CustomCollate
 
 
@@ -31,88 +31,189 @@ if os.uname().nodename == 'WDTIS890Z':
 elif os.uname().nodename == 'qdtis056z': 
     data_root = Path('/data')
     home = Path('/d/pfournie')
+    
+def gen_dataset_args_from_splitfile(
+    splitfile_path,
+    data_path,
+    folds,
+):
+    
+    with open(splitfile_path, newline='') as splitfile:
+        reader = csv.reader(splitfile)
+        next(reader)
+        for row in reader:
+            args = {}
+            _, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
+            if int(fold) in folds:
+                window = Window(
+                    col_off=int(x0),
+                    row_off=int(y0),
+                    width=int(w),
+                    height=int(h)
+                )
+                args['tile'] = window
+                args['image_path'] = data_path/image_path
+                args['label_path'] = data_path/label_path if label_path else None
+                args['mins'] = ast.literal_eval(mins)
+                args['maxs'] = ast.literal_eval(maxs)
+                yield args.copy()
 
-for train_folds in [list(range(2)), list(range(4)), list(range(8))]:
-    for mixup in [0, 0.4]:
-        for weights in [[0,1,1,1,1,1], [0.5,1,1,1,1,1],[1,1,1,1,1,1]]:
+data_path = data_root / 'DIGITANIE'
+split_name = 'toulouse'
+splitfile_path = home / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanie/{split_name}.csv'
+crop_size=256
+img_aug = 'd4'
+labels = '6mainFuseVege'
 
-            ### Building training and validation datasets to concatenate from the splitfile lines
-            val_sets, train_sets = [], []
-            data_path = data_root / 'DIGITANIE'
-            split_name = 'toulouse'
-            splitfile_path = home / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanie/{split_name}.csv'
-            dataset_factory = DatasetFactory()
-            val_folds=[8,9]
-            with open(splitfile_path, newline='') as splitfile:
-                reader = csv.reader(splitfile)
-                next(reader)
-                for row in reader:
-                    ds_name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
-                    if int(fold) in val_folds+train_folds:
-                        is_val = int(fold) in val_folds
-                        window = Window(
-                            col_off=int(x0),
-                            row_off=int(y0),
-                            width=int(w),
-                            height=int(h)
-                        )
-                        ds = dataset_factory.create(ds_name)(
-                            image_path=data_path/image_path,
-                            label_path=data_path/label_path if label_path else None,
-                            tile=window,
-                            crop_size=256,
-                            fixed_crops=True if is_val else False,
-                            img_aug=None if is_val else 'd4',
-                            labels='6mainFuseVege',
-                            mins=ast.literal_eval(mins),
-                            maxs=ast.literal_eval(maxs)
-                        )
-                        if is_val:
-                            val_sets.append(ds)
-                        else:
-                            train_sets.append(ds)
+for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
+    for mixup in [0]:
+        for weights in [[1,1,1,1,1,1]]:
+           
+            train_sets = []
+            for args in gen_dataset_args_from_splitfile(
+                splitfile_path,
+                data_path,
+                train_folds
+            ):
+                ds = datasets.DigitanieV2(
+                    crop_size=crop_size,
+                    fixed_crops=False,
+                    img_aug=img_aug,
+                    labels=labels,
+                    **args
+                )
+                train_sets.append(ds)
+
+            val_sets = []
+            for args in gen_dataset_args_from_splitfile(
+                splitfile_path,
+                data_path,
+                val_folds
+            ):
+                ds = datasets.DigitanieV2(
+                    crop_size=crop_size,
+                    fixed_crops=True,
+                    img_aug=None,
+                    labels=labels,
+                    **args
+                )
+                val_sets.append(ds)
+                
+            unsup_data = True
+            if unsup_data:
+                unsup_train_sets = []
+                for args in gen_dataset_args_from_splitfile(
+                    splitfile_path,
+                    data_path,
+                    list(range(10))
+                ):
+                    ds = datasets.DigitanieV2(
+                        crop_size=crop_size,
+                        fixed_crops=False,
+                        img_aug=img_aug,
+                        labels=labels,
+                        **args
+                    )
+                    unsup_train_sets.append(ds)
+                
+#            ### Building training and validation datasets to concatenate from the splitfile lines
+#            val_sets, train_sets = [], []
+#            
+#            
+#            with open(splitfile_path, newline='') as splitfile:
+#                reader = csv.reader(splitfile)
+#                next(reader)
+#                for row in reader:
+#                    ds_name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
+#                    if int(fold) in val_folds+train_folds:
+#                        is_val = int(fold) in val_folds
+#                        window = Window(
+#                            col_off=int(x0),
+#                            row_off=int(y0),
+#                            width=int(w),
+#                            height=int(h)
+#                        )
+#                        ds = dataset_factory.create(ds_name)(
+#                            image_path=data_path/image_path,
+#                            label_path=data_path/label_path if label_path else None,
+#                            tile=window,
+#                            crop_size=256,
+#                            fixed_crops=True if is_val else False,
+#                            img_aug=None if is_val else 'd4',
+#                            labels='6mainFuseVege',
+#                            mins=ast.literal_eval(mins),
+#                            maxs=ast.literal_eval(maxs)
+#                        )
+#                        if is_val:
+#                            val_sets.append(ds)
+#                        else:
+#                            train_sets.append(ds)
 
             ### Building dataloaders
+            batch_size = 8
+            num_samples = 2000
+            num_workers=1
+            
             train_set = ConcatDataset(train_sets)
             train_dataloaders = {}
             train_dataloaders['sup'] = DataLoader(
                 dataset=train_set,
-                batch_size=8,
+                batch_size=batch_size,
                 collate_fn=CustomCollate(),
                 sampler=RandomSampler(
                     data_source=train_set,
                     replacement=True,
-                    num_samples=2000
+                    num_samples=num_samples
                 ),
-                num_workers=6,
+                num_workers=num_workers,
                 pin_memory=True,
                 drop_last=True
             )
+            
+            unsup_data = True
+            if unsup_data:
+                unsup_train_set = ConcatDataset(unsup_train_sets)
+                train_dataloaders['unsup'] = DataLoader(
+                    dataset=unsup_train_set,
+                    batch_size=batch_size,
+                    collate_fn=CustomCollate(),
+                    sampler=RandomSampler(
+                        data_source=unsup_train_set,
+                        replacement=True,
+                        num_samples=num_samples
+                    ),
+                    num_workers=num_workers,
+                    pin_memory=True,
+                    drop_last=True
+                )
+                
             val_set = ConcatDataset(val_sets)
             val_dataloader = DataLoader(
                 dataset=val_set,
                 shuffle=False,
                 collate_fn=CustomCollate(),
-                batch_size=8,
-                num_workers=6,
+                batch_size=batch_size,
+                num_workers=num_workers,
                 pin_memory=True
             )
 
             ### Building lightning module
-            module = CE(
+            module = modules.CrossPseudoSupervision(
                 mixup=mixup, # incompatible with ignore_zero=True
                 #network='Vgg',
                 network='SmpUnet',
-                encoder='efficientnet-b4',
+                encoder='efficientnet-b0',
                 pretrained=False,
                 weights=weights,
                 in_channels=4,
                 out_channels=6,
                 initial_lr=0.001,
-                ttas=[]
+                ttas=[],
                 #alphas=(0., 1.),
+                final_alpha=1,
+                alpha_milestones=(2,4),
                 #ramp=(0, 40000),
-                #pseudo_threshold=0.9,
+                pseudo_threshold=0.9,
                 #consist_aug='color-3',
                 #emas=(0.9, 0.999)
             )
@@ -126,12 +227,12 @@ for train_folds in [list(range(2)), list(range(4)), list(range(8))]:
             ### Trainer instance
             trainer = Trainer(
                 max_steps=30000,
-                accelerator='gpu',
+                accelerator='cpu',
                 devices=1,
                 multiple_trainloader_mode='min_size',
                 num_sanity_val_steps=0,
-                limit_train_batches=1.,
-                limit_val_batches=1.,
+                limit_train_batches=1,
+                limit_val_batches=1,
                 logger=TensorBoardLogger(
                     save_dir=data_root / 'outputs/DIGITANIE',
                     name=split_name,

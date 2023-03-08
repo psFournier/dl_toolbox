@@ -1,5 +1,5 @@
 from .common import BaseModule
-from .CPS import CPS
+from .CPS import CrossPseudoSupervision
 from .PLM import PLM
 from .CE import CE
 from .CE_MT import CE_MT
@@ -9,4 +9,5 @@ from .BCE import BCE
 from .BCE_PL import BCE_PL
 from .fgsm import FGSM
 from .flair import *
+from .supervised import Supervised
 from .module_factory import ModuleFactory
