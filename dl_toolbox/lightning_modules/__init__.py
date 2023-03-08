@@ -11,5 +11,5 @@
 #from .flair import *
 from .supervised import Supervised
 from .cross_pseudo_supervision import CrossPseudoSupervision
-#from .mean_teacher import MeanTeacher
+from .mean_teacher import MeanTeacher
 #from .module_factory import ModuleFactory

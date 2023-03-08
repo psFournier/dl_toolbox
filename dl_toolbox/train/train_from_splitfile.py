@@ -199,9 +199,8 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
             )
 
             ### Building lightning module
-            module = modules.CrossPseudoSupervision(
+            module = modules.MeanTeacher(
                 mixup=mixup, # incompatible with ignore_zero=True
-                #network='Vgg',
                 network='SmpUnet',
                 encoder='efficientnet-b0',
                 pretrained=False,
@@ -212,8 +211,8 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
                 ttas=[],
                 alpha_ramp=utils.SigmoidRamp(2,4,0.,2.),
                 pseudo_threshold=0.9,
-                #consist_aug='color-3',
-                #emas=(0.9, 0.999)
+                consist_aug='d4',
+                ema_ramp=utils.SigmoidRamp(3,6,0.9,0.99),
             )
 
             ### Metrics and plots from confmat callback

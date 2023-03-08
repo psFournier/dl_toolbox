@@ -7,7 +7,7 @@ from copy import deepcopy
 import dl_toolbox.augmentations as augmentations
 from dl_toolbox.networks import NetworkFactory
 
-class CrossPseudoSupervision(pl.LightningModule):
+class MeanTeacher(pl.LightningModule):
 
     def __init__(
         self,
@@ -18,7 +18,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         alpha_ramp,
         pseudo_threshold,
         consist_aug,
-        ema,
+        ema_ramp,
         *args,
         **kwargs
     ):
@@ -27,10 +27,10 @@ class CrossPseudoSupervision(pl.LightningModule):
         
         self.net_factory = NetworkFactory()
         net_cls = self.net_factory.create(network)
-        self.network1 = net_cls(*args, **kwargs)
-        self.network2 = net_cls(*args, **kwargs)
+        self.network = net_cls(*args, **kwargs)
+        self.teacher_network = deepcopy(self.network)
         
-        num_classes = self.network1.out_channels
+        num_classes = self.network.out_channels
         weights = list(weights) if len(weights)>0 else [1]*num_classes
         self.loss = nn.CrossEntropyLoss(
             weight=torch.Tensor(weights)
@@ -42,9 +42,9 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.alpha_ramp = alpha_ramp
         self.pseudo_threshold = pseudo_threshold
         self.consist_aug = augmentations.get_transforms(consist_aug)
-        self.ema = ema
+        self.ema_ramp = ema_ramp
         
-        self.ttas = [(aug_dict[t](p=1), anti_aug_dict[t](p=1)) for t in ttas]
+        self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
         self.save_hyperparameters()
         self.initial_lr = initial_lr
         
@@ -55,11 +55,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         return self.optimizer
 
     def forward(self, x):
-
-        logits1 = self.network1(x)
-        logits2 = self.network2(x)
         
-        return (logits1 + logits2) / 2
+        return self.network(x)
 
     def logits2probas(cls, logits):
 
@@ -73,108 +70,102 @@ class CrossPseudoSupervision(pl.LightningModule):
         
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)   
         self.log('Prop unsup train', self.alpha)
-        
-class CE_MT(CE):
-
-    def __init__(
-        self,
-        alphas,
-        ramp,
-        pseudo_threshold,
-        consist_aug,
-        emas,
-        *args,
-        **kwargs
-    ):
-        super().__init__(*args, **kwargs)
-        self.teacher_network = deepcopy(self.network)
-        self.alphas = alphas
-        self.ramp = ramp
-        self.pseudo_threshold = pseudo_threshold
-        self.consist_aug = get_transforms(consist_aug)
-        self.emas = emas
-        self.pl_loss = nn.CrossEntropyLoss(
-            reduction='none'
-        )
-    
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
-
-        parser = super().add_model_specific_args(parent_parser)
-        parser.add_argument("--emas", nargs=2, type=float)
-        parser.add_argument("--alphas", nargs=2, type=float)
-        parser.add_argument("--ramp", nargs=2, type=int)
-        parser.add_argument("--pseudo_threshold", type=float)
-        parser.add_argument("--consist_aug", type=str)
-
-        return parser
 
     def on_train_epoch_start(self):
         
-        self.alpha = utils.sigm_ramp(
-            self.trainer.global_step,
-            *self.ramp,
-            *self.alphas
-        )
-
-        self.ema = utils.sigm_ramp(
-            self.trainer.global_step,
-            *self.ramp,
-            *self.emas
-        )
+        self.alpha = self.alpha_ramp(self.trainer.current_epoch)
+        self.log('Prop unsup train', self.alpha)
+        self.ema = self.ema_ramp(self.trainer.current_epoch)
+        self.log('Ema', self.ema)
 
     def training_step(self, batch, batch_idx):
         
-        outs = super().training_step(batch, batch_idx)
         batch, unsup_batch = batch["sup"], batch["unsup"]
-        self.log('Prop unsup train', self.alpha)
+
+        inputs = batch['image']
+        labels = batch['label']
+        logits = self.network(inputs)
+        loss = self.loss(logits, labels)
+        self.log('Train_sup_loss', loss)
         
-        if self.alpha > 0:
+        mt_loss = 0.
+        if self.alpha > 0.:
             
             unsup_inputs = unsup_batch['image']
             with torch.no_grad():
-                pl_logits = self.teacher_network(unsup_inputs)
-            pl_probas = self._compute_probas(pl_logits)
-            aug_unsup_inputs, aug_pl_probas = self.consist_aug(
+                teacher_logits = self.teacher_network(unsup_inputs)
+            teacher_probas = self.logits2probas(teacher_logits)
+            mt_inputs, mt_probas = self.consist_aug(
                 img=unsup_inputs,
-                label=pl_probas
+                label=teacher_probas
             )
-            pl_confs, pl_preds = self._compute_conf_preds(aug_pl_probas)
-            pl_certain = (pl_confs > self.pseudo_threshold).float()
-            pl_certain_sum = torch.sum(pl_certain) + 1e-5
-            self.log('PL certainty prop', torch.mean(pl_certain))
-            aug_pl_logits = self.network(aug_unsup_inputs)
-            pl_loss = self.pl_loss(aug_pl_logits, pl_preds)
-            pl_loss = torch.sum(pl_certain * pl_loss) / pl_certain_sum
-            self.log('PL loss', pl_loss)
-            outs['loss'] += self.alpha * pl_loss
-            if self.trainer.current_epoch % 10 == 0 and batch_idx == 0:
-                log_batch_images(
-                    unsup_batch,
-                    self.trainer,
-                    prefix='Unsup_train'
-                )
+            mt_confs, mt_preds = self.probas2confpreds(mt_probas)
+            mt_certain = (mt_confs > self.pseudo_threshold).float()
+            mt_certain_sum = torch.sum(mt_certain) + 1e-5
+            self.log('MT certainty prop', torch.mean(mt_certain))
+            mt_logits = self.network(mt_inputs)
+            mt_loss = self.unsup_loss(mt_logits, mt_preds)
+            mt_loss = torch.sum(mt_certain * mt_loss) / mt_certain_sum
+            
+        self.log('MT loss', mt_loss)
+        loss += self.alpha * mt_loss
+        self.log("Train_loss", loss)
+        
+        return loss
 
+    def on_train_batch_end(self, outputs, batch, batch_idx):
+        
         ema = min(1.0 - 1.0 / float(self.global_step + 1), self.ema)
         for param_t, param in zip(self.teacher_network.parameters(),
                                   self.network.parameters()):
             param_t.data.mul_(ema).add_(param.data, alpha=1 - ema)
 
-        return outs
-
     def validation_step(self, batch, batch_idx):
+        
+        inputs = batch['image']
+        labels = batch['label']
+        logits = self.forward(inputs)
+        loss = self.loss(logits, labels)
+        self.log('Val_loss', loss)
 
-        outs = super().validation_step(batch, batch_idx)
-        logits = outs['logits']
-        probas = self._compute_probas(logits.detach())
-        confs, preds = self._compute_conf_preds(probas)
-        certain = (confs > self.pseudo_threshold).float()
-        certain_sum = torch.sum(certain) + 1e-5
-        self.log('Val certainty prop', torch.mean(certain))
-        acc = preds.eq(batch['mask']).float()
-        pl_acc = torch.sum(certain * acc) / certain_sum
-        self.log('Val acc of pseudo labels', pl_acc)
+        teacher_logits = self.teacher_network(inputs)
+        teacher_probas = self.logits2probas(teacher_logits)
+    
+        # Validation unsup loss
+        mt_inputs, mt_probas = self.consist_aug(
+            img=inputs,
+            label=teacher_probas
+        )
+        mt_confs, mt_preds = self.probas2confpreds(mt_probas)
+        mt_certain = (mt_confs > self.pseudo_threshold).float()
+        mt_certain_sum = torch.sum(mt_certain) + 1e-5
+        self.log('Val prop of confident teacher labels', torch.mean(mt_certain))
+        mt_logits = self.network(mt_inputs)
+        mt_loss = self.unsup_loss(mt_logits, mt_preds)
+        mt_loss = torch.sum(mt_certain * mt_loss) / mt_certain_sum
+        self.log('Val_mt_loss', mt_loss)
+        
+        # Checking pseudo_labels quality
+        teacher_confs, teacher_preds = self.probas2confpreds(teacher_probas)
+        teacher_certain = (teacher_confs > self.pseudo_threshold).float()
+        teacher_certain_sum = torch.sum(teacher_certain) + 1e-5
+        accus = teacher_preds.eq(labels).float()
+        teacher_accus = torch.sum(teacher_certain * accus) / teacher_certain_sum
+        self.log('Val acc of teacher labels', teacher_accus)
 
-        return outs
+        return logits
 
-
+    def predict_step(self, batch, batch_idx):
+        
+        inputs = batch['image']
+        logits = self.forward(inputs)
+        
+        if self.ttas:
+            for tta, reverse in self.ttas:
+                aux, _ = tta(img=inputs)
+                aux_logits = self.forward(aux)
+                tta_logits, _ = reverse(img=aux_logits)
+                logits = torch.stack([logits, tta_logits])
+            logits = logits.mean(dim=0)
+        
+        return logits

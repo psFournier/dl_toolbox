@@ -16,7 +16,7 @@ class Supervised(pl.LightningModule):
         ttas,
         network,
         weights,
-        mixup=0.,
+        mixup,
         *args,
         **kwargs
     ):
@@ -69,7 +69,7 @@ class Supervised(pl.LightningModule):
             #batch['image'] = inputs
         logits = self.network(inputs)
         loss = self.loss(logits, labels)
-        self.log('Train_sup_CE', loss)
+        self.log('Train_sup_loss', loss)
 
         return loss
 
@@ -79,7 +79,7 @@ class Supervised(pl.LightningModule):
         labels = batch['label']
         logits = self.forward(inputs)
         loss = self.loss(logits, labels)
-        self.log('Val_CE', loss)
+        self.log('Val_loss', loss)
         
         return logits
 

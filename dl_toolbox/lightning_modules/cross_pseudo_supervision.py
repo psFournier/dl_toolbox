@@ -81,7 +81,6 @@ class CrossPseudoSupervision(pl.LightningModule):
         loss = (self.loss(logits1, labels)+self.loss(logits2, labels))/2
         self.log('Train_sup_loss', loss)
         
-        cps_loss = 0.
         if self.alpha > 0.:
 
             unsup_inputs = unsup_batch['image']
@@ -90,7 +89,8 @@ class CrossPseudoSupervision(pl.LightningModule):
             
             # Supervising network 1 with pseudolabels from network 2
             
-            pseudo_probs_2 = self.logits2probas(unsup_logits_2).detach()
+            with torch.no_grad():
+                pseudo_probs_2 = self.logits2probas(unsup_logits_2)
             pseudo_confs_2, pseudo_preds_2 = self.probas2confpreds(pseudo_probs_2)
             loss_no_reduce_1 = self.unsup_loss(
                 unsup_logits_1,
@@ -103,7 +103,8 @@ class CrossPseudoSupervision(pl.LightningModule):
 
             # Supervising network 2 with pseudolabels from network 1
             
-            pseudo_probs_1 = self.logits2probas(unsup_logits_1).detach()
+            with torch.no_grad():
+                pseudo_probs_1 = self.logits2probas(unsup_logits_1)
             pseudo_confs_1, pseudo_preds_1 = self.probas2confpreds(pseudo_probs_1)
             loss_no_reduce_2 = self.unsup_loss(
                 unsup_logits_2,
@@ -114,12 +115,9 @@ class CrossPseudoSupervision(pl.LightningModule):
             self.log('Pseudo_certain_1', torch.mean(pseudo_certain_1))
             pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / pseudo_certain_1_sum
             
-            pseudo_loss = (pseudo_loss_1 + pseudo_loss_2) / 2
-            self.log('pseudo_loss', pseudo_loss)
-            cps_loss += pseudo_loss
+            cps_loss = (pseudo_loss_1 + pseudo_loss_2) / 2
 
         self.log('cps loss', cps_loss)
-        
         loss += self.alpha * cps_loss
         self.log("Train_loss", loss)
         
@@ -158,14 +156,13 @@ class CrossPseudoSupervision(pl.LightningModule):
 
         inputs = batch['image']
         labels = batch['label']
-        logits1 = self.network1(batch['image'])
-        logits2 = self.network2(batch['image'])
-        logits = (logits1 + logits2) / 2
-        loss = self.loss(logits, labels)
+        logits1 = self.network1(inputs)
+        loss = self.loss(logits1, labels)
         self.log('Val_sup_loss', loss)
         
-        # Evaluating the pseudolabels and their threshold
-        pseudo_probs_2 = self.logits2probas(logits2).detach()
+        # Validation unsup loss
+        logits2 = self.network2(inputs)
+        pseudo_probs_2 = self.logits2probas(logits2)
         pseudo_confs_2, pseudo_preds_2 = self.probas2confpreds(pseudo_probs_2)
         pseudo_certain_2 = (pseudo_confs_2 > self.pseudo_threshold).float() # B,H,W
         pseudo_certain_2_sum = torch.sum(pseudo_certain_2)
@@ -176,11 +173,13 @@ class CrossPseudoSupervision(pl.LightningModule):
         ) # B,H,W
         pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / pseudo_certain_2_sum
         self.log('Val_pseudo_loss_1', pseudo_loss_1)
-        accus = pseudo_preds_2.eq(batch['label']).float()
+        
+        # Validation quality of pseudo labels
+        accus = pseudo_preds_2.eq(labels).float()
         pseudo_accus = torch.sum(pseudo_certain_2 * accus) / pseudo_certain_2_sum
         self.log('Val acc of pseudo labels', pseudo_accus)
                 
-        return logits
+        return logits1
 
     def predict_step(self, batch, batch_idx):
         
