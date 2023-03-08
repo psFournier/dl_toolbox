@@ -7,8 +7,7 @@ from argparse import ArgumentParser
 
 from dl_toolbox.utils import get_tiles
 from dl_toolbox.utils import MergeLabels, OneHot, LabelsToRGB, RGBToLabels
-from dl_toolbox.torch_datasets.utils import *
-
+import dl_toolbox.augmentations as augmentations
     
 class RasterDs(torch.utils.data.Dataset):
     """
@@ -49,7 +48,7 @@ class RasterDs(torch.utils.data.Dataset):
         self.mins = np.array(mins).reshape(-1, 1, 1)
         self.maxs = np.array(maxs).reshape(-1, 1, 1)
         self.crop_size = crop_size
-        self.img_aug = get_transforms(img_aug)
+        self.img_aug = augmentations.get_transforms(img_aug)
         self.label_path = label_path
         
         with rasterio.open(image_path) as raster: 

@@ -4,9 +4,7 @@ import pytorch_lightning as pl
 from torch.optim import Adam
 
 import dl_toolbox.augmentations as augmentations
-from dl_toolbox.utils import TorchOneHot
 from dl_toolbox.networks import NetworkFactory
-from dl_toolbox.torch_datasets.utils import aug_dict, anti_aug_dict
 
 class CrossPseudoSupervision(pl.LightningModule):
 
@@ -16,10 +14,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         ttas,
         network,
         weights,
-        final_alpha,
-        alpha_milestones,
+        alpha_ramp,
         pseudo_threshold,
-        mixup,
         *args,
         **kwargs
     ):
@@ -40,14 +36,10 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.unsup_loss = nn.CrossEntropyLoss(
             reduction='none'
         )
-        self.final_alpha = final_alpha
-        self.alpha_milestones = alpha_milestones
-        self.alpha = 0.
+        self.alpha_ramp = alpha_ramp
         self.pseudo_threshold = pseudo_threshold
         
-        self.onehot = TorchOneHot(range(num_classes))
-        self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
-        self.ttas = [(aug_dict[t](p=1), anti_aug_dict[t](p=1)) for t in ttas]
+        self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
         self.save_hyperparameters()
         self.initial_lr = initial_lr
         
@@ -73,35 +65,9 @@ class CrossPseudoSupervision(pl.LightningModule):
         return torch.max(probas, dim=1)
     
     def on_train_epoch_start(self):
-
-        start = self.alpha_milestones[0]
-        end = self.alpha_milestones[1]
-        e = self.trainer.current_epoch
-        alpha = self.final_alpha
-
-        if e <= start:
-            self.alpha = 0.
-        elif e <= end:
-            self.alpha = ((e - start) / (end - start)) * alpha
-        else:
-            self.alpha = alpha
-            
+        
+        self.alpha = self.alpha_ramp(self.trainer.current_epoch)   
         self.log('Prop unsup train', self.alpha)
-
-    def training_step(self, batch, batch_idx):
-
-        batch = batch['sup']
-        inputs = batch['image']
-        labels = batch['label']
-        if self.mixup:
-            labels = self.onehot(labels).float()
-            inputs, labels = self.mixup(inputs, labels)
-            #batch['image'] = inputs
-        logits = self.network(inputs)
-        loss = self.loss(logits, labels)
-        self.log('Train_sup_CE', loss)
-
-        return loss
     
     def training_step(self, batch, batch_idx):
 
@@ -116,7 +82,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.log('Train_sup_loss', loss)
         
         cps_loss = 0.
-        if self.trainer.current_epoch >= self.alpha_milestones[0]:
+        if self.alpha > 0.:
 
             unsup_inputs = unsup_batch['image']
             unsup_logits_1 = self.network1(unsup_inputs)
@@ -194,7 +160,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         labels = batch['label']
         logits1 = self.network1(batch['image'])
         logits2 = self.network2(batch['image'])
-        loss = self.loss((logits1 + logits2) / 2, labels)
+        logits = (logits1 + logits2) / 2
+        loss = self.loss(logits, labels)
         self.log('Val_sup_loss', loss)
         
         # Evaluating the pseudolabels and their threshold

@@ -6,7 +6,6 @@ from torch.optim import Adam
 import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import TorchOneHot
 from dl_toolbox.networks import NetworkFactory
-from dl_toolbox.torch_datasets.utils import aug_dict, anti_aug_dict
 
 
 class Supervised(pl.LightningModule):
@@ -37,7 +36,7 @@ class Supervised(pl.LightningModule):
         
         self.onehot = TorchOneHot(range(num_classes))
         self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
-        self.ttas = [(aug_dict[t](p=1), anti_aug_dict[t](p=1)) for t in ttas]
+        self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
         self.save_hyperparameters()
         self.initial_lr = initial_lr
         

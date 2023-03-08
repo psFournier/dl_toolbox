@@ -16,7 +16,8 @@ from rasterio.windows import Window
 import dl_toolbox.callbacks as callbacks
 import dl_toolbox.lightning_modules as modules 
 import dl_toolbox.torch_datasets as datasets
-from dl_toolbox.torch_collate import CustomCollate
+import dl_toolbox.torch_collate as collate
+import dl_toolbox.utils as utils
 
 
 
@@ -150,16 +151,16 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
 #                            train_sets.append(ds)
 
             ### Building dataloaders
-            batch_size = 8
+            batch_size = 4
             num_samples = 2000
-            num_workers=1
+            num_workers=4
             
             train_set = ConcatDataset(train_sets)
             train_dataloaders = {}
             train_dataloaders['sup'] = DataLoader(
                 dataset=train_set,
                 batch_size=batch_size,
-                collate_fn=CustomCollate(),
+                collate_fn=collate.CustomCollate(),
                 sampler=RandomSampler(
                     data_source=train_set,
                     replacement=True,
@@ -176,7 +177,7 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
                 train_dataloaders['unsup'] = DataLoader(
                     dataset=unsup_train_set,
                     batch_size=batch_size,
-                    collate_fn=CustomCollate(),
+                    collate_fn=collate.CustomCollate(),
                     sampler=RandomSampler(
                         data_source=unsup_train_set,
                         replacement=True,
@@ -191,7 +192,7 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
             val_dataloader = DataLoader(
                 dataset=val_set,
                 shuffle=False,
-                collate_fn=CustomCollate(),
+                collate_fn=collate.CustomCollate(),
                 batch_size=batch_size,
                 num_workers=num_workers,
                 pin_memory=True
@@ -209,10 +210,7 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
                 out_channels=6,
                 initial_lr=0.001,
                 ttas=[],
-                #alphas=(0., 1.),
-                final_alpha=1,
-                alpha_milestones=(2,4),
-                #ramp=(0, 40000),
+                alpha_ramp=utils.SigmoidRamp(2,4,0.,2.),
                 pseudo_threshold=0.9,
                 #consist_aug='color-3',
                 #emas=(0.9, 0.999)
@@ -227,7 +225,7 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
             ### Trainer instance
             trainer = Trainer(
                 max_steps=30000,
-                accelerator='cpu',
+                accelerator='gpu',
                 devices=1,
                 multiple_trainloader_mode='min_size',
                 num_sanity_val_steps=0,

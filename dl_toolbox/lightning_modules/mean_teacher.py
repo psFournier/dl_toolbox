@@ -1,13 +1,79 @@
 import torch
 import torch.nn as nn
+import pytorch_lightning as pl
+from torch.optim import Adam
 from copy import deepcopy
 
-from dl_toolbox.lightning_modules import CE
-import dl_toolbox.utils as utils
-from dl_toolbox.torch_datasets.utils import get_transforms
-from dl_toolbox.callbacks import log_batch_images
+import dl_toolbox.augmentations as augmentations
+from dl_toolbox.networks import NetworkFactory
 
+class CrossPseudoSupervision(pl.LightningModule):
 
+    def __init__(
+        self,
+        initial_lr,
+        ttas,
+        network,
+        weights,
+        alpha_ramp,
+        pseudo_threshold,
+        consist_aug,
+        ema,
+        *args,
+        **kwargs
+    ):
+
+        super().__init__()
+        
+        self.net_factory = NetworkFactory()
+        net_cls = self.net_factory.create(network)
+        self.network1 = net_cls(*args, **kwargs)
+        self.network2 = net_cls(*args, **kwargs)
+        
+        num_classes = self.network1.out_channels
+        weights = list(weights) if len(weights)>0 else [1]*num_classes
+        self.loss = nn.CrossEntropyLoss(
+            weight=torch.Tensor(weights)
+        )
+        
+        self.unsup_loss = nn.CrossEntropyLoss(
+            reduction='none'
+        )
+        self.alpha_ramp = alpha_ramp
+        self.pseudo_threshold = pseudo_threshold
+        self.consist_aug = augmentations.get_transforms(consist_aug)
+        self.ema = ema
+        
+        self.ttas = [(aug_dict[t](p=1), anti_aug_dict[t](p=1)) for t in ttas]
+        self.save_hyperparameters()
+        self.initial_lr = initial_lr
+        
+    def configure_optimizers(self):
+
+        self.optimizer = Adam(self.parameters(), lr=self.initial_lr)
+
+        return self.optimizer
+
+    def forward(self, x):
+
+        logits1 = self.network1(x)
+        logits2 = self.network2(x)
+        
+        return (logits1 + logits2) / 2
+
+    def logits2probas(cls, logits):
+
+        return logits.softmax(dim=1)
+    
+    def probas2confpreds(cls, probas):
+        
+        return torch.max(probas, dim=1)
+    
+    def on_train_epoch_start(self):
+        
+        self.alpha = self.alpha_ramp(self.trainer.current_epoch)   
+        self.log('Prop unsup train', self.alpha)
+        
 class CE_MT(CE):
 
     def __init__(
