@@ -6,7 +6,7 @@ from pytorch_lightning import LightningDataModule
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from rasterio.windows import Window
-from dl_toolbox.torch_datasets import *
+import dl_toolbox.datasets as datasets
 
 
 def read_splitfile(
@@ -51,7 +51,35 @@ def read_splitfile(
     
     return sets
 
-class Splitfile(LightningDataModule):
+def gen_dataset_args_from_splitfile(
+    splitfile_path,
+    data_path,
+    folds,
+):
+    
+    with open(splitfile_path, newline='') as splitfile:
+        reader = csv.reader(splitfile)
+        next(reader)
+        for row in reader:
+            args = {}
+            class_name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
+            if int(fold) in folds:
+                window = Window(
+                    col_off=int(x0),
+                    row_off=int(y0),
+                    width=int(w),
+                    height=int(h)
+                )
+                args['tile'] = window
+                args['image_path'] = data_path/image_path
+                args['label_path'] = data_path/label_path if label_path else None
+                args['mins'] = ast.literal_eval(mins)
+                args['maxs'] = ast.literal_eval(maxs)
+                yield class_name, args.copy()
+                
+dataset_factory = datasets.DatasetFactory()
+
+class FromSplitfile(LightningDataModule):
 
     def __init__(
         self,
@@ -77,63 +105,68 @@ class Splitfile(LightningDataModule):
         self.epoch_len = epoch_len
         self.batch_size = batch_size
         self.num_workers = workers
-        test_sets, train_sets = [], []
-        data_path = Path(data_path)
-        train_sets = read_splitfile(
-            data_path,
-            splitfile_path,
-            folds=train_folds,
-            fixed_crops=False,
-            crop_size=crop_size,
-            img_aug=img_aug,
-            labels=labels            
-        )
-        test_sets = read_splitfile(
-            data_path,
-            splitfile_path,
-            folds=test_folds,
-            fixed_crops=True,
-            crop_size=crop_size,
-            img_aug=None,
-            labels=labels            
-        )
-        self.train_set = ConcatDataset(train_sets)
-        self.val_set = ConcatDataset(test_sets)
-        self.class_names = list(self.val_set.datasets[0].labels.keys())
+        self.splitfile_path = splitfile_path
+        self.data_path = data_path
+        self.train_folds = train_folds
+        self.val_folds = val_folds
+        self.crop_size = crop_size
+
+    def setup(self, stage):
         
-        if unsup_train_folds:
-            unsup_train_sets = read_splitfile(
-                data_path,
-                splitfile_path,
-                folds=unsup_train_folds,
-                fixed_crops=False,
+        train_sets = []
+        for ds_name, args in gen_dataset_args_from_splitfile(
+            self.splitfile_path,
+            self.data_path,
+            self.train_folds
+        ):
+            ds = dataset_factory.create(ds_name)(
                 crop_size=crop_size,
-                img_aug=unsup_img_aug,
-                labels=labels            
+                fixed_crops=False,
+                img_aug=img_aug,
+                labels=labels,
+                bands=bands,
+                **args
             )
+            train_sets.append(ds)
+        self.train_set = ConcatDataset(train_sets)
+            
+        val_sets = []
+        for ds_name, args in gen_dataset_args_from_splitfile(
+            splitfile_path,
+            data_path,
+            val_folds
+        ):
+            ds = dataset_factory.create(ds_name)(
+                crop_size=crop_size,
+                fixed_crops=True,
+                img_aug=None,
+                labels=labels,
+                bands=bands,
+                **args
+            )
+            val_sets.append(ds)
+        self.val_set = ConcatDataset(test_sets)
+
+        unsup_data = True
+        if unsup_data:
+            unsup_train_sets = []
+            for ds_name, args in gen_dataset_args_from_splitfile(
+                splitfile_path,
+                data_path,
+                list(range(10))
+            ):
+                ds = dataset_factory.create(ds_name)(
+                    crop_size=crop_size,
+                    fixed_crops=False,
+                    img_aug=img_aug,
+                    labels=labels,
+                    bands=bands,
+                    **args
+                )
+                unsup_train_sets.append(ds)
             self.unsup_train_set = ConcatDataset(unsup_train_sets)
-        else:
-            self.unsup_train_set = None
-
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
         
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--epoch_len", type=int)
-        parser.add_argument("--batch_size", type=int)
-        parser.add_argument("--workers", type=int)
-        parser.add_argument("--splitfile_path", type=str)
-        parser.add_argument("--test_folds", nargs='+', type=int)
-        parser.add_argument("--train_folds", nargs='+', type=int)
-        parser.add_argument("--unsup_train_folds", nargs='+', type=int)
-        parser.add_argument("--data_path", type=str)
-        parser.add_argument('--img_aug', type=str)
-        parser.add_argument('--unsup_img_aug', type=str)
-        parser.add_argument('--crop_size', type=int)
-        parser.add_argument('--crop_step', type=int)
-        parser.add_argument('--labels', type=str)
-
-        return parser
+        self.class_names = list(self.val_set.datasets[0].labels.keys())
     
     def train_dataloader(self):
         

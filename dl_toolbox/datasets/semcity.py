@@ -38,28 +38,23 @@ mergers = {
     'building' : [[0,1,4,3,5,6,7],[2]]
 }
 
-class SemcityBdsdDs(RasterDs):
+class Semcity(RasterDs):
 
-    #stats = {
-    #    'min': np.array([0, 0, 0, 0, 0, 0, 0, 0]),
-    #    'max': np.array([2902,4174,4726,5196,4569,4653,5709,3939])
-    #}
-
-    def __init__(self, labels, *args, **kwargs):
+    def __init__(self, labels, bands, *args, **kwargs):
         
         self.labels = semcity_labels[labels]
+        self.bands = bands
         super().__init__(*args, **kwargs)
         self.label_merger = MergeLabels(mergers[labels])
 
     def read_image(self, image_path, window):
 
         with rasterio.open(image_path) as image_file:
-            image = image_file.read(window=window, out_dtype=np.float32)
+            image = image_file.read(window=window, out_dtype=np.float32, indexes=self.bands)
             
-        mins = np.array([stat.min for stat in self.info['stats']])
-        maxs = np.array([stat.max for stat in self.info['stats']])
-        image = minmax(image[[3,2,1, 0]], mins[[3,2,1,0]], maxs[[3,2,1,0]])
-
+        bands_idxs = np.array(self.bands) - 1
+        image = minmax(image, self.mins[bands_idxs], self.maxs[bands_idxs])
+            
         return image
 
     def read_label(self, label_path, window):

@@ -54,20 +54,22 @@ mergers = {
     '6mainFuseVege' : [[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
 }
 
-class DigitanieV2(RasterDs):
+class Digitanie(RasterDs):
 
-    def __init__(self, labels, *args, **kwargs):
+    def __init__(self, labels, bands, *args, **kwargs):
  
         self.labels = labels_dict[labels]
+        self.bands = bands
         super().__init__(*args, **kwargs)
         self.label_merger = MergeLabels(mergers[labels])
 
     def read_image(self, image_path, window):
         
         with rasterio.open(image_path) as image_file:
-            image = image_file.read(window=window, out_dtype=np.float32)
-            
-        image = minmax(image[:4], self.mins[:4], self.maxs[:4])
+            image = image_file.read(window=window, out_dtype=np.float32, indexes=self.bands)
+        
+        bands_idxs = np.array(self.bands) - 1
+        image = minmax(image, self.mins[bands_idxs], self.maxs[bands_idxs])
 
         return image
 

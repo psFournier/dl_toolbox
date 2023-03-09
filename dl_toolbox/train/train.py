@@ -20,12 +20,6 @@ import dl_toolbox.torch_collate as collate
 import dl_toolbox.utils as utils
 
 
-
-"""
-Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de l'expé.
-"""
-
-
 if os.uname().nodename == 'WDTIS890Z': 
     data_root = Path('/mnt/d/pfournie/Documents/data')
     home = Path('/home/pfournie')
@@ -33,32 +27,6 @@ elif os.uname().nodename == 'qdtis056z':
     data_root = Path('/data')
     home = Path('/d/pfournie')
     
-def gen_dataset_args_from_splitfile(
-    splitfile_path,
-    data_path,
-    folds,
-):
-    
-    with open(splitfile_path, newline='') as splitfile:
-        reader = csv.reader(splitfile)
-        next(reader)
-        for row in reader:
-            args = {}
-            class_name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
-            if int(fold) in folds:
-                window = Window(
-                    col_off=int(x0),
-                    row_off=int(y0),
-                    width=int(w),
-                    height=int(h)
-                )
-                args['tile'] = window
-                args['image_path'] = data_path/image_path
-                args['label_path'] = data_path/label_path if label_path else None
-                args['mins'] = ast.literal_eval(mins)
-                args['maxs'] = ast.literal_eval(maxs)
-                yield class_name, args.copy()
-
 data_path = data_root / 'SemCity-Toulouse-bench'
 split_name = 'semcity_16tiles'
 splitfile_path = home / f'dl_toolbox/dl_toolbox/datamodules/{split_name}.csv'
@@ -88,64 +56,14 @@ ema_ramp=utils.SigmoidRamp(3,6,0.9,0.99)
 num_classes = 8
 
 
-dataset_factory = datasets.DatasetFactory()
+
 for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
     for mixup in [0]:
         for weights in [[1,1,1,1,1,1,1,1]]:
             
-            # datasets
-           
-            train_sets = []
-            for ds_name, args in gen_dataset_args_from_splitfile(
-                splitfile_path,
-                data_path,
-                train_folds
-            ):
-                ds = dataset_factory.create(ds_name)(
-                    crop_size=crop_size,
-                    fixed_crops=False,
-                    img_aug=img_aug,
-                    labels=labels,
-                    bands=bands,
-                    **args
-                )
-                train_sets.append(ds)
-                
-            class_names = list(train_sets[0].labels.keys())
+            datamodule = FromSplitfile()
 
-            val_sets = []
-            for ds_name, args in gen_dataset_args_from_splitfile(
-                splitfile_path,
-                data_path,
-                val_folds
-            ):
-                ds = dataset_factory.create(ds_name)(
-                    crop_size=crop_size,
-                    fixed_crops=True,
-                    img_aug=None,
-                    labels=labels,
-                    bands=bands,
-                    **args
-                )
-                val_sets.append(ds)
-                
-            unsup_data = True
-            if unsup_data:
-                unsup_train_sets = []
-                for ds_name, args in gen_dataset_args_from_splitfile(
-                    splitfile_path,
-                    data_path,
-                    list(range(10))
-                ):
-                    ds = dataset_factory.create(ds_name)(
-                        crop_size=crop_size,
-                        fixed_crops=False,
-                        img_aug=img_aug,
-                        labels=labels,
-                        bands=bands,
-                        **args
-                    )
-                    unsup_train_sets.append(ds)
+            
 
             ### dataloaders
             

@@ -1,5 +1,6 @@
 from .raster_ds import *
-from .digitanie_v2 import *
+from .digitanie import *
+from .semcity import *
 #from .old_digitanie import *
 #from .semcity_bdsd_ds import *
 #from .resisc import *
@@ -8,4 +9,4 @@ from .digitanie_v2 import *
 ##from .flair import *
 #from .alumhi import *
 ##from .inria import *
-#from .dataset_factory import DatasetFactory
+from .factory import DatasetFactory
