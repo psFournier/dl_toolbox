@@ -36,7 +36,7 @@ elif os.uname().nodename == 'qdtis056z':
 def gen_dataset_args_from_splitfile(
     splitfile_path,
     data_path,
-    folds,
+    folds
 ):
     
     with open(splitfile_path, newline='') as splitfile:
@@ -89,9 +89,23 @@ num_classes = 8
 
 
 dataset_factory = datasets.DatasetFactory()
+
 for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
     for mixup in [0]:
         for weights in [[1,1,1,1,1,1,1,1]]:
+            
+            with open(splitfile_path, newline='') as splitfile:
+                reader = csv.reader(splitfile)
+                next(reader)
+                for name, _, img, label, x0, y0, w, h, fold, mins, maxs in reader:
+                    if int(fold) in folds:
+                        window = Window(int(x0), int(y0), int(w), int(h))
+                        args['tile'] = window
+                        args['image_path'] = data_path/image_path
+                        args['label_path'] = data_path/label_path if label_path else None
+                        args['mins'] = ast.literal_eval(mins)
+                        args['maxs'] = ast.literal_eval(maxs)
+                        yield class_name, args.copy()
             
             # datasets
            
@@ -128,25 +142,7 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
                     **args
                 )
                 val_sets.append(ds)
-                
-            unsup_data = True
-            if unsup_data:
-                unsup_train_sets = []
-                for ds_name, args in gen_dataset_args_from_splitfile(
-                    splitfile_path,
-                    data_path,
-                    list(range(10))
-                ):
-                    ds = dataset_factory.create(ds_name)(
-                        crop_size=crop_size,
-                        fixed_crops=False,
-                        img_aug=img_aug,
-                        labels=labels,
-                        bands=bands,
-                        **args
-                    )
-                    unsup_train_sets.append(ds)
-
+            
             ### dataloaders
             
             train_set = ConcatDataset(train_sets)
@@ -165,8 +161,23 @@ for train_folds, val_folds in [([0,1,2,3,4],[5,6])]:
                 drop_last=True
             )
             
-            unsup_data = True
+            unsup_data = True            
             if unsup_data:
+                unsup_train_sets = []
+                for ds_name, args in gen_dataset_args_from_splitfile(
+                    splitfile_path,
+                    data_path,
+                    list(range(10))
+                ):
+                    ds = dataset_factory.create(ds_name)(
+                        crop_size=crop_size,
+                        fixed_crops=False,
+                        img_aug=img_aug,
+                        labels=labels,
+                        bands=bands,
+                        **args
+                    )
+                    unsup_train_sets.append(ds)
                 unsup_train_set = ConcatDataset(unsup_train_sets)
                 train_dataloaders['unsup'] = DataLoader(
                     dataset=unsup_train_set,

@@ -110,6 +110,48 @@ class FromSplitfile(LightningDataModule):
         self.train_folds = train_folds
         self.val_folds = val_folds
         self.crop_size = crop_size
+        
+        
+        
+        
+
+        
+        
+        test_sets, train_sets = [], []
+        data_path = Path(data_path)
+        train_sets = read_splitfile(
+            data_path,
+            splitfile_path,
+            folds=train_folds,
+            fixed_crops=False,
+            crop_size=crop_size,
+            img_aug=img_aug,
+            labels=labels            
+        )
+        test_sets = read_splitfile(
+            data_path,
+            splitfile_path,
+            folds=test_folds,
+            fixed_crops=True,
+            crop_size=crop_size,
+            img_aug=None,
+            labels=labels            
+        )
+        
+        
+        if unsup_train_folds:
+            unsup_train_sets = read_splitfile(
+                data_path,
+                splitfile_path,
+                folds=unsup_train_folds,
+                fixed_crops=False,
+                crop_size=crop_size,
+                img_aug=unsup_img_aug,
+                labels=labels            
+            )
+            self.unsup_train_set = ConcatDataset(unsup_train_sets)
+        else:
+            self.unsup_train_set = None
 
     def setup(self, stage):
         
@@ -128,7 +170,6 @@ class FromSplitfile(LightningDataModule):
                 **args
             )
             train_sets.append(ds)
-        self.train_set = ConcatDataset(train_sets)
             
         val_sets = []
         for ds_name, args in gen_dataset_args_from_splitfile(
@@ -145,7 +186,6 @@ class FromSplitfile(LightningDataModule):
                 **args
             )
             val_sets.append(ds)
-        self.val_set = ConcatDataset(test_sets)
 
         unsup_data = True
         if unsup_data:
@@ -164,8 +204,9 @@ class FromSplitfile(LightningDataModule):
                     **args
                 )
                 unsup_train_sets.append(ds)
-            self.unsup_train_set = ConcatDataset(unsup_train_sets)
-        
+                
+        self.train_set = ConcatDataset(train_sets)
+        self.val_set = ConcatDataset(test_sets)
         self.class_names = list(self.val_set.datasets[0].labels.keys())
     
     def train_dataloader(self):
