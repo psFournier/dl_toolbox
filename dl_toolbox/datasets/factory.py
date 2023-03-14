@@ -1,15 +1,15 @@
-from dl_toolbox.torch_datasets import *
+from dl_toolbox.datasets import *
 
 
 datasets = {
     #'Resisc': Resisc,
-    'DigitanieV2': Digitanie,
+    'Digitanie': Digitanie,
     #'DigitanieToulouse': DigitanieToulouseDs,
     #'DigitanieBiarritz': DigitanieBiarritzDs,
     #'DigitanieMontpellier': DigitanieMontpellierDs,
     #'DigitanieParis': DigitanieParisDs,
     #'DigitanieStrasbourg': DigitanieStrasbourgDs,
-    'Semcity': Semcity,
+    #'Semcity': Semcity,
     #'Airs': Airs,
     #'Miniworld': Miniworld,
     #'Inria': Inria
