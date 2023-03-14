@@ -10,6 +10,7 @@ from pathlib import Path
 import ast 
 from pytorch_lightning import LightningDataModule
 import numpy as np
+import torch
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from rasterio.windows import Window
@@ -30,16 +31,23 @@ Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de
 if os.uname().nodename == 'WDTIS890Z': 
     data_root = Path('/mnt/d/pfournie/Documents/data')
     home = Path('/home/pfournie')
+    save_root = data_root / 'outputs'
 elif os.uname().nodename == 'qdtis056z': 
     data_root = Path('/data')
     home = Path('/d/pfournie')
+    save_root = data_root / 'outputs'
+else:
+    data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
+    home = Path('/home/eh/fournip')
+    save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
+    print('torch device count', torch.cuda.device_count())
 
 data_path = data_root / 'DIGITANIE'
 split = 'toulouse'
 split_dir = home / f'dl_toolbox/dl_toolbox/datamodules'
-train_split = (split_dir/'toulouse.csv', [0,1,2,3,4])
-unsup_train_split = (split_dir/'toulouse.csv', list(range(10)))
-val_split = (split_dir/'toulouse.csv', [5,6])
+train_split = (split_dir/'digitanie_toulouse.csv', [0,1,2,3,4])
+unsup_train_split = (split_dir/'digitanie_toulouse_big.csv', [0])
+val_split = (split_dir/'digitanie_toulouse.csv', [5,6])
 crop_size=256
 crop_step=256
 aug = 'd4_color-3'
@@ -65,7 +73,7 @@ pseudo_threshold=0.9
 consist_aug='d4'
 ema_ramp=utils.SigmoidRamp(3,6,0.9,0.99)
 
-save_dir = data_root / 'outputs' / 'DIGITANIE'
+save_dir = save_root / 'DIGITANIE'
 log_name = 'toulouse'
 
 class_names = [label.name for label in datasets.Digitanie.possible_labels[labels].value.labels]
