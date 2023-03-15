@@ -72,7 +72,6 @@ max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
-num_sanity_val_steps=0
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / 'DIGITANIE'
@@ -80,9 +79,9 @@ log_name = 'toulouse'
 ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
 
 # other
-class_names = [label.name for label in datasets.Digitanie.possible_labels[labels].value.labels]
-class_num = datasets.Digitanie.possible_labels[labels].value.num
-
+nomenclature = datasets.Digitanie.nomenclatures[labels].value
+class_names = [label.name for label in nomenclature.labels]
+class_num = len(nomenclature.labels)
 
 dataset_factory = datasets.DatasetFactory()
 
@@ -188,7 +187,7 @@ trainer = pl.Trainer(
     accelerator=accelerator,
     devices=devices,
     multiple_trainloader_mode=multiple_trainloader_mode,
-    num_sanity_val_steps=num_sanity_val_steps,
+    num_sanity_val_steps=0,
     limit_train_batches=limit_train_batches,
     limit_val_batches=limit_val_batches,
     logger=pl.loggers.TensorBoardLogger(

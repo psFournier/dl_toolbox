@@ -1,109 +1,164 @@
-from pytorch_lightning.callbacks import ModelCheckpoint#, DeviceStatsMonitor
-from pytorch_lightning import Trainer
-#from pytorch_lightning.profiler import SimpleProfiler
-from pytorch_lightning.loggers import TensorBoardLogger
-from dl_toolbox.lightning_modules import *
-from dl_toolbox.lightning_datamodules import *
-from pathlib import Path, PurePath
-from datetime import datetime
+import pytorch_lightning as pl
 import os
+import numpy as np
+import torch
+
+from torch.utils.data import DataLoader, Subset
+from pathlib import Path
+from datetime import datetime
+
+import dl_toolbox.callbacks as callbacks
+import dl_toolbox.modules as modules 
+import dl_toolbox.datasets as datasets
+import dl_toolbox.torch_collate as collate
+import dl_toolbox.utils as utils
 
 
+if os.uname().nodename == 'WDTIS890Z': 
+    data_root = Path('/mnt/d/pfournie/Documents/data')
+    home = Path('/home/pfournie')
+    save_root = data_root / 'outputs'
+elif os.uname().nodename == 'qdtis056z': 
+    data_root = Path('/data')
+    home = Path('/d/pfournie')
+    save_root = data_root / 'outputs'
+else:
+    #data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
+    data_root = Path(os.environ['TMPDIR'])
+    home = Path('/home/eh/fournip')
+    save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
+    print('torch device count', torch.cuda.device_count())
+    
+# datasets params
+dataset_name = 'NWPU-RESISC45'
+data_path = data_root / dataset_name
+aug = 'd4_color-5'
+unsup_aug = 'd4'
+labels = 'test'
+nomenclature = datasets.Resisc.nomenclatures[labels].value
+class_names = [label.name for label in nomenclature.labels]
+class_num = len(nomenclature.labels)
+train_indices = [700*i+j for i in range(class_num) for j in range(0,100)]
+unsup_train_indices = [700*i+j for i in range(class_num) for j in range(700)]
+val_indices = [700*i+j for i in range(class_num) for j in range(600,650)]
 
-"""
-Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de l'expé.
-"""
-split='france'
-#data_path=Path(os.environ['TMPDIR'])/'DIGITANIE'
-data_path=Path('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE')
-#data_path=Path('/scratchf/AI4GEO/DIGITANIE')
-#data_path=Path('/data/DIGITANIE')
-#data_path=Path('/home/pfournie/ai4geo/data/SemCity-Toulouse-bench')
-epoch_len=5000
-labels='6mainFuseVege'
-out_channels=6
-max_steps=50000
+# dataloaders params
+batch_size = 16
+num_workers=6
 
-datamodule = Splitfile(
-    epoch_len=epoch_len,
-    batch_size=16,
-    workers=6,
-    splitfile_path=Path.home() / f'dl_toolbox/dl_toolbox/lightning_datamodules/splits/digitanie/{split}.csv',
-    test_folds=(8,9),
-    train_folds=tuple(range(8)),
+# module params
+mixup=0. # incompatible with ignore_zero=True
+weights = [1,1]
+network='Vgg'
+pretrained=False
+in_channels=3
+out_channels=2
+initial_lr=0.001
+ttas=[]
+alpha_ramp=utils.SigmoidRamp(15,30,0.,1.)
+pseudo_threshold=0.9
+consist_aug='color-5'
+ema_ramp=utils.SigmoidRamp(15,30,0.9,0.99)
+
+# trainer params
+num_epochs = 100
+max_steps=num_epochs * len(train_indices)
+accelerator='gpu'
+devices=1
+multiple_trainloader_mode='min_size'
+limit_train_batches=1.
+limit_val_batches=1.
+save_dir = save_root / dataset_name
+log_name = 'test'
+ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
+
+resisc = datasets.Resisc(
     data_path=data_path,
-    crop_size=256,
-    img_aug='d4',
-    unsup_img_aug=None,
-    labels=labels,
-    unsup_train_folds=None
+    img_aug=aug,
+    labels=labels
 )
 
-module = CE(
-    ignore_index=0,
-    #no_pred_zero=True,
-    #mixup=0.4,
-    #network='Vgg',
-    network='SmpUnet',
-    encoder='efficientnet-b4',
-    pretrained=False,
-    weights=[],
-    in_channels=4,
+train_set = Subset(resisc, indices=train_indices)
+val_set = Subset(resisc, indices=val_indices)
+unsup_train_set = Subset(resisc, indices=unsup_train_indices)
+
+train_dataloaders = {}
+
+train_dataloaders['sup'] = DataLoader(
+    dataset=train_set,
+    batch_size=batch_size,
+    collate_fn=collate.CustomCollate(),
+    shuffle=True,
+    num_workers=num_workers,
+    pin_memory=True,
+    drop_last=True
+)
+
+train_dataloaders['unsup'] = DataLoader(
+    dataset=unsup_train_set,
+    batch_size=batch_size,
+    shuffle=True,
+    collate_fn=collate.CustomCollate(),
+    num_workers=num_workers,
+    pin_memory=True,
+    drop_last=True
+)
+
+val_dataloader = DataLoader(
+    dataset=val_set,
+    shuffle=False,
+    collate_fn=collate.CustomCollate(),
+    batch_size=batch_size,
+    num_workers=num_workers,
+    pin_memory=True
+)
+
+### Building lightning module
+module = modules.MeanTeacher(
+    mixup=mixup, # incompatible with ignore_zero=True
+    network=network,
+    #encoder=encoder,
+    pretrained=pretrained,
+    weights=weights,
+    in_channels=in_channels,
     out_channels=out_channels,
-    initial_lr=0.001,
-    final_lr=0.0005,
-    plot_calib=False,
-    class_names=datamodule.class_names,
-    #alphas=(0., 1.),
-    #ramp=(0, 40000),
-    #pseudo_threshold=0.9,
-    #consist_aug='color-3',
-    #emas=(0.9, 0.999)
+    initial_lr=initial_lr,
+    ttas=ttas,
+    alpha_ramp=alpha_ramp,
+    pseudo_threshold=pseudo_threshold,
+    consist_aug=consist_aug,
+    ema_ramp=ema_ramp
 )
 
-trainer = Trainer(
+### Metrics and plots from confmat callback
+metrics_from_confmat = callbacks.MetricsFromConfmat(        
+    num_classes=class_num,
+    class_names=class_names
+)
+
+### Trainer instance
+trainer = pl.Trainer(
     max_steps=max_steps,
-    gpus=1,
-    multiple_trainloader_mode='min_size',
-    limit_train_batches=1.,
-    limit_val_batches=1.,
-    logger=TensorBoardLogger(
-        #save_dir='/scratchl/pfournie/outputs/digitaniev2',
-        save_dir='/work/OT/ai4usr/fournip/outputs/digitanie',
-        #save_dir='/data/outputs/digitaniev2',
-        #save_dir='/home/pfournie/ai4geo/ouputs/semcity',
-        name=split,
+    accelerator=accelerator,
+    devices=devices,
+    multiple_trainloader_mode=multiple_trainloader_mode,
+    num_sanity_val_steps=0,
+    limit_train_batches=limit_train_batches,
+    limit_val_batches=limit_val_batches,
+    logger=pl.loggers.TensorBoardLogger(
+        save_dir=save_dir,
+        name=log_name,
         version=f'{datetime.now():%d%b%y-%Hh%Mm%S}'
     ),
-    #profiler=SimpleProfiler(),
     callbacks=[
-        ModelCheckpoint(),
-        #DeviceStatsMonitor(),
-    ],
-    num_sanity_val_steps=0,
-    check_val_every_n_epoch=1,
-    benchmark=True,
-    enable_progress_bar=True
+        pl.callbacks.ModelCheckpoint(),
+        metrics_from_confmat
+    ]
 )
-    
-    """
-    datamodule = FromFolderDataset(
-        folder_dataset='Resisc',
-        #data_path='/data/NWPU-RESISC45',
-        data_path='/scratchf/NWPU-RESISC45',
-        batch_size=4,
-        workers=6,
-        train_idxs=[700*i+j for i in range(45) for j in range(50)],
-        test_idxs=[700*i+j for i in range(45) for j in range(650,700)],
-        unsup_train_idxs=[700*i+j for i in range(45) for j in range(700)],
-        img_aug='d4_color-3',
-        unsup_img_aug=None
-    )
-    """
 
-#ckpt_path='/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
 trainer.fit(
     model=module,
-    datamodule=datamodule,
-    ckpt_path=None
+    train_dataloaders=train_dataloaders,
+    val_dataloaders=val_dataloader,
+    ckpt_path=ckpt_path
 )

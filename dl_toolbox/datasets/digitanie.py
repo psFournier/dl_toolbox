@@ -7,22 +7,21 @@ from collections import namedtuple
 from enum import Enum
 
 label = namedtuple('label', ['idx', 'name', 'color'])
-labels_desc = namedtuple('labels_desc', ['labels', 'num', 'merge'])
+nomenclature = namedtuple('nomenclature', ['labels', 'merge'])
 
-mainFuseVege = labels_desc(
-    labels=(
+mainFuseVege = nomenclature(
+    labels=[
         label(idx=0, name='nodata', color=(0, 0, 0)),
         label(idx=1, name='vegetation', color=(0, 250, 50)),
         label(idx=2, name='water', color=(0, 50, 250)),
         label(idx=3, name='building', color=(250, 50, 50)),
         label(idx=4, name='road', color=(100, 100, 100)),
         label(idx=5, name='other', color=(250,250,250))
-    ),
-    num=6,
+    ],
     merge=[[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
 )
 
-class labels(Enum):
+class nomenclatures(Enum):
     mainFuseVege = mainFuseVege
     
 
@@ -85,7 +84,7 @@ class Digitanie:
     maxs: list
     window: object
     label_path: str = None
-    possible_labels: object = labels
+    nomenclatures: object = nomenclatures
 
     def read_image(self, window, bands):
         

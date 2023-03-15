@@ -2,14 +2,21 @@ from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision.datasets.folder import DatasetFolder
 from argparse import ArgumentParser
 from PIL import Image
-from dl_toolbox.torch_datasets.utils import *
 import matplotlib.pyplot as plt
 import os
 import torch
+import numpy as np
+
+from collections import namedtuple
+from enum import Enum
 
 from dl_toolbox.utils import MergeLabels, OneHot
 from dl_toolbox.torch_collate import CustomCollate
+import dl_toolbox.augmentations as augmentations
 
+
+label = namedtuple('label', ['idx', 'name'])
+nomenclature = namedtuple('nomenclature', ['labels'])
 cls_names = [
     'airplane',
     'bridge',
@@ -58,11 +65,17 @@ cls_names = [
     'wetland'
 ]
 
-resisc_labels = {
-    'base': {key: {} for key in cls_names},
-    'small': {key: {} for key in ['stadium', 'wetland']}
-}
-
+class nomenclatures(Enum):
+    base = nomenclature(
+        labels=[label(idx=i, name=name) for i,name in enumerate(cls_names)],
+    )
+    test = nomenclature(
+        labels=[
+            label(idx=0, name='stadium'),
+            label(idx=1, name='wetland')
+        ]
+    )
+    
 def pil_to_torch_loader(path: str):
 
     with open(path, "rb") as f:
@@ -70,29 +83,33 @@ def pil_to_torch_loader(path: str):
         img = torch.from_numpy(img).permute(2,0,1).float() / 255.
         return img
 
-class ResiscDs(DatasetFolder):
+class Resisc(DatasetFolder):
+    
+    nomenclatures = nomenclatures
 
     def __init__(
         self,
         data_path,
         img_aug,
+        labels
     ):
+        self.nomenclature = self.nomenclatures[labels].value
         super().__init__(
             root=data_path,
             loader=pil_to_torch_loader,
             extensions=('jpg',)
         )
-        self.img_aug = get_transforms(img_aug)
-        self.class_names = self.classes
+        self.img_aug = augmentations.get_transforms(img_aug)
+        
+    def find_classes(self, directory):
+        
+        names = [label.name for label in self.nomenclature.labels]
+        classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir() and entry.name in names)
+        if not classes:
+            raise FileNotFoundError(f"Couldn't find any class folder in {directory}.")
 
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
-
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--data_path", type=str)
-        parser.add_argument("--img_aug", type=str)
-
-        return parser
+        class_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
+        return classes, class_to_idx
 
     def __getitem__(self, idx):
 
@@ -103,7 +120,7 @@ class ResiscDs(DatasetFolder):
         return {
             'orig_image': image,
             'image': end_image,
-            'mask': torch.tensor(label),
+            'label': torch.tensor(label),
             'path': path
         }
 

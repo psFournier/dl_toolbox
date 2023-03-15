@@ -25,7 +25,7 @@ class Raster(torch.utils.data.Dataset):
         self.crop_size = crop_size
         self.aug = augmentations.get_transforms(aug)
         self.bands = bands
-        self.labels = raster.possible_labels[labels].value
+        self.labels = raster.nomenclatures[labels].value
         self.labels_merger = MergeLabels(self.labels.merge)
         with rasterio.open(raster.image_path) as raster_img:
             self.raster_tf = raster_img.transform
@@ -78,7 +78,7 @@ class PretiledRaster(torch.utils.data.Dataset):
         self.crop_step = crop_step
         self.aug = augmentations.get_transforms(aug)
         self.bands = bands
-        self.labels = raster.possible_labels[labels].value
+        self.labels = raster.nomenclatures[labels].value
         self.labels_merger = MergeLabels(self.labels.merge)
         with rasterio.open(raster.image_path) as raster_img:
             self.raster_tf = raster_img.transform
