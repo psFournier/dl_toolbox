@@ -22,12 +22,6 @@ import dl_toolbox.torch_collate as collate
 import dl_toolbox.utils as utils
 
 
-
-"""
-Changer data_path, labels, splitfile_path, epoch_len, save_dir... en fonction de l'expé.
-"""
-
-
 if os.uname().nodename == 'WDTIS890Z': 
     data_root = Path('/mnt/d/pfournie/Documents/data')
     home = Path('/home/pfournie')
@@ -37,45 +31,61 @@ elif os.uname().nodename == 'qdtis056z':
     home = Path('/d/pfournie')
     save_root = data_root / 'outputs'
 else:
-    data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
+    #data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
+    data_root = Path(os.environ['TMPDIR'])
     home = Path('/home/eh/fournip')
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
     print('torch device count', torch.cuda.device_count())
 
+# datasets params
 data_path = data_root / 'DIGITANIE'
 split = 'toulouse'
 split_dir = home / f'dl_toolbox/dl_toolbox/datamodules'
-train_split = (split_dir/'digitanie_toulouse.csv', [0,1,2,3,4])
+train_split = (split_dir/'digitanie_toulouse.csv', [0,1,2,3,4,5])
 unsup_train_split = (split_dir/'digitanie_toulouse_big.csv', [0])
-val_split = (split_dir/'digitanie_toulouse.csv', [5,6])
+val_split = (split_dir/'digitanie_toulouse.csv', [6,7])
 crop_size=256
 crop_step=256
-aug = 'd4_color-3'
+aug = 'd4_color-5'
 unsup_aug = 'd4'
 labels = 'mainFuseVege'
 bands = [1,2,3]
 
-batch_size = 4
-num_samples = 2000
-num_workers=4
+# dataloaders params
+batch_size = 16
+epoch_steps = 500
+num_samples = epoch_steps * batch_size
+num_workers=6
 
+# module params
 mixup=0. # incompatible with ignore_zero=True
 weights = [1,1,1,1,1,1,]
 network='SmpUnet'
-encoder='efficientnet-b0'
+encoder='efficientnet-b4'
 pretrained=False
 in_channels=len(bands)
 out_channels=6
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(2,4,0.,2.)
+alpha_ramp=utils.SigmoidRamp(15,30,0.,1.)
 pseudo_threshold=0.9
-consist_aug='d4'
-ema_ramp=utils.SigmoidRamp(3,6,0.9,0.99)
+consist_aug='color-5'
+ema_ramp=utils.SigmoidRamp(15,30,0.9,0.99)
 
+# trainer params
+num_epochs = 60
+max_steps=num_epochs * epoch_steps
+accelerator='gpu'
+devices=1
+multiple_trainloader_mode='min_size'
+num_sanity_val_steps=0
+limit_train_batches=1.
+limit_val_batches=1.
 save_dir = save_root / 'DIGITANIE'
 log_name = 'toulouse'
+ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
 
+# other
 class_names = [label.name for label in datasets.Digitanie.possible_labels[labels].value.labels]
 class_num = datasets.Digitanie.possible_labels[labels].value.num
 
@@ -124,24 +134,23 @@ train_dataloaders['sup'] = DataLoader(
     drop_last=True
 )
 
-if unsup_train_split:
-    unsup_train_sets = from_csv(data_path, *unsup_train_split)
-    unsup_train_set = ConcatDataset(
-        [datasets.Raster(ds, crop_size, unsup_aug, bands, labels) for ds in unsup_train_sets]
-    )
-    train_dataloaders['unsup'] = DataLoader(
-                    dataset=unsup_train_set,
-                    batch_size=batch_size,
-                    collate_fn=collate.CustomCollate(),
-                    sampler=RandomSampler(
-                        data_source=unsup_train_set,
-                        replacement=True,
-                        num_samples=num_samples
-                    ),
-                    num_workers=num_workers,
-                    pin_memory=True,
-                    drop_last=True
-                )
+unsup_train_sets = from_csv(data_path, *unsup_train_split)
+unsup_train_set = ConcatDataset(
+    [datasets.Raster(ds, crop_size, unsup_aug, bands, labels) for ds in unsup_train_sets]
+)
+train_dataloaders['unsup'] = DataLoader(
+    dataset=unsup_train_set,
+    batch_size=batch_size,
+    collate_fn=collate.CustomCollate(),
+    sampler=RandomSampler(
+        data_source=unsup_train_set,
+        replacement=True,
+        num_samples=num_samples
+    ),
+    num_workers=num_workers,
+    pin_memory=True,
+    drop_last=True
+)
 
 val_sets = from_csv(data_path, *val_split)
 val_set = ConcatDataset(
@@ -155,117 +164,6 @@ val_dataloader = DataLoader(
     num_workers=num_workers,
     pin_memory=True
 )
-
-            
-#with open(splitfile_path, newline='') as splitfile:
-#    reader = csv.reader(splitfile)
-#    next(reader)
-#    for name, _, img, label, x0, y0, w, h, fold, mins, maxs in reader:
-#
-#        if int(fold) in folds:
-#            window = Window(int(x0), int(y0), int(w), int(h))
-#            args['tile'] = window
-#            args['image_path'] = data_path/image_path
-#            args['label_path'] = data_path/label_path if label_path else None
-#            args['mins'] = ast.literal_eval(mins)
-#            args['maxs'] = ast.literal_eval(maxs)
-#            yield class_name, args.copy()
-#
-## datasets
-#
-#train_sets = []
-#for ds_name, args in gen_dataset_args_from_splitfile(
-#    splitfile_path,
-#    data_path,
-#    train_folds
-#):
-#    ds = dataset_factory.create(ds_name)(
-#        crop_size=crop_size,
-#        fixed_crops=False,
-#        img_aug=img_aug,
-#        labels=labels,
-#        bands=bands,
-#        **args
-#    )
-#    train_sets.append(ds)
-#
-#class_names = list(train_sets[0].labels.keys())
-#
-#val_sets = []
-#for ds_name, args in gen_dataset_args_from_splitfile(
-#    splitfile_path,
-#    data_path,
-#    val_folds
-#):
-#    ds = dataset_factory.create(ds_name)(
-#        crop_size=crop_size,
-#        fixed_crops=True,
-#        img_aug=None,
-#        labels=labels,
-#        bands=bands,
-#        **args
-#    )
-#    val_sets.append(ds)
-#
-#### dataloaders
-#
-#train_set = ConcatDataset(train_sets)
-#train_dataloaders = {}
-#train_dataloaders['sup'] = DataLoader(
-#    dataset=train_set,
-#    batch_size=batch_size,
-#    collate_fn=collate.CustomCollate(),
-#    sampler=RandomSampler(
-#        data_source=train_set,
-#        replacement=True,
-#        num_samples=num_samples
-#    ),
-#    num_workers=num_workers,
-#    pin_memory=True,
-#    drop_last=True
-#)
-#
-#unsup_data = True            
-#if unsup_data:
-#    unsup_train_sets = []
-#    for ds_name, args in gen_dataset_args_from_splitfile(
-#        splitfile_path,
-#        data_path,
-#        list(range(10))
-#    ):
-#        ds = dataset_factory.create(ds_name)(
-#            crop_size=crop_size,
-#            fixed_crops=False,
-#            img_aug=img_aug,
-#            labels=labels,
-#            bands=bands,
-#            **args
-#        )
-#        unsup_train_sets.append(ds)
-#    unsup_train_set = ConcatDataset(unsup_train_sets)
-#    train_dataloaders['unsup'] = DataLoader(
-#        dataset=unsup_train_set,
-#        batch_size=batch_size,
-#        collate_fn=collate.CustomCollate(),
-#        sampler=RandomSampler(
-#            data_source=unsup_train_set,
-#            replacement=True,
-#            num_samples=num_samples
-#        ),
-#        num_workers=num_workers,
-#        pin_memory=True,
-#        drop_last=True
-#    )
-#
-#val_set = ConcatDataset(val_sets)
-#val_dataloader = DataLoader(
-#    dataset=val_set,
-#    shuffle=False,
-#    collate_fn=collate.CustomCollate(),
-#    batch_size=batch_size,
-#    num_workers=num_workers,
-#    pin_memory=True
-#)
 
 ### Building lightning module
 module = modules.MeanTeacher(
@@ -292,13 +190,13 @@ metrics_from_confmat = callbacks.MetricsFromConfmat(
 
 ### Trainer instance
 trainer = Trainer(
-    max_steps=30000,
-    accelerator='gpu',
-    devices=1,
-    multiple_trainloader_mode='min_size',
-    num_sanity_val_steps=0,
-    limit_train_batches=1,
-    limit_val_batches=1,
+    max_steps=max_steps,
+    accelerator=accelerator,
+    devices=devices,
+    multiple_trainloader_mode=multiple_trainloader_mode,
+    num_sanity_val_steps=num_sanity_val_steps,
+    limit_train_batches=limit_train_batches,
+    limit_val_batches=limit_val_batches,
     logger=TensorBoardLogger(
         save_dir=save_dir,
         name=log_name,
@@ -310,10 +208,9 @@ trainer = Trainer(
     ]
 )
 
-#ckpt_path='/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
 trainer.fit(
     model=module,
     train_dataloaders=train_dataloaders,
     val_dataloaders=val_dataloader,
-    ckpt_path=None
+    ckpt_path=ckpt_path
 )
