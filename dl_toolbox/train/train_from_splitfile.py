@@ -1,19 +1,13 @@
-from pytorch_lightning.callbacks import ModelCheckpoint#, DeviceStatsMonitor
-from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
-from pathlib import Path, PurePath
-from datetime import datetime
+import pytorch_lightning as pl
 import os
 import csv
-from argparse import ArgumentParser
-from pathlib import Path
 import ast 
-from pytorch_lightning import LightningDataModule
 import numpy as np
 import torch
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
-from rasterio.windows import Window
+from pathlib import Path
+from datetime import datetime
 
 import dl_toolbox.callbacks as callbacks
 import dl_toolbox.modules as modules 
@@ -100,7 +94,7 @@ def from_csv(data_path, split_path, folds):
         for row in reader:
             name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
             if int(fold) in folds:
-                window = Window(
+                window = rasterio.windows.Window(
                     col_off=int(x0),
                     row_off=int(y0),
                     width=int(w),
@@ -189,7 +183,7 @@ metrics_from_confmat = callbacks.MetricsFromConfmat(
 )
 
 ### Trainer instance
-trainer = Trainer(
+trainer = pl.Trainer(
     max_steps=max_steps,
     accelerator=accelerator,
     devices=devices,
@@ -197,13 +191,13 @@ trainer = Trainer(
     num_sanity_val_steps=num_sanity_val_steps,
     limit_train_batches=limit_train_batches,
     limit_val_batches=limit_val_batches,
-    logger=TensorBoardLogger(
+    logger=pl.loggers.TensorBoardLogger(
         save_dir=save_dir,
         name=log_name,
         version=f'{datetime.now():%d%b%y-%Hh%Mm%S}'
     ),
     callbacks=[
-        ModelCheckpoint(),
+        pl.callbacks.ModelCheckpoint(),
         metrics_from_confmat
     ]
 )
