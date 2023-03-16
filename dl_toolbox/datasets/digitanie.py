@@ -21,7 +21,7 @@ mainFuseVege = nomenclature(
     merge=[[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
 )
 
-class nomenclatures(Enum):
+class digitanie_nomenc(Enum):
     mainFuseVege = mainFuseVege
     
 
@@ -79,14 +79,14 @@ class nomenclatures(Enum):
 @dataclass
 class Digitanie:
     
-    image_path: str
-    mins: list
-    maxs: list
-    window: object
-    label_path: str = None
-    nomenclatures: object = nomenclatures
+    image_path: str = None
+    window: object = None
+    mins: ... = np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
+    maxs: ... = np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
+    label_path: ... = None
+    nomenclatures: object = digitanie_nomenc
 
-    def read_image(self, window, bands):
+    def read_image(self, window=None, bands=None):
         
         with rasterio.open(self.image_path) as file:
             image = file.read(window=window, out_dtype=np.float32, indexes=bands)
@@ -95,7 +95,7 @@ class Digitanie:
 
         return image
     
-    def read_label(self, window):
+    def read_label(self, window=None):
         
         with rasterio.open(self.label_path) as file:
             label = file.read(window=window, out_dtype=np.float32)

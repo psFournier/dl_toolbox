@@ -1,3 +1,8 @@
+import rasterio
+import csv
+import numpy as np
+import ast 
+
 from dl_toolbox.datasets import *
 
 
@@ -20,3 +25,27 @@ class DatasetFactory:
     @staticmethod
     def create(name):
         return datasets[name]
+
+def datasets_from_csv(data_path, split_path, folds):
+    
+    dataset_factory = DatasetFactory()
+    
+    with open(split_path, newline='') as splitfile:
+        reader = csv.reader(splitfile)
+        next(reader)
+        for row in reader:
+            name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
+            if int(fold) in folds:
+                window = rasterio.windows.Window(
+                    col_off=int(x0),
+                    row_off=int(y0),
+                    width=int(w),
+                    height=int(h)
+                )
+                yield dataset_factory.create(name)(
+                    image_path=data_path/image_path,
+                    label_path=data_path/label_path if label_path != 'none' else None,
+                    mins=np.array(ast.literal_eval(mins)).reshape(-1, 1, 1),
+                    maxs=np.array(ast.literal_eval(maxs)).reshape(-1, 1, 1),
+                    window=window
+                )

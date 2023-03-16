@@ -9,4 +9,4 @@ from .resisc import *
 ##from .flair import *
 #from .alumhi import *
 ##from .inria import *
-from .factory import DatasetFactory
+from .factory import DatasetFactory, datasets_from_csv

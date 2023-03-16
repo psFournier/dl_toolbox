@@ -1,9 +1,6 @@
 import pytorch_lightning as pl
 import os
 import csv
-import ast 
-import numpy as np
-import torch
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from pathlib import Path
@@ -29,11 +26,9 @@ else:
     data_root = Path(os.environ['TMPDIR'])
     home = Path('/home/eh/fournip')
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
-    print('torch device count', torch.cuda.device_count())
 
 # datasets params
 data_path = data_root / 'DIGITANIE'
-split = 'toulouse'
 split_dir = home / f'dl_toolbox/dl_toolbox/datamodules'
 train_split = (split_dir/'digitanie_toulouse.csv', [0,1,2,3,4,5])
 unsup_train_split = (split_dir/'digitanie_toulouse_big.csv', [0])
@@ -82,33 +77,8 @@ ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-s
 nomenclature = datasets.Digitanie.nomenclatures[labels].value
 class_names = [label.name for label in nomenclature.labels]
 class_num = len(nomenclature.labels)
-
-dataset_factory = datasets.DatasetFactory()
-
-def from_csv(data_path, split_path, folds):
-    
-    with open(split_path, newline='') as splitfile:
-        reader = csv.reader(splitfile)
-        next(reader)
-        for row in reader:
-            name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
-            if int(fold) in folds:
-                window = rasterio.windows.Window(
-                    col_off=int(x0),
-                    row_off=int(y0),
-                    width=int(w),
-                    height=int(h)
-                )
-                yield dataset_factory.create(name)(
-                    image_path=data_path/image_path,
-                    label_path=data_path/label_path if label_path != 'none' else None,
-                    mins=np.array(ast.literal_eval(mins)).reshape(-1, 1, 1),
-                    maxs=np.array(ast.literal_eval(maxs)).reshape(-1, 1, 1),
-                    window=window
-                )
-
                 
-train_sets = from_csv(data_path, *train_split)
+train_sets = datasets.datasets_from_csv(data_path, *train_split)
 train_set = ConcatDataset(
     [datasets.Raster(ds, crop_size, aug, bands, labels) for ds in train_sets]
 )
@@ -127,7 +97,7 @@ train_dataloaders['sup'] = DataLoader(
     drop_last=True
 )
 
-unsup_train_sets = from_csv(data_path, *unsup_train_split)
+unsup_train_sets = datasets.datasets_from_csv(data_path, *unsup_train_split)
 unsup_train_set = ConcatDataset(
     [datasets.Raster(ds, crop_size, unsup_aug, bands, labels) for ds in unsup_train_sets]
 )
@@ -145,7 +115,7 @@ train_dataloaders['unsup'] = DataLoader(
     drop_last=True
 )
 
-val_sets = from_csv(data_path, *val_split)
+val_sets = datasets.datasets_from_csv(data_path, *val_split)
 val_set = ConcatDataset(
     [datasets.PretiledRaster(ds, crop_size, crop_step, aug=None, bands=bands, labels=labels) for ds in val_sets]
 )
@@ -197,6 +167,7 @@ trainer = pl.Trainer(
     ),
     callbacks=[
         pl.callbacks.ModelCheckpoint(),
+        pl.callbacks.EarlyStopping(monitor='Val_loss', patience=5),
         metrics_from_confmat
     ]
 )

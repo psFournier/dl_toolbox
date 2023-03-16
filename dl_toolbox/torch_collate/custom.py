@@ -6,18 +6,14 @@ class CustomCollate():
 
     def __call__(self, batch, *args, **kwargs):
                 
-        crops = [elem['crop'] for elem in batch if 'crop' in elem.keys()]
-        #crops_tf = [elem['crop_tf'] for elem in batch if 'crop_tf' in elem.keys()]
-        paths = [elem['path'] for elem in batch if 'path' in elem.keys()]
-        
         keys_to_collate = ['image', 'label']
         to_collate = [{k: v for k, v in elem.items() if (k in keys_to_collate) and (v is not None)} for elem in batch]
-        batch = default_collate(to_collate)
+        collated_batch = default_collate(to_collate)
         
-        if 'label' not in batch.keys():
-            batch['label'] = None
-        batch['crop'] = crops
-        #batch['crop_tf'] = crops_tf
-        batch['path'] = paths
+        if 'label' not in collated_batch.keys():
+            collated_batch['label'] = None
+            
+        for aux in ['crop', 'crop_tf', 'path', 'crs']:
+            collated_batch[aux] = [elem[aux] for elem in batch if aux in elem.keys()]
 
-        return batch
+        return collated_batch

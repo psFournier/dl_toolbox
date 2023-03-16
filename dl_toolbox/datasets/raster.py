@@ -22,6 +22,8 @@ class Raster(torch.utils.data.Dataset):
         labels
     ):
         self.raster = raster
+        assert raster.window is not None
+        assert raster.image_path is not None
         self.crop_size = crop_size
         self.aug = augmentations.get_transforms(aug)
         self.bands = bands
@@ -29,6 +31,7 @@ class Raster(torch.utils.data.Dataset):
         self.labels_merger = MergeLabels(self.labels.merge)
         with rasterio.open(raster.image_path) as raster_img:
             self.raster_tf = raster_img.transform
+            self.crs = raster_img.crs
             
     def __len__(self):
         
@@ -59,7 +62,8 @@ class Raster(torch.utils.data.Dataset):
             'label':label,
             'crop':crop,
             'crop_tf':crop_tf,
-            'path': self.raster.image_path
+            'path': self.raster.image_path,
+            'crs': self.crs
         }
         
 class PretiledRaster(torch.utils.data.Dataset):
@@ -82,6 +86,7 @@ class PretiledRaster(torch.utils.data.Dataset):
         self.labels_merger = MergeLabels(self.labels.merge)
         with rasterio.open(raster.image_path) as raster_img:
             self.raster_tf = raster_img.transform
+            self.crs = raster_img.crs
         self.tiles = list(
             get_tiles(
                 nols=raster.window.width, 
@@ -119,7 +124,8 @@ class PretiledRaster(torch.utils.data.Dataset):
             'label':label,
             'crop':crop,
             'crop_tf':crop_tf,
-            'path': self.raster.image_path
+            'path': self.raster.image_path,
+            'crs': self.crs
         }
         
 #class RasterDs(torch.utils.data.Dataset):

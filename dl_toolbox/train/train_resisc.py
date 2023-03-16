@@ -135,7 +135,7 @@ metrics_from_confmat = callbacks.MetricsFromConfmat(
     num_classes=class_num,
     class_names=class_names
 )
-
+    
 ### Trainer instance
 trainer = pl.Trainer(
     max_steps=max_steps,
@@ -152,6 +152,7 @@ trainer = pl.Trainer(
     ),
     callbacks=[
         pl.callbacks.ModelCheckpoint(),
+        pl.callbacks.EarlyStopping(monitor='Val_loss', patience=5),
         metrics_from_confmat
     ]
 )

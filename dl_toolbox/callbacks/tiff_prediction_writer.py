@@ -1,4 +1,5 @@
 import os
+import torch
 from pickletools import uint8
 import numpy as np
 from pathlib import Path
@@ -12,16 +13,18 @@ from copy import copy
 import rasterio
 
 
-class PredictionWriter(BasePredictionWriter):
+class TiffPredictionWriter(BasePredictionWriter):
 
     def __init__(
         self,
         out_path,
         write_interval,
+        mode
     ):
         super().__init__(write_interval)
         self.out_path = Path(out_path)
         self.out_path.mkdir(exist_ok=True, parents=True)
+        self.mode = mode
 
     def write_on_batch_end(
         self,
@@ -34,12 +37,27 @@ class PredictionWriter(BasePredictionWriter):
         dataloader_idx,
     ):
         
-        logits = outputs.cpu().numpy()  # Move predictions to CPU        
-        for logit, path, crop in zip(logits, batch['path'], batch['crop']):
-            out_file = self.out_path / f'{path.stem}_{crop.col_off}_{crop.row_off}.tif'
-            meta = {'driver': 'GTiff', 'height': 256, 'width':256, 'count':6, 'dtype':np.float32}
+        logits = outputs.cpu()  # Move predictions to CPU    
+        outputs = pl_module.logits2probas(logits)
+        count = int(outputs.shape[1])
+        if self.mode == 'pred':
+            outputs = torch.unsqueeze(pl_module.probas2confpreds(outputs)[1], 1)
+            print(outputs.shape)
+            count = 1
+        for output, path, crop, tf, crs in zip(outputs, batch['path'], batch['crop'], batch['crop_tf'], batch['crs']):
+            os.makedirs(self.out_path/path.stem, exist_ok=True)
+            out_file = self.out_path/path.stem/f'{crop.col_off}_{crop.row_off}.tif'
+            meta = {
+                'driver': 'GTiff',
+                'height': crop.height,
+                'width':crop.width,
+                'count':count,
+                'dtype':np.float32,
+                'crs': crs,
+                'transform': tf,
+            }
             with rasterio.open(out_file, 'w+', **meta) as dst:
-                dst.write(logit)
+                dst.write(output.numpy())
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if not self.interval.on_batch:
@@ -49,3 +67,8 @@ class PredictionWriter(BasePredictionWriter):
         self.write_on_batch_end(
             trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx
         )
+            
+            
+            
+            
+        
