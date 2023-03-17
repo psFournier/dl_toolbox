@@ -41,11 +41,9 @@ class_num = len(nomenclature.labels)
 train_indices = [700*i+j for i in range(class_num) for j in range(0,100)]
 unsup_train_indices = [700*i+j for i in range(class_num) for j in range(700)]
 val_indices = [700*i+j for i in range(class_num) for j in range(600,650)]
-
 # dataloaders params
 batch_size = 16
 num_workers=6
-
 # module params
 mixup=0. # incompatible with ignore_zero=True
 weights = [1,1]
@@ -59,7 +57,6 @@ alpha_ramp=utils.SigmoidRamp(15,30,0.,1.)
 pseudo_threshold=0.9
 consist_aug='color-5'
 ema_ramp=utils.SigmoidRamp(15,30,0.9,0.99)
-
 # trainer params
 num_epochs = 100
 max_steps=num_epochs * len(train_indices)

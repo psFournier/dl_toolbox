@@ -92,7 +92,7 @@ module = modules.MeanTeacher(
 prediction_writer = callbacks.TiffPredictionWriter(        
     out_path=save_dir/log_name/version/'preds',
     write_interval="batch",
-    mode='prob'
+    mode='probas'
 )
 
 trainer = pl.Trainer(
