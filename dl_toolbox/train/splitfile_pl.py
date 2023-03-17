@@ -25,8 +25,8 @@ elif os.uname().nodename == 'qdtis056z':
     home = Path('/d/pfournie')
     save_root = data_root / 'outputs'
 else:
-    #data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
-    data_root = Path(os.environ['TMPDIR'])
+    data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
+    #data_root = Path(os.environ['TMPDIR'])
     home = Path('/home/eh/fournip')
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
 
@@ -37,9 +37,9 @@ train_split = (split_dir/'digitanie_toulouse.csv', [0,1,2,3,4,5])
 unsup_train_split = pl_split = (split_dir/'digitanie_toulouse_big_1.csv', [0])
 val_split = (split_dir/'digitanie_toulouse.csv', [6,7])
 crop_size = 256
-pl_crop_size = 1024
+pl_crop_size = 10000
 crop_step = 256
-pl_crop_step = 1024
+pl_crop_step = 10000
 aug = 'd4_color-5'
 unsup_aug = pl_aug = 'd4'
 labels = 'mainFuseVege'
@@ -181,15 +181,17 @@ for ds in datasets.datasets_from_csv(data_path, *pl_split):
     holes = [rasterio.windows.from_bounds(*b, dst_tf) for b in holes_bounds]
     pl_sets.append(
         PretiledRaster(
-            ds,
-            pl_crop_size,
-            pl_steps,
-            pl_aug, bands,
-            labels,
+            crop_step=pl_crop_step,
+            raster=ds,
+            crop_size=pl_crop_size,
+            aug=pl_aug,
+            bands=bands,
+            labels=labels,
             holes=holes
         )
     )
-    print(pl_sets[-1].tiles)
+    for tile in pl_sets[-1].tiles:
+        print(tile)
 pl_set = ConcatDataset(pl_sets) 
 
 pl_dataloader = DataLoader(

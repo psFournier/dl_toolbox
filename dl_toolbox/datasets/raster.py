@@ -20,13 +20,15 @@ def crop_from_window(window, crop_size):
 
 def intersect(window, holes):
     
-    intersect = False
     for hole in holes:
-        inter = window.intersection(hole)
-        intersect = (inter.height > 0 and inter.width > 0)
-        if intersect: break
+        try:
+            inter = window.intersection(hole)
+            print(f'{window} intersects with {hole}') 
+            return True
+        except rasterio.errors.WindowError:
+            pass
         
-    return intersect
+    return False
 
 def crop_avoiding_holes(window, crop_size, holes):
     
