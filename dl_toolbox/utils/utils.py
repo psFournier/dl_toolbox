@@ -22,8 +22,13 @@ def read_window_from_big_raster(window, path, raster_path):
     return image
 
 def minmax(image, m, M):
-    
-    return np.clip((image - np.reshape(m, (-1, 1, 1))) / np.reshape(M - m, (-1, 1, 1)), 0, 1)
+
+    if isinstance(image, np.ndarray):
+        return np.clip((image - np.reshape(m, (-1, 1, 1))) / np.reshape(M - m, (-1, 1, 1)), 0, 1)
+    elif isinstance(image, torch.Tensor):
+        return torch.clip((image - torch.reshape(m, (-1, 1, 1))) / torch.reshape(M - m, (-1, 1, 1)), 0, 1)
+    else:
+        assert False
 
 class MergeLabels:
 

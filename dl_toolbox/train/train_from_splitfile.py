@@ -12,6 +12,9 @@ import dl_toolbox.datasets as datasets
 import dl_toolbox.torch_collate as collate
 import dl_toolbox.utils as utils
 
+from dl_toolbox.datasets import Raster
+from rasterio.windows import from_bounds
+
 
 if os.uname().nodename == 'WDTIS890Z': 
     data_root = Path('/mnt/d/pfournie/Documents/data')
@@ -31,9 +34,10 @@ else:
 data_path = data_root / 'DIGITANIE'
 split_dir = home / f'dl_toolbox/dl_toolbox/datamodules'
 train_split = (split_dir/'digitanie_toulouse.csv', [0,1,2,3,4,5])
-unsup_train_split = (split_dir/'digitanie_toulouse_big.csv', [0])
+unsup_split = (split_dir/'digitanie_toulouse_big_1.csv', [0])
 val_split = (split_dir/'digitanie_toulouse.csv', [6,7])
 crop_size=256
+unsup_crop_size = 256
 crop_step=256
 aug = 'd4_color-5'
 unsup_aug = 'd4'
@@ -50,25 +54,25 @@ num_workers=6
 mixup=0. # incompatible with ignore_zero=True
 weights = [1,1,1,1,1,1,]
 network='SmpUnet'
-encoder='efficientnet-b4'
+encoder='efficientnet-b0'
 pretrained=False
 in_channels=len(bands)
 out_channels=6
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(15,30,0.,1.)
+alpha_ramp=utils.SigmoidRamp(2,4,0.,1.)
 pseudo_threshold=0.9
 consist_aug='color-5'
-ema_ramp=utils.SigmoidRamp(15,30,0.9,0.99)
+ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
 
 # trainer params
-num_epochs = 60
+num_epochs = 10
 max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
-limit_train_batches=1.
-limit_val_batches=1.
+limit_train_batches=1
+limit_val_batches=1
 save_dir = save_root / 'DIGITANIE'
 log_name = 'toulouse'
 ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
@@ -97,16 +101,35 @@ train_dataloaders['sup'] = DataLoader(
     drop_last=True
 )
 
-unsup_train_sets = datasets.datasets_from_csv(data_path, *unsup_train_split)
-unsup_train_set = ConcatDataset(
-    [datasets.Raster(ds, crop_size, unsup_aug, bands, labels) for ds in unsup_train_sets]
-)
-train_dataloaders['unsup'] = DataLoader(
-    dataset=unsup_train_set,
+unsup_sets = []
+
+train_set_bounds = []
+for ds in train_sets:
+    window = ds.raster.window
+    train_set_bounds.append(rasterio.windows.bounds(window, ds.raster_tf))
+    
+for ds in datasets.datasets_from_csv(data_path, *unsup_split):
+    
+    tf = ds.get_transform()
+    unsup_sets.append(
+        Raster(
+            raster=ds,
+            crop_size=unsup_crop_size,
+            aug=unsup_aug,
+            bands=bands,
+            labels=labels,
+            holes=[from_bounds(*b, tf) for b in train_set_bounds]
+        )
+    )
+
+unsup_set = ConcatDataset(unsup_sets) 
+
+unsup_dataloader = DataLoader(
+    dataset=unsup_set,
     batch_size=batch_size,
     collate_fn=collate.CustomCollate(),
     sampler=RandomSampler(
-        data_source=unsup_train_set,
+        data_source=unsup_set,
         replacement=True,
         num_samples=num_samples
     ),
@@ -115,9 +138,20 @@ train_dataloaders['unsup'] = DataLoader(
     drop_last=True
 )
 
+train_dataloaders['unsup'] = unsup_dataloader
+
 val_sets = datasets.datasets_from_csv(data_path, *val_split)
 val_set = ConcatDataset(
-    [datasets.PretiledRaster(ds, crop_size, crop_step, aug=None, bands=bands, labels=labels) for ds in val_sets]
+    [
+        datasets.PretiledRaster(
+            crop_step=crop_step,
+            raster=ds,
+            crop_size=crop_size,
+            aug=aug,
+            bands=bands,
+            labels=labels
+        ) for ds in val_sets
+    ]
 )
 val_dataloader = DataLoader(
     dataset=val_set,

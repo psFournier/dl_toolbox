@@ -37,9 +37,9 @@ train_split = (split_dir/'digitanie_toulouse.csv', [0,1,2,3,4,5])
 unsup_train_split = pl_split = (split_dir/'digitanie_toulouse_big_1.csv', [0])
 val_split = (split_dir/'digitanie_toulouse.csv', [6,7])
 crop_size = 256
-pl_crop_size = 10000
+pl_crop_size = 1024
 crop_step = 256
-pl_crop_step = 10000
+pl_crop_step = 1024
 aug = 'd4_color-5'
 unsup_aug = pl_aug = 'd4'
 labels = 'mainFuseVege'
@@ -169,37 +169,35 @@ trainer.fit(
     ckpt_path=ckpt_path
 )
 """
-pl_sets = []
-holes_bounds = []
+unsup_sets = []
+
+train_set_bounds = []
 for ds in train_sets:
     window = ds.raster.window
-    tf = ds.raster_tf
-    holes_bounds.append(rasterio.windows.bounds(window, tf))
+    train_set_bounds.append(rasterio.windows.bounds(window, ds.raster_tf))
+    
 for ds in datasets.datasets_from_csv(data_path, *pl_split):
-    with rasterio.open(ds.image_path) as raster_img:
-        dst_tf = raster_img.transform
-    holes = [rasterio.windows.from_bounds(*b, dst_tf) for b in holes_bounds]
-    pl_sets.append(
-        PretiledRaster(
-            crop_step=pl_crop_step,
+    
+    tf = ds.get_transform()
+    unsup_sets.append(
+        Raster(
             raster=ds,
-            crop_size=pl_crop_size,
-            aug=pl_aug,
+            crop_size=unsup_crop_size,
+            aug=unsup_aug,
             bands=bands,
             labels=labels,
-            holes=holes
+            holes=[from_bounds(*b, tf) for b in train_set_bounds]
         )
     )
-    for tile in pl_sets[-1].tiles:
-        print(tile)
-pl_set = ConcatDataset(pl_sets) 
 
-pl_dataloader = DataLoader(
-    dataset=pl_set,
+unsup_set = ConcatDataset(unsup_sets) 
+
+unsup_dataloader = DataLoader(
+    dataset=unsup_set,
     batch_size=batch_size,
     collate_fn=collate.CustomCollate(),
     sampler=RandomSampler(
-        data_source=pl_set,
+        data_source=unsup_set,
         replacement=True,
         num_samples=num_samples
     ),

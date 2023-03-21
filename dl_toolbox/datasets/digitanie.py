@@ -2,7 +2,6 @@ import torch
 import rasterio
 import numpy as np
 from dataclasses import dataclass
-from dl_toolbox.utils import minmax
 from collections import namedtuple
 from enum import Enum
 
@@ -81,6 +80,10 @@ class Digitanie:
     
     image_path: str = None
     window: object = None
+    no_data_vals: object = (
+        np.array([0., 0., 0., 0.]).reshape(-1, 1, 1),
+        np.array([0.0195023, 0.0336404, 0.0569544, 0.00735826]).reshape(-1, 1, 1)
+    )
     mins: ... = np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
     maxs: ... = np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
     label_path: ... = None
@@ -88,10 +91,8 @@ class Digitanie:
 
     def read_image(self, window=None, bands=None):
         
-        with rasterio.open(self.image_path) as file:
+        with rasterio.open(self.image_path, 'r+') as file:
             image = file.read(window=window, out_dtype=np.float32, indexes=bands)
-        bands_idxs = np.array(bands).astype(int) - 1
-        image = minmax(image, self.mins[bands_idxs], self.maxs[bands_idxs])
 
         return image
     
@@ -101,6 +102,16 @@ class Digitanie:
             label = file.read(window=window, out_dtype=np.float32)
         
         return label
+        
+    def get_transform(self):
+        
+        with rasterio.open(self.image_path, 'r+') as ds:
+            tf = ds.transform
+            if self.window is not None:
+                return rasterio.windows.transform(self.window, transform=tf)
+            else:
+                return tf
+                    
 
 #class Digitanie(RasterDs):
 #
