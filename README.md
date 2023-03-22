@@ -1,8 +1,11 @@
 ## Installation and test
 
+Cloner le dépôt puis:
+
 ```
-git clone git@github.com:psFournier/dl_toolbox.git
 cd dl_toolbox
+git checkout -b branche_perso
+git push -u origin branche_perso
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
