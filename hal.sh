@@ -14,6 +14,6 @@ for city in "${cities[@]}" ; do
     rsync -rvL --include="${city}/" --include="COS9/" --include="*.tif" --exclude="*" /work/OT/ai4geo/DATA/DATASETS/DIGITANIE/ DIGITANIE/
 done
 
-/work/OT/ai4usr/fournip/venv/bin/python "${HOME}"/dl_toolbox/dl_toolbox/train/train_from_splitfile.py
+/work/OT/ai4usr/fournip/latest/bin/python "${HOME}"/dl_toolbox/dl_toolbox/train/train_from_splitfile.py
 
 module unload python

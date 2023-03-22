@@ -25,8 +25,8 @@ elif os.uname().nodename == 'qdtis056z':
     home = Path('/d/pfournie')
     save_root = data_root / 'outputs'
 else:
-    data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
-    #data_root = Path(os.environ['TMPDIR'])
+    #data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
+    data_root = Path(os.environ['TMPDIR'])
     home = Path('/home/eh/fournip')
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
 
@@ -45,8 +45,8 @@ labels = 'mainFuseVege'
 bands = [1,2,3]
 
 # dataloaders params
-batch_size = 32
-epoch_steps = 200
+batch_size = 16
+epoch_steps = 500
 num_samples = epoch_steps * batch_size
 num_workers=6
 
