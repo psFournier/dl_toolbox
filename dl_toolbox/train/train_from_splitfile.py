@@ -25,8 +25,8 @@ elif os.uname().nodename == 'qdtis056z':
     home = Path('/d/pfournie')
     save_root = data_root / 'outputs'
 else:
-    #data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
-    data_root = Path(os.environ['TMPDIR'])
+    data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
+    #data_root = Path(os.environ['TMPDIR'])
     home = Path('/home/eh/fournip')
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
 
@@ -45,8 +45,8 @@ labels = 'mainFuseVege'
 bands = [1,2,3]
 
 # dataloaders params
-batch_size = 16
-epoch_steps = 500
+batch_size = 32
+epoch_steps = 200
 num_samples = epoch_steps * batch_size
 num_workers=6
 
@@ -54,25 +54,25 @@ num_workers=6
 mixup=0. # incompatible with ignore_zero=True
 weights = [1,1,1,1,1,1,]
 network='SmpUnet'
-encoder='efficientnet-b0'
+encoder='efficientnet-b4'
 pretrained=False
 in_channels=len(bands)
 out_channels=6
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(2,4,0.,1.)
+alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
 pseudo_threshold=0.9
 consist_aug='color-5'
 ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
 
 # trainer params
-num_epochs = 10
+num_epochs = 50
 max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
-limit_train_batches=1
-limit_val_batches=1
+limit_train_batches=1.
+limit_val_batches=1.
 save_dir = save_root / 'DIGITANIE'
 log_name = 'toulouse'
 ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'

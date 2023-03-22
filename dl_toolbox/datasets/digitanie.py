@@ -91,7 +91,7 @@ class Digitanie:
 
     def read_image(self, window=None, bands=None):
         
-        with rasterio.open(self.image_path, 'r+') as file:
+        with rasterio.open(self.image_path, 'r') as file:
             image = file.read(window=window, out_dtype=np.float32, indexes=bands)
 
         return image
@@ -105,7 +105,7 @@ class Digitanie:
         
     def get_transform(self):
         
-        with rasterio.open(self.image_path, 'r+') as ds:
+        with rasterio.open(self.image_path, 'r') as ds:
             tf = ds.transform
             if self.window is not None:
                 return rasterio.windows.transform(self.window, transform=tf)
