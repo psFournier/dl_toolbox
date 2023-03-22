@@ -3,12 +3,12 @@ import rasterio
 import numpy as np
 from dataclasses import dataclass
 from collections import namedtuple
-from enum import Enum
+from enum import StrEnum
 
 label = namedtuple('label', ['idx', 'name', 'color'])
 nomenclature = namedtuple('nomenclature', ['labels', 'merge'])
 
-mainFuseVege = nomenclature(
+mainFuseVege_nom = nomenclature(
     labels=[
         label(idx=0, name='nodata', color=(0, 0, 0)),
         label(idx=1, name='vegetation', color=(0, 250, 50)),
@@ -20,8 +20,26 @@ mainFuseVege = nomenclature(
     merge=[[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
 )
 
-class digitanie_nomenc(Enum):
-    mainFuseVege = mainFuseVege
+building_nom = nomenclature(
+    labels=[
+        label(idx=0, name='building', color=(250, 50, 50)),
+        label(idx=1, name='other', color=(250,250,250))
+    ],
+    merge=[[3], [0,1, 2, 4, 5, 6,7,8,9]]
+)
+
+road_nom = nomenclature(
+    labels=[
+        label(idx=0, name='road', color=(100, 100, 100)),
+        label(idx=1, name='other', color=(250,250,250))
+    ],
+    merge=[[7], [0,1, 2, 4, 5, 6,3,8,9]]
+)
+
+class digitanie_nomenc(StrEnum):
+    'mainFuseVege' = mainFuseVege_nom
+    'bulding' = building_nom
+    'road' = road_nom
     
 
 #labels_desc = (
@@ -66,13 +84,6 @@ class digitanie_nomenc(Enum):
 #        },
 #        'merge': [[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
 #    }
-#}
-
-#mergers = {
-#    'base' : [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10]],
-#    '6' : [[0, 1, 6, 8, 9], [2], [3], [4], [5], [7]],
-#    '7main' : [[0], [2], [3], [4], [5], [7], [1, 6, 8, 9]],
-#    '6mainFuseVege' : [[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
 #}
 
 @dataclass
