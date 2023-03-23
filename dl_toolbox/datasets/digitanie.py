@@ -3,7 +3,7 @@ import rasterio
 import numpy as np
 from dataclasses import dataclass
 from collections import namedtuple
-from enum import StrEnum
+from enum import Enum
 
 label = namedtuple('label', ['idx', 'name', 'color'])
 nomenclature = namedtuple('nomenclature', ['labels', 'merge'])
@@ -36,10 +36,10 @@ road_nom = nomenclature(
     merge=[[7], [0,1, 2, 4, 5, 6,3,8,9]]
 )
 
-class digitanie_nomenc(StrEnum):
-    'mainFuseVege' = mainFuseVege_nom
-    'bulding' = building_nom
-    'road' = road_nom
+class digitanie_nomenc(Enum):
+    mainFuseVege = mainFuseVege_nom
+    building = building_nom
+    road = road_nom
     
 
 #labels_desc = (
