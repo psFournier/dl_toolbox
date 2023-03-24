@@ -2,8 +2,11 @@ import torch
 import rasterio
 import numpy as np
 from dataclasses import dataclass
-from enum import StrEnum
-from dl_toolbox.utils import label, nomenclature
+from collections import namedtuple
+from enum import Enum
+
+label = namedtuple('label', ['idx', 'name', 'color'])
+nomenclature = namedtuple('nomenclature', ['labels', 'merge'])
 
 mainFuseVege_nom = nomenclature(
     labels=[
@@ -33,10 +36,10 @@ road_nom = nomenclature(
     merge=[[7], [0,1, 2, 4, 5, 6,3,8,9]]
 )
 
-class DigitanieNom(StrEnum):
-    'mainFuseVege' = mainFuseVege_nom
-    'bulding' = building_nom
-    'road' = road_nom
+class DigitanieNom(Enum):
+    mainFuseVege = mainFuseVege_nom
+    building = building_nom
+    road = road_nom
     
 
 #labels_desc = (

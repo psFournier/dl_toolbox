@@ -2,8 +2,10 @@ import torch
 import rasterio
 import numpy as np
 from dataclasses import dataclass
-from enum import StrEnum
-from dl_toolbox.utils import label, nomenclature
+from enum import Enum
+
+label = namedtuple('label', ['idx', 'name', 'color'])
+nomenclature = namedtuple('nomenclature', ['labels', 'merge'])
 
 
 base_nom = nomenclature(
@@ -59,10 +61,9 @@ mergers = {
 }
 
 
-class SemcityNom(StrEnum):
-    'mainFuseVege' = mainFuseVege_nom
-    'bulding' = building_nom
-    'road' = road_nom
+class SemcityNom(Enum):
+    base = mainFuseVege_nom
+    bulding = building_nom
 
 @dataclass
 class Semcity:
