@@ -2,11 +2,8 @@ import torch
 import rasterio
 import numpy as np
 from dataclasses import dataclass
-from collections import namedtuple
 from enum import StrEnum
-
-label = namedtuple('label', ['idx', 'name', 'color'])
-nomenclature = namedtuple('nomenclature', ['labels', 'merge'])
+from dl_toolbox.utils import label, nomenclature
 
 mainFuseVege_nom = nomenclature(
     labels=[
@@ -36,7 +33,7 @@ road_nom = nomenclature(
     merge=[[7], [0,1, 2, 4, 5, 6,3,8,9]]
 )
 
-class digitanie_nomenc(StrEnum):
+class DigitanieNom(StrEnum):
     'mainFuseVege' = mainFuseVege_nom
     'bulding' = building_nom
     'road' = road_nom
@@ -98,7 +95,7 @@ class Digitanie:
     mins: ... = np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
     maxs: ... = np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
     label_path: ... = None
-    nomenclatures: object = digitanie_nomenc
+    nomenclatures: object = DigitanieNom
 
     def read_image(self, window=None, bands=None):
         
@@ -122,60 +119,3 @@ class Digitanie:
                 return rasterio.windows.transform(self.window, transform=tf)
             else:
                 return tf
-                    
-
-#class Digitanie(RasterDs):
-#
-#    def __init__(self, labels, bands, *args, **kwargs):
-# 
-#        self.labels = labels_dict[labels]
-#        self.bands = bands
-#        super().__init__(*args, **kwargs)
-#        self.label_merger = MergeLabels(mergers[labels])
-#
-#    def read_image(self, image_path, window):
-#        
-#        with rasterio.open(image_path) as image_file:
-#            image = image_file.read(window=window, out_dtype=np.float32, indexes=self.bands)
-#        
-#        bands_idxs = np.array(self.bands) - 1
-#        image = minmax(image, self.mins[bands_idxs], self.maxs[bands_idxs])
-#
-#        return image
-#
-#    def read_label(self, label_path, window):
-#    
-#        with rasterio.open(label_path) as label_file:
-#            label = label_file.read(window=window, out_dtype=np.float32)
-#            
-#        label = np.squeeze(label)
-#        label = self.label_merger(label)
-#        
-#        return label
-
-
-
-def main():
-    
-    image_path = '/work/OT/ai4geo/DATA/DATASETS/DIGITANIE/Biarritz/Biarritz_EPSG32630_0.tif'
-    label_path = '/work/OT/ai4geo/DATA/DATASETS/DIGITANIE/Biarritz/COS9/Biarritz_0-v4.tif'
-
-    dataset = DigitanieV2(
-        image_path=image_path,
-        label_path=label_path,
-        crop_size=1024,
-        crop_step=1024,
-        img_aug='no',
-        tile=Window(col_off=0, row_off=0, width=1024, height=1024),
-        fixed_crops=False,
-        one_hot=False
-    )
-    img = dataset[0]['mask']
-    print(img.shape)
-    img = DigitanieToulouse2Ds.labels_to_rgb(img.numpy())
-    #img = img.numpy().transpose((1,2,0))
-    img = plt.imsave('digitanie_ds_test.jpg', img)
-
-
-if __name__ == '__main__':
-    main()
