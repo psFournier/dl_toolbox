@@ -90,7 +90,7 @@ class DigitanieNom(Enum):
 class Digitanie:
     
     image_path: str = None
-    window: object = None
+    image_zone: object = None
     no_data_vals: object = (
         np.array([0., 0., 0., 0.]).reshape(-1, 1, 1),
         np.array([0.0195023, 0.0336404, 0.0569544, 0.00735826]).reshape(-1, 1, 1)
@@ -98,6 +98,7 @@ class Digitanie:
     mins: ... = np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
     maxs: ... = np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
     label_path: ... = None
+    label_zone: object = None
     nomenclatures: object = DigitanieNom
 
     def read_image(self, window=None, bands=None):
