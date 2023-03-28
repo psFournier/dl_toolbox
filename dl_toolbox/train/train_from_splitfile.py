@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 import os
 import csv
 import numpy as np
+import shapely
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from pathlib import Path
@@ -13,8 +14,8 @@ import dl_toolbox.datasets as datasets
 import dl_toolbox.torch_collate as collate
 import dl_toolbox.utils as utils
 
-from dl_toolbox.datasets import Raster
-from rasterio.windows import from_bounds
+from dl_toolbox.datasets import RasterDataset
+import rasterio.windows as windows
 
 
 if os.uname().nodename == 'WDTIS890Z': 
@@ -84,16 +85,23 @@ nomenclature = datasets.Digitanie.nomenclatures[labels].value
 class_names = [label.name for label in nomenclature.labels]
 class_num = len(nomenclature.labels)
 
-for _ in range(5):
+for _ in range(1):
     
     train_idx = list(np.random.choice(8, 6, replace=False))
     val_idx = [i for i in range(8) if i not in train_idx]
     print(train_idx, val_idx)
     
-    train_sets = datasets.datasets_from_csv(data_path, split, train_idx)
-    train_set = ConcatDataset(
-        [datasets.Raster(ds, crop_size, aug, bands, labels) for ds in train_sets]
-    )
+    train_data_src = datasets.datasets_from_csv(data_path, split, train_idx)
+    train_sets =[
+        RasterDataset(
+            data_src=src,
+            crop_size=crop_size,
+            aug=aug,
+            bands=bands,
+            labels=labels
+        ) for src in train_data_src
+    ]
+    train_set = ConcatDataset(train_sets)
     train_dataloaders = {}
     train_dataloaders['sup'] = DataLoader(
         dataset=train_set,
@@ -109,29 +117,38 @@ for _ in range(5):
         drop_last=True
     )
     
+    
+    train_set_coords = []
+    for src in train_data_src:
+        if isinstance(src.zone, windows.Window):
+            bbox = windows.bounds(src.zone, src.meta['transform'])
+            train_set_coords.append(polygon_from_bbox(bbox))
+        elif isinstance(src.zone, shapely.Polygon):
+            train_set_coords.append(src.zone.exterior.coords)
     unsup_sets = []
-
-    train_set_bounds = []
-    for ds in train_sets:
-        window = ds.raster.window
-        train_set_bounds.append(rasterio.windows.bounds(window, ds.raster_tf))
-
-    for ds in datasets.datasets_from_csv(data_path, split, unsup_idx):
-
-        tf = ds.get_transform()
-        unsup_sets.append(
-            Raster(
-                raster=ds,
-                crop_size=unsup_crop_size,
-                aug=unsup_aug,
-                bands=bands,
-                labels=labels,
-                holes=[from_bounds(*b, tf) for b in train_set_bounds]
+    unsup_data_src = datasets.datasets_from_csv(data_path, split, unsup_idx)
+    for src in unsup_data_src:
+        if isinstance(src.zone, windows.Window):
+            bbox = windows.bounds(src.zone, src.meta['transform'])
+            poly_zone = shapely.Polygon(
+                shell=polygon_from_bbox(bbox),
+                holes=train_set_coords
             )
+        elif isinstance(src.zone, shapely.Polygon):
+            poly_zone = shapely.Polygon(
+                shell=src.zone.exterior.coords,
+                holes=train_set_coords
+            )
+        src.zone = poly_zone
+        unsup_set = RasterDataset(
+            data_src=src,
+            crop_size=unsup_crop_size,
+            aug=unsup_aug,
+            bands=bands,
+            labels=labels,
         )
-
+        unsup_sets.append(unsup_set)
     unsup_set = ConcatDataset(unsup_sets) 
-
     unsup_dataloader = DataLoader(
         dataset=unsup_set,
         batch_size=batch_size,
@@ -145,21 +162,19 @@ for _ in range(5):
         pin_memory=True,
         drop_last=True
     )
-
     train_dataloaders['unsup'] = unsup_dataloader
 
-    val_sets = datasets.datasets_from_csv(data_path, split, val_idx)
-    val_set = ConcatDataset(
-        [
-            datasets.Raster(
-                raster=ds,
-                crop_size=crop_size,
-                aug=val_aug,
-                bands=bands,
-                labels=labels
-            ) for ds in val_sets
-        ]
-    )
+    val_data_src = datasets.datasets_from_csv(data_path, split, val_idx)
+    val_sets = [
+        RasterDataset(
+            data_src=src,
+            crop_size=crop_size,
+            aug=val_aug,
+            bands=bands,
+            labels=labels
+        ) for src in val_data_src
+    ]
+    val_set = ConcatDataset(val_sets)
     val_dataloader = DataLoader(
         dataset=val_set,
         sampler=RandomSampler(

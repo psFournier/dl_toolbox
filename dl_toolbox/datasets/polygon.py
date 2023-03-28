@@ -12,23 +12,6 @@ from dl_toolbox.utils import MergeLabels, OneHot, LabelsToRGB, RGBToLabels
 import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import minmax
 
-
-def crop_from_polygon(window, crop_size, polygon, tf):
-    
-    while True:
-        
-        cx = window.col_off + np.random.randint(0, window.width - crop_size + 1)
-        cy = window.row_off + np.random.randint(0, window.height - crop_size + 1)
-        crop = Window(cx, cy, crop_size, crop_size)
-        
-        left, bottom, right, top = rasterio.windows.bounds(
-            crop,
-            transform=tf
-        )
-
-        crop_poly = Polygon(generate_polygon((left, bottom, right, top)))
-        
-        if polygon.contains(crop_poly): return crop
     
 class Raster(torch.utils.data.Dataset):
     
@@ -65,22 +48,15 @@ class Raster(torch.utils.data.Dataset):
         return 1
         
     def __getitem__(self, idx):
+             
+        crop = self.crop_from_polygon(
+            self.polygon_window,
+            self.pre_crop_size,
+            self.polygon,
+            self.raster_tf
+        )
         
         bands_idxs = np.array(self.bands).astype(int) - 1
-        crop = self.sample_crop(idx)
-        
-        crop = self.crop_from_window(self.window, self.pre_crop_size):
-        left, bottom, right, top = rasterio.windows.bounds(
-            crop,
-            transform=self.raster_img_tf
-        )
-        crop_poly = shapely.Polygon(generate_polygon((left, bottom, right, top)))
-
-        # checking that the crop intersects the train_zone enough
-        intersection = shapely.intersection(crop_poly, self.polygon)
-        area = shapely.area(intersection) / shapely.area(crop_poly)
-        
-        
         image = self.raster.read_image(crop, self.bands)
         image = torch.from_numpy(image).float().contiguous()
         label = None
@@ -88,7 +64,7 @@ class Raster(torch.utils.data.Dataset):
             label = self.raster.read_label(crop)
             label = self.labels_merger(np.squeeze(label))
             label = torch.from_numpy(label).float().contiguous()
-        image, label = self.rnd_rotate_and_true_crop(image, label)  
+        image, label = rnd_rotate_and_true_crop(image, label)  
         mins = torch.Tensor(self.raster.mins[bands_idxs])
         maxs = torch.Tensor(self.raster.maxs[bands_idxs])
         image = torch.clip((image - mins) / (maxs - mins), 0, 1)

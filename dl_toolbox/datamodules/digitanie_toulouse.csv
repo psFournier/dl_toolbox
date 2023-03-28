@@ -9,4 +9,4 @@ Digitanie,6,Toulouse/Toulouse_EPSG32631_6.tif,Toulouse/COS9/Toulouse_6.tif,0,0,2
 Digitanie,7,Toulouse/Toulouse_EPSG32631_7.tif,Toulouse/COS9/Toulouse_7.tif,0,0,2048,2048,7,"(0.029, 0.048, 0.074, 0.02)","(0.318, 0.343, 0.387, 0.484)"
 Digitanie,8,Toulouse/Toulouse_EPSG32631_8.tif,Toulouse/COS9/Toulouse_8.tif,0,0,2048,2048,8,"(0.029, 0.046, 0.071, 0.02)","(0.307, 0.33, 0.384, 0.633)"
 Digitanie,9,Toulouse/Toulouse_EPSG32631_9.tif,Toulouse/COS9/Toulouse_9.tif,0,0,2048,2048,9,"(0.026, 0.041, 0.067, 0.016)","(0.408, 0.345, 0.428, 0.684)"
-Digitanie,0,Toulouse/Toulouse.tif,none,0,0,20000,20000,10,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse.tif,none,0,0,0,0,10,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"

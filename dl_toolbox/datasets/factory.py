@@ -4,6 +4,7 @@ import numpy as np
 import ast 
 
 from dl_toolbox.datasets import *
+import rasterio.windows as windows
 
 
 datasets = {
@@ -36,16 +37,20 @@ def datasets_from_csv(data_path, split_path, folds):
         for row in reader:
             name, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
             if int(fold) in folds:
-                window = rasterio.windows.Window(
-                    col_off=int(x0),
-                    row_off=int(y0),
-                    width=int(w),
-                    height=int(h)
-                )
-                yield dataset_factory.create(name)(
-                    image_path=data_path/image_path,
-                    label_path=data_path/label_path if label_path != 'none' else None,
-                    mins=np.array(ast.literal_eval(mins)).reshape(-1, 1, 1),
-                    maxs=np.array(ast.literal_eval(maxs)).reshape(-1, 1, 1),
-                    window=window
-                )
+                co, ro, w, h = [int(e) for e in [x0, y0, w, h]]
+                if w==0 or h==0:
+                    data_src = dataset_factory.create(name)(
+                        image_path=data_path/image_path,
+                        label_path=data_path/label_path if label_path != 'none' else None,
+                        mins=np.array(ast.literal_eval(mins)).reshape(-1, 1, 1),
+                        maxs=np.array(ast.literal_eval(maxs)).reshape(-1, 1, 1)
+                    )
+                else:
+                    data_src = dataset_factory.create(name)(
+                        image_path=data_path/image_path,
+                        label_path=data_path/label_path if label_path != 'none' else None,
+                        mins=np.array(ast.literal_eval(mins)).reshape(-1, 1, 1),
+                        maxs=np.array(ast.literal_eval(maxs)).reshape(-1, 1, 1),
+                        zone=windows.Window(co, ro, w, h)
+                    ) 
+                yield data_src
