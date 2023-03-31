@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import DataLoader, Subset
 from pathlib import Path
 from datetime import datetime
+import torchvision.models as models
 
 import dl_toolbox.callbacks as callbacks
 import dl_toolbox.modules as modules 
@@ -27,57 +28,68 @@ else:
     data_root = Path(os.environ['TMPDIR'])
     home = Path('/home/eh/fournip')
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
-    print('torch device count', torch.cuda.device_count())
-    
+
 # datasets params
 dataset_name = 'NWPU-RESISC45'
 data_path = data_root / dataset_name
+
+#labels = 'initial'
+nomenclature = datasets.ResiscNomenclatures['basket-tennis'].value
+
+train_idx = [700*i+j for i in range(len(nomenclature)) for j in range(0,650)]
+val_idx = [700*i+j for i in range(len(nomenclature)) for j in range(650,700)]
+crop_size=256
+crop_step=256
 aug = 'd4_color-5'
+val_aug = 'no'
+
+
+bands = [1,2,3]
+unsup_crop_size = 256
 unsup_aug = 'd4'
-labels = 'test'
-nomenclature = datasets.Resisc.nomenclatures[labels].value
-class_names = [label.name for label in nomenclature.labels]
-class_num = len(nomenclature.labels)
-train_indices = [700*i+j for i in range(class_num) for j in range(0,100)]
-unsup_train_indices = [700*i+j for i in range(class_num) for j in range(700)]
-val_indices = [700*i+j for i in range(class_num) for j in range(600,650)]
+unsup_idx = [700*i+j for i in range(len(nomenclature)) for j in range(700)]
+
 # dataloaders params
 batch_size = 16
 num_workers=6
+epoch_steps = np.ceil(len(train_idx) / batch_size)
+
+# network params
+pretrained=False
+in_channels=len(bands)
+out_channels=len(nomenclature)
+
 # module params
 mixup=0. # incompatible with ignore_zero=True
-weights = [1,1]
-network='Vgg'
-pretrained=False
-in_channels=3
-out_channels=2
+weights = [1.] * len(nomenclature)
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(15,30,0.,1.)
+alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
 pseudo_threshold=0.9
 consist_aug='color-5'
-ema_ramp=utils.SigmoidRamp(15,30,0.9,0.99)
+ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
+
 # trainer params
 num_epochs = 100
-max_steps=num_epochs * len(train_indices)
+max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'test'
+log_name = 'full'
 ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
 
 resisc = datasets.Resisc(
     data_path=data_path,
     img_aug=aug,
-    labels=labels
+    nomenclature=nomenclature
 )
 
-train_set = Subset(resisc, indices=train_indices)
-val_set = Subset(resisc, indices=val_indices)
-unsup_train_set = Subset(resisc, indices=unsup_train_indices)
+train_set = Subset(resisc, indices=train_idx)
+val_set = Subset(resisc, indices=val_idx)
+unsup_train_set = Subset(resisc, indices=unsup_idx)
 
 train_dataloaders = {}
 
@@ -91,15 +103,15 @@ train_dataloaders['sup'] = DataLoader(
     drop_last=True
 )
 
-train_dataloaders['unsup'] = DataLoader(
-    dataset=unsup_train_set,
-    batch_size=batch_size,
-    shuffle=True,
-    collate_fn=collate.CustomCollate(),
-    num_workers=num_workers,
-    pin_memory=True,
-    drop_last=True
-)
+#train_dataloaders['unsup'] = DataLoader(
+#    dataset=unsup_train_set,
+#    batch_size=batch_size,
+#    shuffle=True,
+#    collate_fn=collate.CustomCollate(),
+#    num_workers=num_workers,
+#    pin_memory=True,
+#    drop_last=True
+#)
 
 val_dataloader = DataLoader(
     dataset=val_set,
@@ -110,27 +122,29 @@ val_dataloader = DataLoader(
     pin_memory=True
 )
 
+
+network = models.efficientnet_b0(
+    num_classes=len(nomenclature)
+)
+
 ### Building lightning module
-module = modules.MeanTeacher(
+module = modules.Supervised(
     mixup=mixup, # incompatible with ignore_zero=True
     network=network,
-    #encoder=encoder,
-    pretrained=pretrained,
+    num_classes=len(nomenclature),
     weights=weights,
-    in_channels=in_channels,
-    out_channels=out_channels,
     initial_lr=initial_lr,
     ttas=ttas,
-    alpha_ramp=alpha_ramp,
-    pseudo_threshold=pseudo_threshold,
-    consist_aug=consist_aug,
-    ema_ramp=ema_ramp
+    #alpha_ramp=alpha_ramp,
+    #pseudo_threshold=pseudo_threshold,
+    #consist_aug=consist_aug,
+    #ema_ramp=ema_ramp
 )
 
 ### Metrics and plots from confmat callback
 metrics_from_confmat = callbacks.MetricsFromConfmat(        
-    num_classes=class_num,
-    class_names=class_names
+    num_classes=len(nomenclature),
+    class_names=[label.name for label in nomenclature]
 )
     
 ### Trainer instance
@@ -149,7 +163,7 @@ trainer = pl.Trainer(
     ),
     callbacks=[
         pl.callbacks.ModelCheckpoint(),
-        pl.callbacks.EarlyStopping(monitor='Val_loss', patience=5),
+        pl.callbacks.EarlyStopping(monitor='Val_loss', patience=10),
         metrics_from_confmat
     ]
 )

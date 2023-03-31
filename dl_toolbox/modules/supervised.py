@@ -15,6 +15,7 @@ class Supervised(pl.LightningModule):
         initial_lr,
         ttas,
         network,
+        num_classes,
         weights,
         mixup,
         *args,
@@ -23,18 +24,18 @@ class Supervised(pl.LightningModule):
 
         super().__init__()
         
-        self.net_factory = NetworkFactory()
-        net_cls = self.net_factory.create(network)
-        self.network = net_cls(*args, **kwargs)
+        #self.net_factory = NetworkFactory()
+        #net_cls = self.net_factory.create(network)
+        #self.network = net_cls(*args, **kwargs)
+        self.network = network
+        self.num_classes = num_classes
         
-        num_classes = self.network.out_channels
-        weights = list(weights) if len(weights)>0 else [1]*num_classes
         self.loss = nn.CrossEntropyLoss(
             weight=torch.Tensor(weights)
             #weight=torch.Tensor(self.weights).reshape(1,-1,*self.network.out_dim)
         )
         
-        self.onehot = TorchOneHot(range(num_classes))
+        self.onehot = TorchOneHot(range(self.num_classes))
         self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
         self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
         self.save_hyperparameters()

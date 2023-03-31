@@ -33,7 +33,8 @@ else:
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
 
 # datasets params
-data_path = data_root / 'DIGITANIE'
+dataset_name = 'DIGITANIE"
+data_path = data_root / dataset_name
 split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_toulouse.csv'
 train_idx = [0,1,2,3,4,5]
 val_idx = [6,7]
@@ -55,12 +56,12 @@ num_workers=6
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-weights = [5.,1.]
+weights = [0., 1., 10.]
 network='SmpUnet'
 encoder='efficientnet-b1'
 pretrained=False
 in_channels=len(bands)
-out_channels=2
+out_channels=3
 initial_lr=0.001
 ttas=[]
 alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
@@ -76,14 +77,14 @@ devices=1
 multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
-save_dir = save_root / 'DIGITANIE'
+save_dir = save_root / dataset_name
 log_name = 'toulouse'
 ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
 
 # other
 nomenclature = datasets.Digitanie.nomenclatures[labels].value
-class_names = [label.name for label in nomenclature.labels]
-class_num = len(nomenclature.labels)
+class_names = [label.name for label in nomenclature]
+class_num = len(nomenclature)
 
 for _ in range(1):
     
@@ -189,7 +190,7 @@ for _ in range(1):
     )
 
     ### Building lightning module
-    module = modules.Supervised(
+    module = modules.MeanTeacher(
         mixup=mixup, # incompatible with ignore_zero=True
         network=network,
         encoder=encoder,
@@ -199,10 +200,10 @@ for _ in range(1):
         out_channels=out_channels,
         initial_lr=initial_lr,
         ttas=ttas,
-        #alpha_ramp=alpha_ramp,
-        #pseudo_threshold=pseudo_threshold,
-        #consist_aug=consist_aug,
-        #ema_ramp=ema_ramp
+        alpha_ramp=alpha_ramp,
+        pseudo_threshold=pseudo_threshold,
+        consist_aug=consist_aug,
+        ema_ramp=ema_ramp
     )
 
     ### Metrics and plots from confmat callback

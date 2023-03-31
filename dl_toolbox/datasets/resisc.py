@@ -8,15 +8,15 @@ import torch
 import numpy as np
 
 from collections import namedtuple
-from enum import Enum
+import enum
 
 from dl_toolbox.utils import MergeLabels, OneHot
 from dl_toolbox.torch_collate import CustomCollate
 import dl_toolbox.augmentations as augmentations
 
 
-label = namedtuple('label', ['idx', 'name'])
-nomenclature = namedtuple('nomenclature', ['labels'])
+label = namedtuple('label', ['name', 'color', 'values'])
+
 cls_names = [
     'airplane',
     'bridge',
@@ -65,16 +65,37 @@ cls_names = [
     'wetland'
 ]
 
-class nomenclatures(Enum):
-    base = nomenclature(
-        labels=[label(idx=i, name=name) for i,name in enumerate(cls_names)],
-    )
-    test = nomenclature(
-        labels=[
-            label(idx=0, name='stadium'),
-            label(idx=1, name='wetland')
-        ]
-    )
+initial_nomenclature = [label(name, None, {i}) for i, name in enumerate(cls_names)]
+
+def get_subnomenc_1(nomenc, name):
+    idx = cls_names.index(name)
+    return [
+        label('other', None, set(range(0, len(nomenc))) - {idx}),
+        nomenc[idx]
+    ]
+
+def get_subnomenc_2(nomenc, name1, name2):
+    return [
+        label(name1, None, {cls_names.index(name1)}),
+        label(name2, None, {cls_names.index(name2)})
+    ]
+
+ResiscNomenclatures = enum.Enum(
+    'ResiscNomenclatures',
+    {
+        'initial':initial_nomenclature,
+        **dict([
+            (name, get_subnomenc_1(initial_nomenclature, name))
+            for name in cls_names
+        ]),
+        'basket-tennis': get_subnomenc_2(
+            initial_nomenclature,
+            'basketball_court',
+            'tennis_court'
+        )
+    }
+)
+
     
 def pil_to_torch_loader(path: str):
 
@@ -85,15 +106,13 @@ def pil_to_torch_loader(path: str):
 
 class Resisc(DatasetFolder):
     
-    nomenclatures = nomenclatures
-
     def __init__(
         self,
         data_path,
         img_aug,
-        labels
+        nomenclature
     ):
-        self.nomenclature = self.nomenclatures[labels].value
+        self.nomenclature = nomenclature
         super().__init__(
             root=data_path,
             loader=pil_to_torch_loader,
@@ -103,16 +122,16 @@ class Resisc(DatasetFolder):
         
     def find_classes(self, directory):
         
-        names = [label.name for label in self.nomenclature.labels]
+        names = [cls_names[i] for label in self.nomenclature for i in label.values]
         classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir() and entry.name in names)
         if not classes:
             raise FileNotFoundError(f"Couldn't find any class folder in {directory}.")
 
-        class_to_idx = {cls_name: i for i, cls_name in enumerate(classes)}
+        class_to_idx = {cls_names[i]: j for j, label in enumerate(self.nomenclature) for i in label.values if cls_names[i] in classes}
         return classes, class_to_idx
 
     def __getitem__(self, idx):
-
+        
         path, label = self.samples[idx]
         image = self.loader(path)
         end_image, _ = self.img_aug(img=image)

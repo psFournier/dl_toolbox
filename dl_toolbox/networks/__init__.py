@@ -3,4 +3,18 @@ from .smp_unet import SmpUnet
 from .vgg import Vgg
 from .flair import *
 from .encode_then_upsample import *
-from .network_factory import NetworkFactory
+from torchvision.models import efficientnet_b0
+
+networks = {
+    'Vgg': Vgg,
+    'Unet': Unet,
+    'SmpUnet': SmpUnet,
+    'EncodeThenUpsample': EncodeThenUpsample,
+    'Efficientnetb0': efficientnet_b0
+}
+
+class NetworkFactory:
+
+    @staticmethod
+    def create(name):
+        return networks[name]

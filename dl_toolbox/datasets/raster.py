@@ -98,7 +98,7 @@ class RasterDataset(torch.utils.data.Dataset):
                 data_src.meta['transform']
             )
         
-        self.labels_merger = MergeLabels(self.labels.merge)
+        self.labels_merger = MergeLabels([list(l.values) for l in self.labels])
             
     def __len__(self):
         

@@ -4,66 +4,29 @@ import numpy as np
 from dataclasses import dataclass
 from enum import Enum
 
-label = namedtuple('label', ['idx', 'name', 'color'])
-nomenclature = namedtuple('nomenclature', ['labels', 'merge'])
+label = namedtuple('label', ['name', 'color', 'values'])
 
+initial_nomenclature = [
+    label('void', (255, 255, 255), {0}),
+    label('impervious surface', (38, 38, 38), {1}),
+    label('building', (238, 118, 33), {2})
+    label('pervious surface', (34, 139, 34), {3}),
+    label('high vegetation', (0, 222, 137), {4}),
+    label('car', (255, 0, 0), {5})
+    label('water', (0, 0, 238), {6}),
+    label('sport venue', (160, 30, 230), {7})
+]
 
-base_nom = nomenclature(
-    labels=[
-        label(idx=0, name='nodata', color=(0, 0, 0)),
-        label(idx=1, name='vegetation', color=(0, 250, 50)),
-        label(idx=2, name='water', color=(0, 50, 250)),
-        label(idx=3, name='building', color=(250, 50, 50)),
-        label(idx=4, name='road', color=(100, 100, 100)),
-        label(idx=5, name='other', color=(250,250,250))
-    ],
-    merge=[[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
-)
+def get_subnomenc(nomenc, idx):
+    return [
+        label('nodata', (0, 0, 0), {0}),
+        label('other', (250, 250, 250), set(range(1, len(nomenc))) - {idx}),
+        nomenc[idx]
+    ]
 
-building_nom = nomenclature(
-    labels=[
-        label(idx=0, name='building', color=(250, 50, 50)),
-        label(idx=1, name='other', color=(250,250,250))
-    ],
-    merge=[[3], [0,1, 2, 4, 5, 6,7,8,9]]
-)
-
-semcity_labels = {
-
-    'base' : {
-        'void': {'color': (255, 255, 255), 'count': 3080233},
-        'impervious surface': {'color': (38, 38, 38), 'count': 45886967},
-        'building': {'color': (238, 118, 33), 'count':43472320},
-        'pervious surface': {'color': (34, 139, 34), 'count':58879144 },
-        'high vegetation': {'color': (0, 222, 137), 'count':31261675 },
-        'car': {'color': (255, 0, 0), 'count': 3753288},
-        'water': {'color': (0, 0, 238), 'count': 7199301},
-        'sport venue': {'color': (160, 30, 230), 'count': 0}
-    },
-    'semcity' : {
-        'other': {'color': (255, 255, 255)},
-        'pervious surface': {'color': (34, 139, 34)},
-        'water': {'color': (0, 0, 238)},
-        'building': {'color': (238, 118, 33)},
-        'high vegetation': {'color': (0, 222, 137)},
-        'impervious surface': {'color': (38, 38, 38)}
-    },
-    'building': {
-        'background': {'color': (0,0,0)},
-        'building': {'color': (255, 255, 255)}
-    }
-}
-
-mergers = {
-    'base' : [[0], [1], [2], [3], [4], [5], [6], [7]],
-    'semcity' : [[0,7], [3], [6], [2], [4], [1, 5]],
-    'building' : [[0,1,4,3,5,6,7],[2]]
-}
-
-
-class SemcityNom(Enum):
+class SemcityNomenclatures(Enum):
     base = mainFuseVege_nom
-    bulding = building_nom
+    building = get_subnomenc(initial_nomenclature, 2)
 
 @dataclass
 class Semcity:
@@ -74,7 +37,7 @@ class Semcity:
     mins: ... = # default to be calculated
     maxs: ... = # default to be calculated
     label_path: ... = None
-    nomenclatures: object = SemcityNom
+    nomenclatures: object = SemcityNomenclatures
 
     def read_image(self, window=None, bands=None):
         

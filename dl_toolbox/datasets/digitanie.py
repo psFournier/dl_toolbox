@@ -16,68 +16,47 @@ DATA_POLYGON = Polygon(
      [359326,4833160]]
 )
 
-label = namedtuple('label', ['idx', 'name', 'color'])
-nomenclature = namedtuple('nomenclature', ['labels', 'merge'])
+label = namedtuple('label', ['name', 'color', 'values'])
 
-#    #'base':{
-#    #    'nodata': {'color': (0, 0, 0)},
-#    #    'bare_ground': {'color':(100, 50, 0)},
-#    #    'low_vegetation': {'color':(0, 250, 50)},
-#    #    'water': {'color':(0, 50, 250)},
-#    #    'building': {'color':(250, 50, 50)},
-#    #    'high_vegetation': {'color':(0, 100, 50)},
-#    #    'parking': {'color':(200, 200, 200)},
-#    #    'road': {'color':(100, 100, 100)},
-#    #    'railways': {'color':(200, 100, 200)},
-#    #    'swimmingpool': {'color':(50, 150, 250)}
-#    #},
+initial_nomenclature = [
+    label('nodata', (0, 0, 0), {0}),
+    label('bare_ground', (100, 50, 0), {1}),
+    label('low_vegetation', (0, 250, 50), {2}),
+    label('water', (0, 50, 250), {3}),
+    label('building', (250, 50, 50), {4}),
+    label('high_vegetation', (0, 100, 50), {5}),
+    label('parking', (200, 200, 200), {6}),
+    label('road', (100, 100, 100), {7}),
+    label('railways', (200, 100, 200), {8}),
+    label('swimmingpool', (50, 150, 250), {9})
+]
 
-mainFuseVege_nom = nomenclature(
-    labels=[
-        label(idx=0, name='nodata', color=(0, 0, 0)),
-        label(idx=1, name='vegetation', color=(0, 250, 50)),
-        label(idx=2, name='water', color=(0, 50, 250)),
-        label(idx=3, name='building', color=(250, 50, 50)),
-        label(idx=4, name='road', color=(100, 100, 100)),
-        label(idx=5, name='other', color=(250,250,250))
-    ],
-    merge=[[0], [2, 5], [3], [4], [7], [1, 6, 8, 9]]
-)
+main_nomenclature = [
+    label('nodata', (0, 0, 0), {0}),
+    label('low vegetation', (0,250, 50), {2}),
+    label('high vegetation', (0,100,50), {5}),
+    label('water', (0, 50, 250), {3}),
+    label('building', (250, 50, 50), {4}),
+    label('road', (100, 100, 100), {7}),
+    label('other', (250,250,250), {1, 6, 8, 9})
+]
 
-main_nom = nomenclature(
-    labels=[
-        label(idx=0, name='nodata', color=(0, 0, 0)),
-        label(idx=1, name='low vegetation', color=(0,250, 50)),
-        label(idx=6, name='high vegetation', color=(0,100,50)),
-        label(idx=2, name='water', color=(0, 50, 250)),
-        label(idx=3, name='building', color=(250, 50, 50)),
-        label(idx=4, name='road', color=(100, 100, 100)),
-        label(idx=5, name='other', color=(250,250,250))
-    ],
-    merge=[[0], [2],[5], [3], [4], [7], [1, 6, 8, 9]]
-)
+def get_subnomenc(nomenc, idx):
+    return [
+        label('nodata', (0, 0, 0), {0}),
+        label('other', (250, 250, 250), set(range(1, len(nomenc))) - {idx}),
+        nomenc[idx]
+    ]
 
-building_nom = nomenclature(
-    labels=[
-        label(idx=0, name='building', color=(250, 50, 50)),
-        label(idx=1, name='other', color=(250,250,250))
-    ],
-    merge=[[3], [0,1, 2, 4, 5, 6,7,8,9]]
-)
-
-road_nom = nomenclature(
-    labels=[
-        label(idx=0, name='road', color=(100, 100, 100)),
-        label(idx=1, name='other', color=(250,250,250))
-    ],
-    merge=[[7], [0,1, 2, 4, 5, 6,3,8,9]]
-)
-
-class DigitanieNom(Enum):
-    mainFuseVege = mainFuseVege_nom
-    building = building_nom
-    road = road_nom
-
+class DigitanieNomenclatures(Enum):
+    initial = initial_nomenclature
+    main = main_nomenclature
+    building = get_subnomenc(initial_nomenclature, 4)
+    low_vege = get_subnomenc(initial_nomenclature, 2)
+    high_vege = get_subnomenc(initial_nomenclature, 5)
+    water = get_subnomenc(initial_nomenclature, 3)
+    road = get_subnomenc(initial_nomenclature, 7)
+            
 @dataclass
 class Digitanie:
     
@@ -90,7 +69,7 @@ class Digitanie:
     mins: ... = np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
     maxs: ... = np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
     label_path: ... = None
-    nomenclatures: object = DigitanieNom
+    nomenclatures = DigitanieNomenclatures
     
     def __post_init__(self):
         

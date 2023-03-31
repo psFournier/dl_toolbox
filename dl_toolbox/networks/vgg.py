@@ -55,15 +55,6 @@ class Vgg(nn.Module):
         self.pred = nn.Linear(512,out_channels)
         self.relu = nn.ReLU(inplace=True)
 
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
-
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--in_channels", type=int)
-        parser.add_argument("--out_channels", type=int)
-
-        return parser
-
     def forward(self, x):
         x1 = self.inc(x)
         x2 = self.down1(x1)

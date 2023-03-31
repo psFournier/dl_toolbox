@@ -42,20 +42,22 @@ def plot_confusion_matrix(cm, class_names, norm):
     threshold = cm.max() / 2.0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         color = "white" if cm[i, j] > threshold else "black"
-        ax.text(j, i, labels[i, j], fontsize=12, horizontalalignment="center", color=color)
+        ax.text(j, i, labels[i, j], fontsize=6, horizontalalignment="center", color=color)
     ax.set_ylabel("True label")
     ax.set_xlabel("Predicted label")
-    plt.tight_layout()
+    fig.tight_layout()
     
     return fig
 
 def plot_ious(ious, class_names, baseline=None):
     
-    y_pos = np.arange(len(ious)) #- .2
+    num_class = len(ious)
+    
+    y_pos = np.arange(num_class) #- .2
     #y_pos_2 = np.arange(len(classes)-1) + .2
     ious = [round(i, 4) for i in ious]
     if baseline is None:
-        baseline = [0.]*len(ious)
+        baseline = [0.]*num_class
     diff = [round(i-b, 4) for i,b in zip(ious, baseline)]
 
     bar_width = .8
@@ -68,12 +70,12 @@ def plot_ious(ious, class_names, baseline=None):
 
     axs[1].set_yticks([])
     axs[1].set_xlabel('IoU')
-    axs[1].set_ylim(0 - .4, (len(ious)) + .4)
+    axs[1].set_ylim(0 - .4, (num_class) + .4)
     axs[1].set_xlim(0, 1)
 
     cell_text = list(zip(ious, baseline, diff))
     c = ['r' if d<0 else 'g' for d in diff]
-    cellColours = list(zip(['white']*12, ['white']*12, c))
+    cellColours = list(zip(['white']*num_class, ['white']*num_class, c))
 
     column_labels = ['iou', 'baseline', 'difference']
 
