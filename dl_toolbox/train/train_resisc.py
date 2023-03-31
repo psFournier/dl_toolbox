@@ -2,6 +2,8 @@ import pytorch_lightning as pl
 import os
 import numpy as np
 import torch
+import math
+import torch.nn as nn
 
 from torch.utils.data import DataLoader, Subset
 from pathlib import Path
@@ -58,10 +60,11 @@ epoch_steps = np.ceil(len(train_idx) / batch_size)
 pretrained=False
 in_channels=len(bands)
 out_channels=len(nomenclature)
+weights = 'IMAGENET1K_V1'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-weights = [1.] * len(nomenclature)
+class_weights = [1.] * len(nomenclature)
 initial_lr=0.001
 ttas=[]
 alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
@@ -124,15 +127,25 @@ val_dataloader = DataLoader(
 
 
 network = models.efficientnet_b0(
-    num_classes=len(nomenclature)
+    num_classes=len(nomenclature) if weights is None else 1000,
+    weights=weights
 )
+if weights is not None:
+    # switching head for num_class and init
+    head = nn.Linear(1280, len(nomenclature)) # 1280 comes from 4 * lastconv_input_channels=320 in efficientnet_b0
+    network.classifier[-1] = head
+    init_range = 1.0 / math.sqrt(head.out_features)
+    nn.init.uniform_(head.weight, -init_range, init_range)
+    nn.init.zeros_(head.bias)
+    
+
 
 ### Building lightning module
 module = modules.Supervised(
     mixup=mixup, # incompatible with ignore_zero=True
     network=network,
     num_classes=len(nomenclature),
-    weights=weights,
+    class_weights=class_weights,
     initial_lr=initial_lr,
     ttas=ttas,
     #alpha_ramp=alpha_ramp,

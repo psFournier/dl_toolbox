@@ -16,7 +16,7 @@ class Supervised(pl.LightningModule):
         ttas,
         network,
         num_classes,
-        weights,
+        class_weights,
         mixup,
         *args,
         **kwargs
@@ -31,7 +31,7 @@ class Supervised(pl.LightningModule):
         self.num_classes = num_classes
         
         self.loss = nn.CrossEntropyLoss(
-            weight=torch.Tensor(weights)
+            weight=torch.Tensor(class_weights)
             #weight=torch.Tensor(self.weights).reshape(1,-1,*self.network.out_dim)
         )
         
