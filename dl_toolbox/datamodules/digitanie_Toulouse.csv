@@ -1,0 +1,12 @@
+city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,min_vals,max_vals
+Digitanie,0,Toulouse/Toulouse.tif,none,0,0,55600,54062,0,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_0.tif,Toulouse/COS9/Toulouse_0.tif,0,0,2048,2048,1,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_1.tif,Toulouse/COS9/Toulouse_1.tif,0,0,2048,2048,2,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_2.tif,Toulouse/COS9/Toulouse_2.tif,0,0,2048,2048,3,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_3.tif,Toulouse/COS9/Toulouse_3.tif,0,0,2048,2048,4,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_4.tif,Toulouse/COS9/Toulouse_4.tif,0,0,2048,2048,5,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_5.tif,Toulouse/COS9/Toulouse_5.tif,0,0,2048,2048,6,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_6.tif,Toulouse/COS9/Toulouse_6.tif,0,0,2048,2048,7,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_7.tif,Toulouse/COS9/Toulouse_7.tif,0,0,2048,2048,8,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_8.tif,Toulouse/COS9/Toulouse_8.tif,0,0,2048,2048,9,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"
+Digitanie,0,Toulouse/Toulouse_EPSG32631_9.tif,Toulouse/COS9/Toulouse_9.tif,0,0,2048,2048,10,"(0.0, 0.0, 0.0, 0.0)","(1.101, 0.979, 0.948, 1.514)"

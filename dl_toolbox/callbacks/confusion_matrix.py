@@ -34,17 +34,17 @@ def plot_confusion_matrix(cm, class_names, norm):
         ax.set_title("Precision matrix")
 
     ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
-    ax.set_xticks(tick_marks, class_names, rotation=90, fontsize=8)
-    ax.set_yticks(tick_marks, class_names, fontsize=8)
+    ax.set_xticks(tick_marks, class_names, rotation=90, fontsize=4)
+    ax.set_yticks(tick_marks, class_names, fontsize=4)
     # Compute the labels from the normalized confusion matrix.
     labels = np.around(cm.astype('float') * 100).astype('int')
     # Use white text if squares are dark; otherwise black.
     threshold = cm.max() / 2.0
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         color = "white" if cm[i, j] > threshold else "black"
-        ax.text(j, i, labels[i, j], fontsize=6, horizontalalignment="center", color=color)
-    ax.set_ylabel("True label")
-    ax.set_xlabel("Predicted label")
+        ax.text(j, i, labels[i, j], fontsize=4, horizontalalignment="center", color=color)
+    ax.set_ylabel("True label", fontsize=4)
+    ax.set_xlabel("Predicted label", fontsize=4)
     fig.tight_layout()
     
     return fig

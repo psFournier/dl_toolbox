@@ -1,0 +1,12 @@
+city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,min_vals,max_vals
+Digitanie,0,Port-Elisabeth/Port-Elisabeth.tif,none,0,0,41100,40316,0,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_0.tif,Port-Elisabeth/COS9/Port-Elisabeth_0.tif,0,0,2048,2048,1,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_1.tif,Port-Elisabeth/COS9/Port-Elisabeth_1.tif,0,0,2048,2048,2,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_2.tif,Port-Elisabeth/COS9/Port-Elisabeth_2.tif,0,0,2048,2048,3,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_3.tif,Port-Elisabeth/COS9/Port-Elisabeth_3.tif,0,0,2048,2048,4,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_4.tif,Port-Elisabeth/COS9/Port-Elisabeth_4.tif,0,0,2048,2048,5,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_5.tif,Port-Elisabeth/COS9/Port-Elisabeth_5.tif,0,0,2048,2048,6,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_6.tif,Port-Elisabeth/COS9/Port-Elisabeth_6.tif,0,0,2048,2048,7,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_7.tif,Port-Elisabeth/COS9/Port-Elisabeth_7.tif,0,0,2048,2048,8,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_8.tif,Port-Elisabeth/COS9/Port-Elisabeth_8.tif,0,0,2048,2048,9,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"
+Digitanie,0,Port-Elisabeth/Port-Elisabeth_EPSG32735_9.tif,Port-Elisabeth/COS9/Port-Elisabeth_9.tif,0,0,2048,2048,10,"(0.0, 0.0, 0.0, 0.0)","(1.667, 1.398, 1.272, 1.715)"

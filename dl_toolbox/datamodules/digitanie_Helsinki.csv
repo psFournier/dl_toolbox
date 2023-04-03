@@ -1,0 +1,12 @@
+city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,min_vals,max_vals
+Digitanie,0,Helsinki/Helsinki.tif,none,0,0,41223,27715,0,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_0.tif,Helsinki/COS9/Helsinki_0.tif,0,0,2048,2048,1,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_1.tif,Helsinki/COS9/Helsinki_1.tif,0,0,2048,2048,2,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_2.tif,Helsinki/COS9/Helsinki_2.tif,0,0,2048,2048,3,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_3.tif,Helsinki/COS9/Helsinki_3.tif,0,0,2048,2048,4,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_4.tif,Helsinki/COS9/Helsinki_4.tif,0,0,2048,2048,5,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_5.tif,Helsinki/COS9/Helsinki_5.tif,0,0,2048,2048,6,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_6.tif,Helsinki/COS9/Helsinki_6.tif,0,0,2048,2048,7,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_7.tif,Helsinki/COS9/Helsinki_7.tif,0,0,2048,2048,8,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_8.tif,Helsinki/COS9/Helsinki_8.tif,0,0,2048,2048,9,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"
+Digitanie,0,Helsinki/Helsinki_EPSG32635_9.tif,Helsinki/COS9/Helsinki_9.tif,0,0,2048,2048,10,"(0.0, 0.0, 0.0, 0.0)","(2.727, 2.472, 2.221, 2.973)"

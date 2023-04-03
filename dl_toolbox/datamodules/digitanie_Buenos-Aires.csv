@@ -1,0 +1,12 @@
+city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,min_vals,max_vals
+Digitanie,0,Buenos-Aires/Buenos-Aires.tif,none,0,0,41879,81685,0,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_0.tif,Buenos-Aires/COS9/Buenos-Aires_0.tif,0,0,2048,2048,1,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_1.tif,Buenos-Aires/COS9/Buenos-Aires_1.tif,0,0,2048,2048,2,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_2.tif,Buenos-Aires/COS9/Buenos-Aires_2.tif,0,0,2048,2048,3,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_3.tif,Buenos-Aires/COS9/Buenos-Aires_3.tif,0,0,2048,2048,4,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_4.tif,Buenos-Aires/COS9/Buenos-Aires_4.tif,0,0,2048,2048,5,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_5.tif,Buenos-Aires/COS9/Buenos-Aires_5.tif,0,0,2048,2048,6,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_6.tif,Buenos-Aires/COS9/Buenos-Aires_6.tif,0,0,2048,2048,7,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_7.tif,Buenos-Aires/COS9/Buenos-Aires_7.tif,0,0,2048,2048,8,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_8.tif,Buenos-Aires/COS9/Buenos-Aires_8.tif,0,0,2048,2048,9,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
+Digitanie,0,Buenos-Aires/Buenos-Aires_EPSG32721_TOA_9.tif,Buenos-Aires/COS9/Buenos-Aires_9.tif,0,0,2048,2048,10,"(0.0, 0.0, 0.0, 0.0)","(0.996, 0.89, 0.843, 1.18)"
