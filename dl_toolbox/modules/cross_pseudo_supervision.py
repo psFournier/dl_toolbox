@@ -12,8 +12,10 @@ class CrossPseudoSupervision(pl.LightningModule):
         self,
         initial_lr,
         ttas,
-        network,
-        weights,
+        network1,
+        network2,
+        num_classes,
+        class_weights,
         alpha_ramp,
         pseudo_threshold,
         *args,
@@ -22,15 +24,12 @@ class CrossPseudoSupervision(pl.LightningModule):
 
         super().__init__()
         
-        self.net_factory = NetworkFactory()
-        net_cls = self.net_factory.create(network)
-        self.network1 = net_cls(*args, **kwargs)
-        self.network2 = net_cls(*args, **kwargs)
+        self.num_classes = num_classes
+        self.network1 = network1
+        self.network2 = network2
         
-        num_classes = self.network1.out_channels
-        weights = list(weights) if len(weights)>0 else [1]*num_classes
         self.loss = nn.CrossEntropyLoss(
-            weight=torch.Tensor(weights)
+            weight=torch.Tensor(class_weights)
         )
         
         self.unsup_loss = nn.CrossEntropyLoss(

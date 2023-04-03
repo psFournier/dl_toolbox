@@ -14,7 +14,8 @@ class MeanTeacher(pl.LightningModule):
         initial_lr,
         ttas,
         network,
-        weights,
+        num_classes,
+        class_weights,
         alpha_ramp,
         pseudo_threshold,
         consist_aug,
@@ -25,15 +26,12 @@ class MeanTeacher(pl.LightningModule):
 
         super().__init__()
         
-        self.net_factory = NetworkFactory()
-        net_cls = self.net_factory.create(network)
-        self.network = net_cls(*args, **kwargs)
+        self.network = network
+        self.num_classes = num_classes
         self.teacher_network = deepcopy(self.network)
         
-        num_classes = self.network.out_channels
-        weights = list(weights) if len(weights)>0 else [1]*num_classes
         self.loss = nn.CrossEntropyLoss(
-            weight=torch.Tensor(weights)
+            weight=torch.Tensor(class_weights)
         )
         
         self.unsup_loss = nn.CrossEntropyLoss(
@@ -65,11 +63,6 @@ class MeanTeacher(pl.LightningModule):
     def probas2confpreds(cls, probas):
         
         return torch.max(probas, dim=1)
-    
-    def on_train_epoch_start(self):
-        
-        self.alpha = self.alpha_ramp(self.trainer.current_epoch)   
-        self.log('Prop unsup train', self.alpha)
 
     def on_train_epoch_start(self):
         

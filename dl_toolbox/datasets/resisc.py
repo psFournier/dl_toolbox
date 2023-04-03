@@ -83,7 +83,7 @@ def get_subnomenc_2(nomenc, name1, name2):
 ResiscNomenclatures = enum.Enum(
     'ResiscNomenclatures',
     {
-        'initial':initial_nomenclature,
+        'all':initial_nomenclature,
         **dict([
             (name, get_subnomenc_1(initial_nomenclature, name))
             for name in cls_names

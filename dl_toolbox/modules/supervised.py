@@ -24,9 +24,6 @@ class Supervised(pl.LightningModule):
 
         super().__init__()
         
-        #self.net_factory = NetworkFactory()
-        #net_cls = self.net_factory.create(network)
-        #self.network = net_cls(*args, **kwargs)
         self.network = network
         self.num_classes = num_classes
         
