@@ -109,19 +109,23 @@ def compute_conf_mat(labels, preds, num_classes, ignore_idx=None):
 
 class MetricsFromConfmat(pl.Callback):
 
-    def __init__(self, num_classes, class_names, *args, **kwargs):
+    def __init__(self, num_classes, class_names, plot_iou=True, plot_confmat=True, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.num_classes = num_classes
         self.class_names = class_names
-        self.plot_iou = True
-        self.plot_confmat = True
+        self.plot_iou = plot_iou
+        self.plot_confmat = plot_confmat
 
     def on_validation_epoch_start(self, trainer, pl_module):
         
         self.confmat = torch.zeros((self.num_classes, self.num_classes))
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        
+    def on_test_epoch_start(self, trainer, pl_module):
+        
+        self.confmat = torch.zeros((self.num_classes, self.num_classes))    
+        
+    def compute_conf_mat(self, outputs, pl_module, batch):
         
         logits = outputs.cpu()
         probas = pl_module.logits2probas(logits)
@@ -133,9 +137,26 @@ class MetricsFromConfmat(pl.Callback):
             self.num_classes,
             ignore_idx=None
         )
-        self.confmat += conf_mat
         
-    def on_validation_epoch_end(self, trainer, pl_module):
+        return conf_mat
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        
+        self.confmat += self.compute_conf_mat(
+            outputs,
+            pl_module,
+            batch
+        )
+        
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+        
+        self.confmat += self.compute_conf_mat(
+            outputs,
+            pl_module,
+            batch
+        )
+        
+    def log_from_confmat(self, trainer, pl_module):
         
         cm_array = self.confmat.numpy()
         m = np.nan
@@ -180,3 +201,11 @@ class MetricsFromConfmat(pl.Callback):
                 ), 
                 global_step=trainer.global_step
             )
+            
+    def on_validation_epoch_end(self, trainer, pl_module):
+        
+        self.log_from_confmat(trainer, pl_module)
+        
+    def on_test_epoch_end(self, trainer, pl_module):
+        
+        self.log_from_confmat(trainer, pl_module)

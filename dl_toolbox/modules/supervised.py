@@ -35,7 +35,7 @@ class Supervised(pl.LightningModule):
         self.onehot = TorchOneHot(range(self.num_classes))
         self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
         self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['network'])
         self.initial_lr = initial_lr
         
     def configure_optimizers(self):
@@ -78,6 +78,25 @@ class Supervised(pl.LightningModule):
         logits = self.forward(inputs)
         loss = self.loss(logits, labels)
         self.log('Val_loss', loss)
+        
+        return logits
+    
+    def test_step(self, batch, batch_idx):
+
+        inputs = batch['image']
+        labels = batch['label']
+        logits = self.forward(inputs)
+        
+        if self.ttas:
+            for tta, reverse in self.ttas:
+                aux, _ = tta(img=inputs)
+                aux_logits = self.forward(aux)
+                tta_logits, _ = reverse(img=aux_logits)
+                logits = torch.stack([logits, tta_logits])
+            logits = logits.mean(dim=0)
+        
+        loss = self.loss(logits, labels)
+        self.log('Test_loss', loss)
         
         return logits
 
