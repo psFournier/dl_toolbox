@@ -124,6 +124,7 @@ class Resisc(DatasetFolder):
         
         names = [cls_names[i] for label in self.nomenclature for i in label.values]
         classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir() and entry.name in names)
+        
         if not classes:
             raise FileNotFoundError(f"Couldn't find any class folder in {directory}.")
 

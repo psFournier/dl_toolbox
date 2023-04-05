@@ -12,7 +12,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         self,
         initial_lr,
         ttas,
-        network1,
+        network,
         network2,
         num_classes,
         class_weights,
@@ -25,7 +25,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         super().__init__()
         
         self.num_classes = num_classes
-        self.network1 = network1
+        self.network1 = network
         self.network2 = network2
         
         self.loss = nn.CrossEntropyLoss(
@@ -80,6 +80,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         loss = (self.loss(logits1, labels)+self.loss(logits2, labels))/2
         self.log('Train_sup_loss', loss)
         
+        cps_loss = 0.
         if self.alpha > 0.:
 
             unsup_inputs = unsup_batch['image']
@@ -157,7 +158,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         labels = batch['label']
         logits1 = self.network1(inputs)
         loss = self.loss(logits1, labels)
-        self.log('Val_sup_loss', loss)
+        self.log('Val_loss', loss)
         
         # Validation unsup loss
         logits2 = self.network2(inputs)

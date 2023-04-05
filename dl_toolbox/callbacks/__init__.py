@@ -4,3 +4,4 @@ from .confusion_matrix import MetricsFromConfmat, compute_conf_mat, plot_confusi
 from .calibration import CalibrationLogger, plot_calib, compute_calibration_bins
 from .class_distrib import ClassDistribLogger
 from .tiff_prediction_writer import TiffPredictionWriter
+from .progress_bar import MyProgressBar

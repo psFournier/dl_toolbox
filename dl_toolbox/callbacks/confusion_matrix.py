@@ -142,9 +142,14 @@ class MetricsFromConfmat(pl.Callback):
         
         with np.errstate(divide='ignore', invalid='ignore'):
             ious = np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1) - np.diag(cm_array))
+            f1s = 2 * np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1))
+            #precisions = np.diag(cm_array) / cm_array.sum(0)
+            #recalls = np.diag(cm_array) / cm_array.sum(1)
             
         mIou = np.nansum(ious) / (np.logical_not(np.isnan(ious))).sum()
+        mf1 = np.nansum(f1s) / (np.logical_not(np.isnan(f1s))).sum()
         self.log('Val_miou', mIou.astype(float))
+        self.log('Val_mf1', mf1.astype(float))
         
         if self.plot_iou:
             trainer.logger.experiment.add_figure(
