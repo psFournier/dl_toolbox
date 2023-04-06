@@ -5,3 +5,4 @@ from .label_manipulation import MergeLabels, OneHot, RGBToLabels, LabelsToRGB, T
 from .utils import *
 from .flair_load_metadata import *
 from .ramps import *
+from .plots import *

@@ -37,16 +37,16 @@ data_path = data_root / dataset_name
 nomenclature = datasets.ResiscNomenclatures['all'].value
 num_classes=len(nomenclature)
 
-train = (0, 600)
+# split params
+train = (0,50)
 train_idx = [700*i+j for i in range(num_classes) for j in range(*train)]
-train_aug = 'd4_color-1'
+train_aug = 'd4_color-3'
 
 val = (600, 700)
 val_idx = [700*i+j for i in range(num_classes) for j in range(*val)]
-val_aug = 'd4'
-num_val_samples = 500
+val_aug = 'no'
 
-unsup_train = (0, 700)
+unsup_train = (50, 100)
 unsup_idx = [700*i+j for i in range(num_classes) for j in range(*unsup_train)]
 unsup_aug = 'd4'
 
@@ -116,9 +116,8 @@ for train in [(0,50)]:
             indices=unsup_idx
         )        
         
-        epoch_steps = int(np.ceil(len(train_idx) / batch_size))
+        epoch_steps = int(np.ceil(len(train_set) / batch_size))
         num_train_samples = epoch_steps * batch_size
-        max_steps=num_epochs * epoch_steps
 
         train_dataloaders = {}
 
@@ -148,15 +147,10 @@ for train in [(0,50)]:
 
         val_dataloader = DataLoader(
             dataset=val_set,
-            sampler=RandomSampler(
-                data_source=val_set,
-                replacement=True,
-                num_samples=num_val_samples
-            ),
+            shuffle=False,
             collate_fn=collate.CustomCollate(),
             batch_size=batch_size,
             num_workers=num_workers,
-            pin_memory=True
         )
 
         network1 = models.efficientnet_b0(
@@ -206,7 +200,7 @@ for train in [(0,50)]:
 
         ### Trainer instance
         trainer = pl.Trainer(
-            max_steps=max_steps,
+            max_epochs=num_epochs,
             accelerator=accelerator,
             devices=devices,
             multiple_trainloader_mode=multiple_trainloader_mode,
@@ -220,8 +214,12 @@ for train in [(0,50)]:
             ),
             callbacks=[
                 pl.callbacks.ModelCheckpoint(),
-                pl.callbacks.EarlyStopping(monitor='Val_loss', patience=10),
-                metrics_from_confmat
+                pl.callbacks.EarlyStopping(
+                    monitor='Val_loss',
+                    patience=10
+                ),
+                metrics_from_confmat,
+                callbacks.MyProgressBar()
             ]
         )
 

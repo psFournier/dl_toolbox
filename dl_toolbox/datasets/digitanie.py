@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from collections import namedtuple
-from enum import Enum
+import enum
 
 import torch
 import rasterio
@@ -16,7 +16,14 @@ DATA_POLYGON = Polygon(
      [359326,4833160]]
 )
 
-label = namedtuple('label', ['name', 'color', 'values'])
+label = namedtuple(
+    'label',
+    [
+        'name',
+        'color',
+        'values'
+    ]
+)
 
 initial_nomenclature = [
     label('nodata', (0, 0, 0), {0}),
@@ -41,21 +48,25 @@ main_nomenclature = [
     label('other', (250,250,250), {1, 6, 8, 9})
 ]
 
-def get_subnomenc(nomenc, idx):
+def get_subnomenc_1(nomenc, name):
+    idx = [l.name for l in initial_nomenclature].index(name)
     return [
         label('nodata', (0, 0, 0), {0}),
         label('other', (250, 250, 250), set(range(1, len(nomenc))) - {idx}),
         nomenc[idx]
     ]
 
-class DigitanieNomenclatures(Enum):
-    initial = initial_nomenclature
-    main = main_nomenclature
-    building = get_subnomenc(initial_nomenclature, 4)
-    low_vege = get_subnomenc(initial_nomenclature, 2)
-    high_vege = get_subnomenc(initial_nomenclature, 5)
-    water = get_subnomenc(initial_nomenclature, 3)
-    road = get_subnomenc(initial_nomenclature, 7)
+DigitanieNomenclatures = enum.Enum(
+    'DigitanieNomenclatures',
+    {
+        'all':initial_nomenclature,
+        'main':main_nomenclature,
+        **dict([
+            (name, get_subnomenc_1(initial_nomenclature, name))
+            for name in ['building']
+        ])
+    }
+)
             
 @dataclass
 class Digitanie:
@@ -69,7 +80,6 @@ class Digitanie:
     mins: ... = np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
     maxs: ... = np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
     label_path: ... = None
-    nomenclatures = DigitanieNomenclatures
     
     def __post_init__(self):
         
@@ -89,9 +99,7 @@ class Digitanie:
             label = file.read(window=window, out_dtype=np.float32)
         
         return label
-    
-
-                
+                  
     #def get_transform(self):
     #    
     #    with rasterio.open(self.image_path, 'r') as ds:

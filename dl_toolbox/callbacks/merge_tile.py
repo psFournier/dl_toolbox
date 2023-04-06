@@ -4,73 +4,88 @@ from torchmetrics import ConfusionMatrix
 import matplotlib.pyplot as plt
 import numpy as np
 import itertools
-from dl_toolbox.utils import plot_confusion_matrix, plot_ious
-# Necessary for imshow to run on machines with no graphical interface.
-plt.switch_backend("agg")
+import rasterio.windows as windows 
 
 
-def compute_conf_mat(labels, preds, num_classes, ignore_idx=None):
+def dist_to_edge(i, j, h, w):
 
-    if ignore_idx is not None:
-        idx = labels != ignore_idx
-        preds = preds[idx]
-        labels = labels[idx]
+    mi = np.minimum(i+1, h-i)
+    mj = np.minimum(j+1, w-j)
+    return np.minimum(mi, mj)
 
-    unique_mapping = (labels * num_classes + preds).to(torch.long)
-    bins = torch.bincount(unique_mapping, minlength=num_classes**2)
-    conf_mat = bins.reshape(num_classes, num_classes)
 
-    return conf_mat
-    
+class MergePretiledRasterPreds(pl.Callback):
 
-class MetricsFromConfmat(pl.Callback):
-
-    def __init__(self, num_classes, class_names, plot_iou=True, plot_confmat=True, *args, **kwargs):
+    def __init__(self, dataset, mode, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        self.num_classes = num_classes
-        self.class_names = class_names
-        self.plot_iou = plot_iou
-        self.plot_confmat = plot_confmat
-
-    def on_validation_epoch_start(self, trainer, pl_module):
-        
-        self.confmat = torch.zeros((self.num_classes, self.num_classes))
+        self.data_src = dataset.data_src
+        self.window = self.data_src.zone
+        assert isinstance(self.window, windows.Window)
+        crop_size = dataset.crop_size
+        if mode=='linear':
+            crop_mask = np.fromfunction(
+                function=partial(
+                    dist_to_edge,
+                    h=crop_size,
+                    w=crop_size
+                ),
+                shape=(crop_size, crop_size),
+                dtype=int
+            )
+            self.crop_mask = torch.from_numpy(crop_mask).float()
+        elif mode=='constant':
+            self.crop_mask = torch.ones((crop_size, crop_size)).float()
         
     def on_test_epoch_start(self, trainer, pl_module):
         
-        self.confmat = torch.zeros((self.num_classes, self.num_classes))    
-        
-    def compute_conf_mat(self, outputs, pl_module, batch):
-        
-        logits = outputs.cpu()
-        probas = pl_module.logits2probas(logits)
-        confidences, preds = pl_module.probas2confpreds(probas)
-        labels = batch['label'].cpu()
-        conf_mat = compute_conf_mat(
-            labels.flatten(),
-            preds.flatten(),
-            self.num_classes,
-            ignore_idx=None
-        )
-        
-        return conf_mat
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        
-        self.confmat += self.compute_conf_mat(
-            outputs,
-            pl_module,
-            batch
-        )
+        h, w = self.window.height, self.window.width
+        self.merged = torch.zeros((pl_module.num_classes, h, w))
+        self.weights = torch.zeros((h, w))
         
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         
-        self.confmat += self.compute_conf_mat(
-            outputs,
-            pl_module,
-            batch
+        logits = outputs.cpu()
+        probas = pl_module.logits2probas(logits)
+        crops = batch['crop']
+        
+        for proba, crop in zip(probas, crops):
+            row_off = crop.row_off - self.window.row_off
+            col_off = crop.col_off - self.window.col_off
+            self.merged[
+                :,
+                row_off:row_off+crop.height,
+                col_off:col_off+crop.width
+            ] += proba * self.crop_mask
+            self.weights[
+                :,
+                row_off:row_off+crop.height,
+                col_off:col_off+crop.width
+            ] += self.crop_mask
+        
+    def on_test_epoch_end(self, trainer, pl_module):                
+        
+        probas = torch.div(self.merged, self.weights)
+        confs, preds = pl_module.probas2confpreds(probas.unsqueeze(dim=0))
+        preds = preds.squeeze().numpy()
+        
+        labels = self.data_src.read_label(self.window)
+        conf_mat = compute_conf_mat(
+            labels.flatten(),
+            preds.flatten(),
+            pl_module.num_classes,
+            ignore_idx=None
         )
+        
+        
+        
+    
+    def on_predict_epoch_end(self, trainer, pl_module):
+        
+        probas = torch.div(self.merged, self.weights)
+
+        
+
         
     def log_from_confmat(self, trainer, pl_module):
         

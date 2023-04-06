@@ -29,7 +29,6 @@ class Supervised(pl.LightningModule):
         
         self.loss = nn.CrossEntropyLoss(
             weight=torch.Tensor(class_weights)
-            #weight=torch.Tensor(self.weights).reshape(1,-1,*self.network.out_dim)
         )
         
         self.onehot = TorchOneHot(range(self.num_classes))

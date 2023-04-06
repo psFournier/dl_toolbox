@@ -33,20 +33,27 @@ else:
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
 
 # datasets params
-dataset_name = 'DIGITANIE"
+dataset_name = 'DIGITANIE'
 data_path = data_root / dataset_name
-split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_toulouse.csv'
-train_idx = [0,1,2,3,4,5]
-val_idx = [6,7]
+labels = 'building'
+nomenclature = datasets.DigitanieNomenclatures['building'].value
+num_classes=len(nomenclature)
 crop_size=256
 crop_step=256
-aug = 'd4_color-3'
-val_aug = 'd4'
-labels = 'building'
 bands = [1,2,3]
 unsup_crop_size = 256
-unsup_aug = 'd4'
+
+# split params
+split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_toulouse.csv'
+
+train_idx = [0,1,2,3,4,5]
+train_aug = 'd4_color-3'
+
+val_idx = [6,7]
+val_aug = 'd4'
+
 unsup_idx = [10]
+unsup_aug = 'd4'
 
 # dataloaders params
 batch_size = 16
@@ -54,14 +61,15 @@ epoch_steps = 500
 num_samples = epoch_steps * batch_size
 num_workers=6
 
+# network params
+in_channels=len(bands)
+out_channels=num_classes
+pretrained = False
+encoder='efficientnet-b0'
+
 # module params
 mixup=0. # incompatible with ignore_zero=True
 weights = [0., 1., 10.]
-network='SmpUnet'
-encoder='efficientnet-b1'
-pretrained=False
-in_channels=len(bands)
-out_channels=3
 initial_lr=0.001
 ttas=[]
 alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
@@ -71,20 +79,15 @@ ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
 
 # trainer params
 num_epochs = 50
-max_steps=num_epochs * epoch_steps
+#max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
-limit_train_batches=1.
-limit_val_batches=1.
+limit_train_batches=1
+limit_val_batches=1
 save_dir = save_root / dataset_name
 log_name = 'toulouse'
 ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
-
-# other
-nomenclature = datasets.Digitanie.nomenclatures[labels].value
-class_names = [label.name for label in nomenclature]
-class_num = len(nomenclature)
 
 for _ in range(1):
     
@@ -92,8 +95,16 @@ for _ in range(1):
     val_idx = [i for i in range(8) if i not in train_idx]
     print(train_idx, val_idx)
     
-    train_data_src = datasets.datasets_from_csv(data_path, split, train_idx)
-    train_sets =[
+    log_name = f'train={train_idx}_val={val_idx}'
+    
+    train_data_src = datasets.datasets_from_csv(
+        data_path,
+        split,
+        train_idx
+    
+    )
+    
+    train_sets = [
         RasterDataset(
             data_src=src,
             crop_size=crop_size,
@@ -102,7 +113,27 @@ for _ in range(1):
             labels=labels
         ) for src in train_data_src
     ]
+    
     train_set = ConcatDataset(train_sets)
+    
+    val_data_src = datasets.datasets_from_csv(
+        data_path,
+        split,
+        val_idx
+    )
+    
+    val_sets = [
+        RasterDataset(
+            data_src=src,
+            crop_size=crop_size,
+            aug=val_aug,
+            bands=bands,
+            labels=labels
+        ) for src in val_data_src
+    ]
+    
+    val_set = ConcatDataset(val_sets)
+    
     train_dataloaders = {}
     train_dataloaders['sup'] = DataLoader(
         dataset=train_set,
@@ -114,10 +145,8 @@ for _ in range(1):
             num_samples=num_samples
         ),
         num_workers=num_workers,
-        pin_memory=True,
         drop_last=True
     )
-    
     
     train_set_coords = []
     for src in train_data_src:
@@ -126,6 +155,7 @@ for _ in range(1):
             train_set_coords.append(polygon_from_bbox(bbox))
         elif isinstance(src.zone, shapely.Polygon):
             train_set_coords.append(src.zone.exterior.coords)
+            
     unsup_sets = []
     unsup_data_src = datasets.datasets_from_csv(data_path, split, unsup_idx)
     for src in unsup_data_src:
@@ -150,6 +180,7 @@ for _ in range(1):
         )
         unsup_sets.append(unsup_set)
     unsup_set = ConcatDataset(unsup_sets) 
+    
     unsup_dataloader = DataLoader(
         dataset=unsup_set,
         batch_size=batch_size,
@@ -160,22 +191,12 @@ for _ in range(1):
             num_samples=num_samples
         ),
         num_workers=num_workers,
-        pin_memory=True,
         drop_last=True
     )
     train_dataloaders['unsup'] = unsup_dataloader
 
-    val_data_src = datasets.datasets_from_csv(data_path, split, val_idx)
-    val_sets = [
-        RasterDataset(
-            data_src=src,
-            crop_size=crop_size,
-            aug=val_aug,
-            bands=bands,
-            labels=labels
-        ) for src in val_data_src
-    ]
-    val_set = ConcatDataset(val_sets)
+
+    
     val_dataloader = DataLoader(
         dataset=val_set,
         sampler=RandomSampler(
@@ -185,19 +206,22 @@ for _ in range(1):
         ),
         collate_fn=collate.CustomCollate(),
         batch_size=batch_size,
-        num_workers=num_workers,
-        pin_memory=True
+        num_workers=num_workers
     )
 
+    network = networks.SmpUnet(
+        encoder=encoder,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        pretrained=pretrained
+    )
+        
     ### Building lightning module
     module = modules.MeanTeacher(
         mixup=mixup, # incompatible with ignore_zero=True
         network=network,
-        encoder=encoder,
-        pretrained=pretrained,
-        weights=weights,
-        in_channels=in_channels,
-        out_channels=out_channels,
+        num_classes=num_classes,
+        class_weights=class_weights,
         initial_lr=initial_lr,
         ttas=ttas,
         alpha_ramp=alpha_ramp,
@@ -214,7 +238,7 @@ for _ in range(1):
 
     ### Trainer instance
     trainer = pl.Trainer(
-        max_steps=max_steps,
+        max_epochs=num_epochs,
         accelerator=accelerator,
         devices=devices,
         multiple_trainloader_mode=multiple_trainloader_mode,
