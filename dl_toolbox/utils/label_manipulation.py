@@ -64,6 +64,22 @@ class LabelsToRGB:
 
         return rgb
 
+class NomencToRgb:
+    
+    def __init__(self, nomenc):
+
+        self.nomenc = nomenc
+
+    def __call__(self, labels):
+        
+        rgb = np.zeros(shape=(*labels.shape, 3), dtype=np.uint8)
+        
+        for label, key in enumerate(self.nomenc):
+            mask = np.array(labels == label)
+            rgb[mask] = np.array(key.color)
+
+        return rgb    
+
 class RGBToLabels:
     # Inputs shape : B,H,W,3 or H,W,3
     # Outputs shape : B,H,W or H,W

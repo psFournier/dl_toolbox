@@ -19,7 +19,7 @@ class TiffPredsWriter(BasePredictionWriter):
         self.write_mode = write_mode
         self.out_path.mkdir(exist_ok=True, parents=True)
 
-    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
 
         logits = outputs.cpu()  # Move predictions to CPU    
         outputs = pl_module.logits2probas(logits)

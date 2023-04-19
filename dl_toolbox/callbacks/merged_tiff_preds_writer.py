@@ -80,13 +80,15 @@ class MergedTiffPredsWriter(BasePredictionWriter):
             
     def on_predict_epoch_end(self, trainer, pl_module):                
         
-        output = torch.div(self.merged, self.weights)
-        count = pl_module.num_classes
+        self.merged = torch.div(self.merged, self.weights)
         
         if self.write_mode == 'pred':
-            confs, preds = pl_module.probas2confpreds(outputs.unsqueeze(dim=0))
+            confs, preds = pl_module.probas2confpreds(self.merged.unsqueeze(dim=0))
             output = torch.unsqueeze(preds, 1)
             count = 1
+        else:
+            output = self.merged
+            count = pl_module.num_classes
             
         path = self.data_src.image_path
         out_file = self.out_path/f'{path.stem}_{self.window.col_off}_{self.window.row_off}.tif'
