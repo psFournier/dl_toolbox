@@ -3,7 +3,7 @@ import torch
 from torchmetrics import ConfusionMatrix
 import matplotlib.pyplot as plt
 import numpy as np
-
+import itertools
 
 # Taken from https://www.tensorflow.org/tensorboard/image_summaries
 def plot_confusion_matrix(cm, class_names, norm):

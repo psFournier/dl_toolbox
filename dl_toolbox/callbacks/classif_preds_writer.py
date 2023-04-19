@@ -1,20 +1,23 @@
 import os
 from pathlib import Path
+from pytorch_lightning.callbacks import BasePredictionWriter
 
 
-class PseudolabelWriter(BasePredictionWriter):
+class ClassifPredsWriter(BasePredictionWriter):
 
     def __init__(
         self,
         out_path,
         write_interval,
-        cls_names
+        cls_names,
+        threshold
     ):
         super().__init__(write_interval)
         
         self.out_path = Path(out_path)
         self.out_path.mkdir(exist_ok=True, parents=True)
         self.cls_names = cls_names
+        self.threshold = threshold
         
         self.counts = [0] * len(cls_names)
 
@@ -34,13 +37,13 @@ class PseudolabelWriter(BasePredictionWriter):
         confs, preds = pl_module.probas2confpreds(probas)
 
         for i, pred in enumerate(preds):
-            if confs[i] > 0.9:
+            if confs[i] > self.threshold:
                 pred = int(pred)
                 cls_name = self.cls_names[pred]
                 num = self.counts[pred]
                 class_dir = self.out_path / cls_name
                 class_dir.mkdir(parents=True, exist_ok=True)
-                dst = class_dir / f'{cls_name}_{num:04}.jpg'
+                dst = class_dir / f'{cls_name}_{num:04}.jpg' # max 99999 preds
                 os.symlink(
                     batch['path'][i],
                     dst

@@ -3,9 +3,8 @@ import torch
 from torchmetrics import ConfusionMatrix
 import matplotlib.pyplot as plt
 import numpy as np
-import itertools
 import rasterio.windows as windows 
-
+from functools import partial
 
 def dist_to_edge(i, j, h, w):
 

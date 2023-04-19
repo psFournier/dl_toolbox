@@ -56,7 +56,7 @@ class MetricsFromConfmat(pl.Callback):
         
         return conf_mat
 
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         
         self.confmat += self.compute_conf_mat(
             outputs,
