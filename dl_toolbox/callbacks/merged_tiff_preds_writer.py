@@ -84,7 +84,7 @@ class MergedTiffPredsWriter(BasePredictionWriter):
         
         if self.write_mode == 'pred':
             confs, preds = pl_module.probas2confpreds(self.merged.unsqueeze(dim=0))
-            output = torch.unsqueeze(preds, 1)
+            output = preds
             count = 1
         else:
             output = self.merged
