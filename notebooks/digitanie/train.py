@@ -1,0 +1,313 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[15]:
+
+import os
+import csv
+import numpy as np
+import shapely
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+
+from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
+from pytorch_lightning.utilities import CombinedLoader
+from pathlib import Path
+from datetime import datetime
+
+import dl_toolbox.callbacks as callbacks
+import dl_toolbox.modules as modules 
+import dl_toolbox.networks as networks
+import dl_toolbox.datasets as datasets
+import dl_toolbox.torch_collate as collate
+import dl_toolbox.utils as utils
+
+import rasterio.windows as windows
+
+test = False
+if os.uname().nodename == 'WDTIS890Z': 
+    data_root = Path('/mnt/d/pfournie/Documents/data')
+    home = Path('/home/pfournie')
+    save_root = data_root / 'outputs'
+elif os.uname().nodename == 'qdtis056z': 
+    data_root = Path('/data')
+    home = Path('/d/pfournie')
+    save_root = data_root / 'outputs'
+elif os.uname().nodename.endswith('sis.cnes.fr'):
+    home = Path('/home/eh/fournip')
+    save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
+    if test:
+        data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
+    else:
+        #!bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
+        data_root = Path(os.environ['TMPDIR'])
+
+
+# In[21]:
+
+
+# datasets params
+dataset_name = 'DIGITANIE'
+data_path = data_root / dataset_name
+nomenclature = datasets.DigitanieNomenclatures['building'].value
+num_classes=len(nomenclature)
+crop_size=256
+crop_step=256
+bands = [1,2,3]
+
+# split params
+split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_all.csv'
+
+train_idx = [i+j for i in [0, 66, 88, 99, 110, 154] for j in range(1,9)]
+train_aug = 'd4_color-3'
+
+val_idx = [i+j for i in [0, 66, 88, 99, 110, 154] for j in range(9,11)]
+val_aug = 'no'
+
+unsup_idx = []
+unsup_aug = 'd4'
+
+# dataloaders params
+batch_size = 8
+epoch_steps = 1000
+num_samples = epoch_steps * batch_size
+num_workers=64
+
+# network params
+in_channels=len(bands)
+out_channels=num_classes
+pretrained = False
+encoder='efficientnet-b1'
+
+# module params
+mixup=0. # incompatible with ignore_zero=True
+class_weights = [1.] * num_classes
+initial_lr=0.001
+ttas=[]
+alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
+pseudo_threshold=0.9
+consist_aug='color-5'
+ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
+
+# trainer params
+num_epochs = 30
+#max_steps=num_epochs * epoch_steps
+accelerator='gpu'
+devices=1
+multiple_trainloader_mode='min_size'
+limit_train_batches=1.
+limit_val_batches=1.
+save_dir = save_root / dataset_name
+log_name = 'fra->Nantes'
+ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
+
+
+# In[22]:
+
+
+train_data_src = [
+    src for src in datasets.datasets_from_csv(
+        data_path,
+        split,
+        train_idx
+    )
+]
+
+train_sets = [
+    datasets.Raster(
+        data_src=src,
+        crop_size=crop_size,
+        aug=train_aug,
+        bands=bands,
+        nomenclature=nomenclature
+    ) for src in train_data_src
+]
+
+train_set = ConcatDataset(train_sets)
+
+val_data_src = [
+    src for src in datasets.datasets_from_csv(
+        data_path,
+        split,
+        val_idx
+    )
+]
+
+val_sets = [
+    datasets.PretiledRaster(
+        data_src=src,
+        crop_size=crop_size,
+        crop_step=crop_size//2,
+        aug=val_aug,
+        bands=bands,
+        nomenclature=nomenclature
+    ) for src in val_data_src
+]
+
+val_set = ConcatDataset(val_sets)
+
+train_set_coords = []
+
+for src in train_data_src:
+    if isinstance(src.zone, windows.Window):
+        bbox = windows.bounds(src.zone, src.meta['transform'])
+        train_set_coords.append(datasets.polygon_from_bbox(bbox))
+    elif isinstance(src.zone, shapely.Polygon):
+        train_set_coords.append(src.zone.exterior.coords)
+
+if unsup_idx:
+    unsup_sets = []
+
+    unsup_data_src = datasets.datasets_from_csv(
+        data_path,
+        split,
+        unsup_idx
+    )
+
+    for src in unsup_data_src:
+
+        if isinstance(src.zone, windows.Window):
+            bbox = windows.bounds(src.zone, src.meta['transform'])
+            poly_zone = shapely.Polygon(
+                shell=datasets.polygon_from_bbox(bbox),
+                #holes=train_set_coords
+            )
+
+        elif isinstance(src.zone, shapely.Polygon):
+            poly_zone = shapely.Polygon(
+                shell=src.zone.exterior.coords,
+                #holes=train_set_coords
+            )
+
+        src.zone = poly_zone
+
+        unsup_set = datasets.Raster(
+            data_src=src,
+            crop_size=crop_size,
+            aug=unsup_aug,
+            bands=bands,
+            nomenclature=nomenclature,
+        )
+
+        unsup_sets.append(unsup_set)
+
+    unsup_set = ConcatDataset(unsup_sets) 
+
+
+
+# In[25]:
+
+
+train_dataloaders = {}
+train_dataloaders['sup'] = DataLoader(
+    dataset=train_set,
+    batch_size=batch_size,
+    collate_fn=collate.CustomCollate(),
+    sampler=RandomSampler(
+        data_source=train_set,
+        replacement=True,
+        num_samples=num_samples
+    ),
+    num_workers=num_workers,
+    drop_last=True
+)
+
+#train_dataloaders['unsup'] = DataLoader(
+#    dataset=unsup_set,
+#    batch_size=batch_size,
+#    collate_fn=collate.CustomCollate(),
+#    sampler=RandomSampler(
+#        data_source=unsup_set,
+#        replacement=True,
+#        num_samples=num_samples
+#    ),
+#    num_workers=num_workers,
+#    drop_last=True
+#)
+
+val_dataloader = DataLoader(
+    dataset=val_set,
+    shuffle=False,
+    #sampler=RandomSampler(
+    #    data_source=val_set,
+    #    replacement=True,
+    #    num_samples=num_samples//10
+    #),
+    collate_fn=collate.CustomCollate(),
+    batch_size=batch_size,
+    num_workers=num_workers
+)
+
+
+# In[26]:
+
+
+network = networks.SmpUnet(
+    encoder=encoder,
+    in_channels=in_channels,
+    out_channels=out_channels,
+    pretrained=pretrained
+)
+
+### Building lightning module
+module = modules.Supervised(
+    mixup=mixup, # incompatible with ignore_zero=True
+    network=network,
+    num_classes=num_classes,
+    class_weights=class_weights,
+    initial_lr=initial_lr,
+    ttas=ttas,
+    #alpha_ramp=alpha_ramp,
+    #pseudo_threshold=pseudo_threshold,
+    #consist_aug=consist_aug,
+    #ema_ramp=ema_ramp
+)
+
+
+# In[27]:
+
+
+### Metrics and plots from confmat callback
+metrics_from_confmat = callbacks.MetricsFromConfmat(        
+    num_classes=num_classes,
+    class_names=[label.name for label in nomenclature]
+)
+
+logger = pl.loggers.TensorBoardLogger(
+    save_dir=save_dir,
+    name=log_name,
+    version=f'{datetime.now():%d%b%y-%Hh%Mm%S}'
+)
+
+### Trainer instance
+trainer = pl.Trainer(
+    max_epochs=num_epochs,
+    accelerator=accelerator,
+    devices=devices,
+    num_sanity_val_steps=0,
+    limit_train_batches=limit_train_batches,
+    limit_val_batches=limit_val_batches,
+    logger=logger,
+    callbacks=[
+        pl.callbacks.ModelCheckpoint(),
+        pl.callbacks.EarlyStopping(
+            monitor='Val_loss',
+            patience=10
+        ),
+        metrics_from_confmat,
+        callbacks.MyProgressBar()
+    ]
+)
+
+
+# In[28]:
+
+
+trainer.fit(
+    model=module,
+    train_dataloaders=CombinedLoader(train_dataloaders, mode=multiple_trainloader_mode),
+    val_dataloaders=val_dataloader,
+    ckpt_path=ckpt_path
+)
+
+
