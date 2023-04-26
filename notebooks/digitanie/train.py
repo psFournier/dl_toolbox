@@ -9,6 +9,7 @@ import numpy as np
 import shapely
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
+import torch
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from pytorch_lightning.utilities import CombinedLoader
@@ -36,6 +37,7 @@ elif os.uname().nodename == 'qdtis056z':
 elif os.uname().nodename.endswith('sis.cnes.fr'):
     home = Path('/home/eh/fournip')
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
+    torch.set_float32_matmul_precision('high')
     if test:
         data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
     else:
@@ -71,7 +73,7 @@ unsup_aug = 'd4'
 batch_size = 8
 epoch_steps = 1000
 num_samples = epoch_steps * batch_size
-num_workers=64
+num_workers=6
 
 # network params
 in_channels=len(bands)
