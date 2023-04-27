@@ -3,6 +3,10 @@
 
 # In[15]:
 
+
+#%load_ext autoreload
+#%autoreload 2
+
 import os
 import csv
 import numpy as np
@@ -10,6 +14,7 @@ import shapely
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 import torch
+
 
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from pytorch_lightning.utilities import CombinedLoader
@@ -25,6 +30,7 @@ import dl_toolbox.utils as utils
 
 import rasterio.windows as windows
 
+torch.set_float32_matmul_precision('high')
 test = False
 if os.uname().nodename == 'WDTIS890Z': 
     data_root = Path('/mnt/d/pfournie/Documents/data')
@@ -37,7 +43,6 @@ elif os.uname().nodename == 'qdtis056z':
 elif os.uname().nodename.endswith('sis.cnes.fr'):
     home = Path('/home/eh/fournip')
     save_root = Path('/work/OT/ai4usr/fournip') / 'outputs'
-    torch.set_float32_matmul_precision('high')
     if test:
         data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
     else:
@@ -70,7 +75,7 @@ unsup_idx = []
 unsup_aug = 'd4'
 
 # dataloaders params
-batch_size = 8
+batch_size = 16
 epoch_steps = 1000
 num_samples = epoch_steps * batch_size
 num_workers=6
@@ -78,12 +83,12 @@ num_workers=6
 # network params
 in_channels=len(bands)
 out_channels=num_classes
-pretrained = False
+pretrained = 'imagenet'
 encoder='efficientnet-b1'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1.] * num_classes
+class_weights = [1., 1., 3.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
 alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
@@ -92,7 +97,7 @@ consist_aug='color-5'
 ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
 
 # trainer params
-num_epochs = 30
+num_epochs = 50
 #max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
@@ -100,7 +105,7 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'fra->Nantes'
+log_name = 'fra'
 ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
 
 
@@ -148,16 +153,17 @@ val_sets = [
 
 val_set = ConcatDataset(val_sets)
 
-train_set_coords = []
-
-for src in train_data_src:
-    if isinstance(src.zone, windows.Window):
-        bbox = windows.bounds(src.zone, src.meta['transform'])
-        train_set_coords.append(datasets.polygon_from_bbox(bbox))
-    elif isinstance(src.zone, shapely.Polygon):
-        train_set_coords.append(src.zone.exterior.coords)
-
 if unsup_idx:
+    
+    train_set_coords = []
+
+    for src in train_data_src:
+        if isinstance(src.zone, windows.Window):
+            bbox = windows.bounds(src.zone, src.meta['transform'])
+            train_set_coords.append(datasets.polygon_from_bbox(bbox))
+        elif isinstance(src.zone, shapely.Polygon):
+            train_set_coords.append(src.zone.exterior.coords)
+        
     unsup_sets = []
 
     unsup_data_src = datasets.datasets_from_csv(
@@ -196,6 +202,51 @@ if unsup_idx:
     unsup_set = ConcatDataset(unsup_sets) 
 
 
+# In[23]:
+
+
+#%matplotlib inline
+#from shapely import plotting
+#from matplotlib import colors
+#import matplotlib.pyplot as plt
+#from copy import copy
+#from rasterio import plot as rioplt
+#
+#def shape_color(name, alpha):
+#    color = colors.to_rgba(name)
+#    facecolor = list(color)
+#    facecolor[-1] = alpha
+#    facecolor = tuple(facecolor)
+#    edgecolor = color
+#    return facecolor, edgecolor
+#
+#fig, ax = plt.subplots(1, 1)
+#f0, e0 = shape_color("C0", 0)
+#f1, e1 = shape_color("C1", 0)
+#
+#ds = val_set.datasets[0]
+#poly_zone = ds.data_src.zone
+#poly_zone = shapely.Polygon(datasets.polygon_from_bbox(windows.bounds(ds.data_src.zone, ds.data_src.meta['transform'])))
+#patch_zone = plotting.patch_from_polygon(poly_zone, facecolor=f0, edgecolor=e0)
+#ax.add_patch(copy(patch_zone))
+#
+#for coord in train_set_coords:
+#    train_poly = shapely.Polygon(coord)
+#    patch = plotting.patch_from_polygon(train_poly, facecolor=f1, edgecolor=e1)
+#    ax.add_patch(copy(patch))
+#    
+#item =ds[1]
+#image=item['image'].numpy()
+#print(image.min())
+#rioplt.show(image, ax=ax, transform=item['crop_tf'])
+#ax.axis('equal')
+#ax.autoscale_view()
+#
+#fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(10,10))
+#rioplt.show(image, ax=ax1, transform=item['crop_tf'])
+#ax2.imshow(image.transpose(1,2,0)[...,:3])
+#ax3.imshow(item['label'].numpy())
+
 
 # In[25]:
 
@@ -214,18 +265,20 @@ train_dataloaders['sup'] = DataLoader(
     drop_last=True
 )
 
-#train_dataloaders['unsup'] = DataLoader(
-#    dataset=unsup_set,
-#    batch_size=batch_size,
-#    collate_fn=collate.CustomCollate(),
-#    sampler=RandomSampler(
-#        data_source=unsup_set,
-#        replacement=True,
-#        num_samples=num_samples
-#    ),
-#    num_workers=num_workers,
-#    drop_last=True
-#)
+if unsup_idx:
+    
+    train_dataloaders['unsup'] = DataLoader(
+        dataset=unsup_set,
+        batch_size=batch_size,
+        collate_fn=collate.CustomCollate(),
+        sampler=RandomSampler(
+            data_source=unsup_set,
+            replacement=True,
+            num_samples=num_samples
+        ),
+        num_workers=num_workers,
+        drop_last=True
+    )
 
 val_dataloader = DataLoader(
     dataset=val_set,
@@ -311,5 +364,4 @@ trainer.fit(
     val_dataloaders=val_dataloader,
     ckpt_path=ckpt_path
 )
-
 
