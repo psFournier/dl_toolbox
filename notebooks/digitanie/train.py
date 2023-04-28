@@ -83,7 +83,7 @@ num_workers=6
 # network params
 in_channels=len(bands)
 out_channels=num_classes
-pretrained = 'imagenet'
+pretrained = False #'imagenet'
 encoder='efficientnet-b1'
 
 # module params
