@@ -15,19 +15,6 @@ import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import minmax
 
 
-def rnd_rotate_and_crop(image, crop_size, label=None):
-
-    angle = np.random.randint(0, 180)
-    image = F.rotate(image, angle=angle)
-    image = F.center_crop(image, output_size=crop_size)
-    if label is not None:
-        if label.dim() == 2:
-            label = label.unsqueeze(0)
-        label = F.rotate(label, angle=angle)
-        label = F.center_crop(label, output_size=crop_size)
-
-    return image, label
-
 def polygon_from_bbox(bbox):
     """
     Generates a list of coordinates: [[x1,y1],[x2,y2],[x3,y3],[x4,y4],[x1,y1]]
@@ -93,6 +80,7 @@ class Raster(torch.utils.data.Dataset):
         self.crop_size = crop_size
         self.aug = augmentations.get_transforms(aug)
         self.bands = bands
+        self.nomenclature = nomenclature
         self.labels_merger = MergeLabels([list(l.values) for l in nomenclature])
         
         if isinstance(data_src.zone, windows.Window):
@@ -117,6 +105,21 @@ class Raster(torch.utils.data.Dataset):
             
         return image, label
     
+    def rnd_rotate_and_crop(self, image, crop_size, label=None):
+
+        angle = np.random.randint(0, 180)
+        image = F.rotate(image, angle=angle)
+        image = F.center_crop(image, output_size=crop_size)
+        if label is not None:
+            if label.dim() == 2:
+                label = label.unsqueeze(0)
+            label = F.rotate(label, angle=angle)
+            label = F.center_crop(label, output_size=crop_size)
+
+        return image, label
+    
+
+
     def normalize(self, image):
         
         bands_idxs = np.array(self.bands).astype(int) - 1
@@ -135,7 +138,7 @@ class Raster(torch.utils.data.Dataset):
         pre_crop_size = int(np.ceil(np.sqrt(2) * self.crop_size))
         crop = self.get_crop(pre_crop_size) 
         pre_image, pre_label = self.read_crop(crop)
-        image, label = rnd_rotate_and_crop(pre_image, self.crop_size, pre_label)       
+        image, label = self.rnd_rotate_and_crop(pre_image, self.crop_size, pre_label)       
         image = self.normalize(image)
         
         if self.aug is not None:
