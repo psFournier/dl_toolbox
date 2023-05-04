@@ -17,14 +17,35 @@ from dl_toolbox.utils import minmax
 from dl_toolbox.datasets import Raster
 
 
+
 class Raster2Cls(Raster):
     
     def __init__(
         self,
+        focus_rad,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
+        self.focus_rad = focus_rad
+        
+    def get_focus(self, r, cx, cy):
+        
+        xx, yy = np.mgrid[:self.crop_size, :self.crop_size]
+        
+        #r = self.crop_size
+        #circle = (xx - cx) ** 2 + (yy - cy) ** 2
+        #focus = torch.zeros((self.crop_size, self.crop_size))
+        #focus[circle<r**2]=1
+        
+        focus = stats.multivariate_normal.pdf(
+            np.dstack((xx, yy)),
+            mean=np.array([cx, cy]),
+            cov=r**2
+        )
+        focus = torch.from_numpy(focus).float()
+        
+        return focus
 
     def __getitem__(self, idx):
         
@@ -36,34 +57,24 @@ class Raster2Cls(Raster):
         
         if self.aug is not None:
             image, label = self.aug(img=image, label=label)
-            
-        xx, yy = np.mgrid[:self.crop_size, :self.crop_size]
-        r = self.crop_size
+     
         cx, cy = np.random.randint(self.crop_size, size=2)
-        
-        #circle = (xx - cx) ** 2 + (yy - cy) ** 2
-        #focus = torch.zeros((self.crop_size, self.crop_size))
-        #focus[circle<r**2]=1
-        
-        focus = stats.multivariate_normal.pdf(
-            np.dstack((xx, yy)),
-            mean=np.array([cx, cy]),
-            cov=[[r, 1], [1, r]]
-        )
-        focus = torch.from_numpy(focus)
-        
+        focus = self.get_focus(self.focus_rad, cx, cy)
         image = torch.vstack([image, focus.unsqueeze(dim=0)])
+        
         if label is not None:
             #c=self.crop_size
-            label = label.squeeze().long()
+            pre_label = label.squeeze().long()
             #center_crop = label[c//2:c+c//2, c//2:c+c//2]
             bincounts = torch.bincount(
-                label.flatten(),
+                pre_label.flatten(),
                 minlength=len(self.nomenclature),
                 weights=focus.flatten()
             )
-            print(bincounts)
-            label = torch.argmax(bincounts)            
+            bincounts /= sum(bincounts)
+            #label = torch.argmax(bincounts)   
+            label = torch.Tensor(bincounts[1] > 0.3).long()
+            #print(bincounts, label)
             
         crop_transform = windows.transform(
             crop,
@@ -72,6 +83,7 @@ class Raster2Cls(Raster):
         
         return {
             'pre_image': pre_image,
+            'pre_label': pre_label,
             'image':image,
             'label':label,
             'crop':crop,
@@ -80,7 +92,7 @@ class Raster2Cls(Raster):
             'crs': self.data_src.meta['crs']
         }
         
-class PretiledRaster(Raster):
+class PretiledRaster2Cls(Raster2Cls):
     
     def __init__(self, crop_step, *args, **kwargs):
         
@@ -88,6 +100,7 @@ class PretiledRaster(Raster):
         self.crop_step = crop_step
         zone = self.data_src.zone
         assert isinstance(zone, windows.Window)
+        
         self.tiles = [
             tile for tile in get_tiles(
                 nols=zone.width, 
@@ -99,9 +112,12 @@ class PretiledRaster(Raster):
             )
         ]
         
+        ranges = range(self.focus_rad, self.crop_size-self.focus_rad, self.focus_rad)
+        self.focuses = [self.get_focus(self.focus_rad, cx, cy) for cx in ranges for cy in ranges]
+        
     def __len__(self):
         
-        return len(self.tiles)
+        return len(self.tiles)*len(self.focuses)
     
     def __getitem__(self, idx):
         
