@@ -2,7 +2,7 @@ import csv
 import imagesize
 from pathlib import Path
 
-data = Path.home() / Path('ai4geo/data/miniworld_tif')
+data = Path('/data/miniworld_tif')
 csv_dst = Path.home() / 'ai4geo/splits/mw/christchurch.csv'
 csv_src = Path.home() / 'ai4geo/splits/split_christchurch_filtered.csv'
 

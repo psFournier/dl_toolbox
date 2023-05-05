@@ -1,43 +1,57 @@
+from dataclasses import dataclass
+from collections import namedtuple
+import enum
+
 import torch
 import rasterio
 import numpy as np
 
-from dl_toolbox.utils.utils import minmax
-from dl_toolbox.torch_datasets import RasterDs
 
+label = namedtuple(
+    'label',
+    [
+        'name',
+        'color',
+        'values'
+    ]
+)
 
-labels_dict = {
-    
-    'base':{
-        'other': {'color': (0, 0, 0)},
-        'building': {'color': (255, 255, 255)},
+AirsNomenclatures = enum.Enum(
+    'AirsNomenclatures',
+    {
+        'building': [
+            label('other', (0,0,0), {0}),
+            label('building', (255, 255, 255), {1}),
+        ],
     }
+)
+
+
+@dataclass
+class Airs:
     
-}
-
-class Airs(RasterDs):
-
-    def __init__(self, labels, *args, **kwargs):
- 
-        self.labels = labels_dict[labels]
-        super().__init__(*args, **kwargs)
-
-    def read_image(self, image_path, window):
+    image_path:... = None
+    zone:... = None
+    mins:... = None
+    maxs:... = None
+    label_path:... = None
+    
+    def __post_init__(self):
         
-        with rasterio.open(image_path) as image_file:
-            image = image_file.read(window=window, out_dtype=np.float32)
-            
-        mins = np.array([stat.min for stat in self.info['stats']])
-        maxs = np.array([stat.max for stat in self.info['stats']])
-        image = minmax(image[:3], mins[:3], maxs[:3])
+        with rasterio.open(self.image_path) as src:
+            self.meta = src.meta
+
+    def read_image(self, window=None, bands=None):
+        
+        with rasterio.open(self.image_path, 'r') as file:
+            image = file.read(window=window, out_dtype=np.float32, indexes=bands)
 
         return image
-
-    def read_label(self, label_path, window):
     
-        with rasterio.open(label_path) as label_file:
-            label = label_file.read(window=window, out_dtype=np.float32)
-            
-        label = np.squeeze(label)
+    def read_label(self, window=None):
+        
+        with rasterio.open(self.label_path) as file:
+            label = file.read(window=window, out_dtype=np.float32)
+            label /= 255.
         
         return label

@@ -12,7 +12,7 @@ initial_nomenclature = [
     label('building', (238, 118, 33), {2})
     label('pervious surface', (34, 139, 34), {3}),
     label('high vegetation', (0, 222, 137), {4}),
-    label('car', (255, 0, 0), {5})
+    label('car', (255, 0, 0), {5}),
     label('water', (0, 0, 238), {6}),
     label('sport venue', (160, 30, 230), {7})
 ]

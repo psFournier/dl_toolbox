@@ -5,7 +5,7 @@ from .digitanie import *
 #from .old_digitanie import *
 #from .semcity_bdsd_ds import *
 from .resisc import *
-#from .airs import *
+from .airs import *
 #from .miniworld import *
 ##from .flair import *
 #from .alumhi import *
