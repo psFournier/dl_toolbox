@@ -7,3 +7,4 @@ seaborn==0.12.2
 segmentation-models-pytorch==0.3.2
 shapely==2.0.1
 tensorboard==2.12.0
+scipy

@@ -36,7 +36,7 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
     if test:
         data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
     else:
-        #!bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
+        !bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
         data_root = Path(os.environ['TMPDIR'])
 
 # datasets params
@@ -51,7 +51,7 @@ bands = [1,2,3]
 # split params
 split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_all.csv'
 
-TO_idx = [99] #[0, 66, 88, 99, 110, 154]
+TO_idx = [0, 66, 88, 99, 110, 154]
 train_idx = [i+j for i in TO_idx for j in range(1,9)]
 train_aug = 'd4_color-2'
 
@@ -78,13 +78,13 @@ mixup=0. # incompatible with ignore_zero=True
 class_weights = [1., 5.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(10,20,0.,2.)
-pseudo_threshold=0.95
+alpha_ramp=utils.SigmoidRamp(50,70,0.,2.)
+pseudo_threshold=0.99
 consist_aug='color-5'
 ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
 
 # trainer params
-num_epochs = 30
+num_epochs = 100
 #max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
