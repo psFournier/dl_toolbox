@@ -6,5 +6,5 @@
 bash "${HOME}"/dl_toolbox/copy_data_to_node.sh
 
 module load python
-/work/OT/ai4usr/fournip/latest/bin/python "${HOME}"/dl_toolbox/notebooks/digitanie/train_segment.py
+/work/OT/ai4usr/fournip/latest/bin/python "${HOME}"/dl_toolbox/scripts/train_segment_digi_ce.py
 module unload python
