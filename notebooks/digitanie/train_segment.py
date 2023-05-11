@@ -36,7 +36,7 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
     if test:
         data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
     else:
-        !bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
+        #bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
         data_root = Path(os.environ['TMPDIR'])
 
 # datasets params
@@ -71,11 +71,11 @@ num_workers=6
 in_channels=len(bands)
 out_channels=num_classes
 pretrained = False #'imagenet'
-encoder='efficientnet-b0'
+encoder='efficientnet-b4'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 5.] #[1.] * num_classes
+class_weights = [1., 2.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
 alpha_ramp=utils.SigmoidRamp(50,70,0.,2.)

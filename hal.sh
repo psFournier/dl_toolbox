@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -q qgpgpua100
+#PBS -q qgpgpua30
 #PBS -l select=1:ncpus=6:mem=92G:ngpus=1
 #PBS -l walltime=12:00:00
 

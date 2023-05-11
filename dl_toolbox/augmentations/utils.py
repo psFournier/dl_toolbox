@@ -3,7 +3,7 @@ import torch
 
 class NoOp():
 
-    def __init__(self):
+    def __init__(self, p=1):
 
         pass
 
