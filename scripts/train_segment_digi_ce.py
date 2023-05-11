@@ -44,8 +44,8 @@ dataset_name = 'DIGITANIE'
 data_path = data_root / dataset_name
 nomenclature = datasets.DigitanieNomenclatures['building'].value
 num_classes=len(nomenclature)
-crop_size=384
-crop_step=256
+crop_size=256
+crop_step=224
 bands = [1,2,3]
 
 # split params

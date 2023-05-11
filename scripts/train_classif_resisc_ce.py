@@ -1,12 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[15]:
-
-
-#%load_ext autoreload
-#%autoreload 2
-
 import os
 import csv
 import numpy as np
@@ -20,6 +11,7 @@ from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from pytorch_lightning.utilities import CombinedLoader
 from pathlib import Path
 from datetime import datetime
+import torchvision.models as models
 
 import dl_toolbox.callbacks as callbacks
 import dl_toolbox.modules as modules 
@@ -46,58 +38,41 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
     if test:
         data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
     else:
-        #!bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
         data_root = Path(os.environ['TMPDIR'])
 
-
-# In[21]:
-
-
 # datasets params
-dataset_name = 'DIGITANIE'
+dataset_name = 'NWPU-RESISC45'
 data_path = data_root / dataset_name
-nomenclature = datasets.DigitanieNomenclatures['building'].value
+nomenclature = datasets.ResiscNomenclatures['all'].value
 num_classes=len(nomenclature)
-crop_size=256
-crop_step=256
-bands = [1,2,3]
 
-# split params
-split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_all.csv'
-
-train_idx = [i+j for i in [0, 66, 88, 99, 110, 154] for j in range(1,9)]
+train = (0,500)
+train_idx = [700*i+j for i in range(num_classes) for j in range(*train)]
 train_aug = 'd4_color-3'
 
-val_idx = [i+j for i in [0, 66, 88, 99, 110, 154] for j in range(9,11)]
-val_aug = 'no'
-
-unsup_idx = []
-unsup_aug = 'd4'
+val = (550, 600)
+val_idx = [700*i+j for i in range(num_classes) for j in range(*val)]
+val_aug = 'd4_color-3'
 
 # dataloaders params
 batch_size = 16
-epoch_steps = 1000
+epoch_steps = 200
 num_samples = epoch_steps * batch_size
 num_workers=6
 
 # network params
-in_channels=len(bands)
+in_channels=3
 out_channels=num_classes
-pretrained = False #'imagenet'
-encoder='efficientnet-b1'
+pretrained = weights = 'IMAGENET1K_V1'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 1., 3.] #[1.] * num_classes
+class_weights = [1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
-pseudo_threshold=0.9
-consist_aug='color-5'
-ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
 
 # trainer params
-num_epochs = 50
+num_epochs = 100
 #max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
@@ -105,151 +80,27 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'fra'
-ckpt_path=None # '/data/outputs/test_bce_resisc/version_2/checkpoints/epoch=49-step=14049.ckpt'
+log_name = 'classif_resisc_ce'
+ckpt_path=None 
 
 
-# In[22]:
-
-
-train_data_src = [
-    src for src in datasets.datasets_from_csv(
-        data_path,
-        split,
-        train_idx
-    )
-]
-
-train_sets = [
-    datasets.Raster(
-        data_src=src,
-        crop_size=crop_size,
-        aug=train_aug,
-        bands=bands,
+train_set = Subset(
+    datasets.Resisc(
+        data_path=data_path,
+        img_aug=train_aug,
         nomenclature=nomenclature
-    ) for src in train_data_src
-]
+    ),
+    indices=train_idx
+)
 
-train_set = ConcatDataset(train_sets)
-
-val_data_src = [
-    src for src in datasets.datasets_from_csv(
-        data_path,
-        split,
-        val_idx
-    )
-]
-
-val_sets = [
-    datasets.PretiledRaster(
-        data_src=src,
-        crop_size=crop_size,
-        crop_step=crop_size//2,
-        aug=val_aug,
-        bands=bands,
+val_set = Subset(
+    datasets.Resisc(
+        data_path=data_path,
+        img_aug=val_aug,
         nomenclature=nomenclature
-    ) for src in val_data_src
-]
-
-val_set = ConcatDataset(val_sets)
-
-if unsup_idx:
-    
-    train_set_coords = []
-
-    for src in train_data_src:
-        if isinstance(src.zone, windows.Window):
-            bbox = windows.bounds(src.zone, src.meta['transform'])
-            train_set_coords.append(datasets.polygon_from_bbox(bbox))
-        elif isinstance(src.zone, shapely.Polygon):
-            train_set_coords.append(src.zone.exterior.coords)
-        
-    unsup_sets = []
-
-    unsup_data_src = datasets.datasets_from_csv(
-        data_path,
-        split,
-        unsup_idx
-    )
-
-    for src in unsup_data_src:
-
-        if isinstance(src.zone, windows.Window):
-            bbox = windows.bounds(src.zone, src.meta['transform'])
-            poly_zone = shapely.Polygon(
-                shell=datasets.polygon_from_bbox(bbox),
-                #holes=train_set_coords
-            )
-
-        elif isinstance(src.zone, shapely.Polygon):
-            poly_zone = shapely.Polygon(
-                shell=src.zone.exterior.coords,
-                #holes=train_set_coords
-            )
-
-        src.zone = poly_zone
-
-        unsup_set = datasets.Raster(
-            data_src=src,
-            crop_size=crop_size,
-            aug=unsup_aug,
-            bands=bands,
-            nomenclature=nomenclature,
-        )
-
-        unsup_sets.append(unsup_set)
-
-    unsup_set = ConcatDataset(unsup_sets) 
-
-
-# In[23]:
-
-
-#%matplotlib inline
-#from shapely import plotting
-#from matplotlib import colors
-#import matplotlib.pyplot as plt
-#from copy import copy
-#from rasterio import plot as rioplt
-#
-#def shape_color(name, alpha):
-#    color = colors.to_rgba(name)
-#    facecolor = list(color)
-#    facecolor[-1] = alpha
-#    facecolor = tuple(facecolor)
-#    edgecolor = color
-#    return facecolor, edgecolor
-#
-#fig, ax = plt.subplots(1, 1)
-#f0, e0 = shape_color("C0", 0)
-#f1, e1 = shape_color("C1", 0)
-#
-#ds = val_set.datasets[0]
-#poly_zone = ds.data_src.zone
-#poly_zone = shapely.Polygon(datasets.polygon_from_bbox(windows.bounds(ds.data_src.zone, ds.data_src.meta['transform'])))
-#patch_zone = plotting.patch_from_polygon(poly_zone, facecolor=f0, edgecolor=e0)
-#ax.add_patch(copy(patch_zone))
-#
-#for coord in train_set_coords:
-#    train_poly = shapely.Polygon(coord)
-#    patch = plotting.patch_from_polygon(train_poly, facecolor=f1, edgecolor=e1)
-#    ax.add_patch(copy(patch))
-#    
-#item =ds[1]
-#image=item['image'].numpy()
-#print(image.min())
-#rioplt.show(image, ax=ax, transform=item['crop_tf'])
-#ax.axis('equal')
-#ax.autoscale_view()
-#
-#fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(10,10))
-#rioplt.show(image, ax=ax1, transform=item['crop_tf'])
-#ax2.imshow(image.transpose(1,2,0)[...,:3])
-#ax3.imshow(item['label'].numpy())
-
-
-# In[25]:
-
+    ),
+    indices=val_idx
+)   
 
 train_dataloaders = {}
 train_dataloaders['sup'] = DataLoader(
@@ -265,44 +116,35 @@ train_dataloaders['sup'] = DataLoader(
     drop_last=True
 )
 
-if unsup_idx:
-    
-    train_dataloaders['unsup'] = DataLoader(
-        dataset=unsup_set,
-        batch_size=batch_size,
-        collate_fn=collate.CustomCollate(),
-        sampler=RandomSampler(
-            data_source=unsup_set,
-            replacement=True,
-            num_samples=num_samples
-        ),
-        num_workers=num_workers,
-        drop_last=True
-    )
-
 val_dataloader = DataLoader(
     dataset=val_set,
-    shuffle=False,
-    #sampler=RandomSampler(
-    #    data_source=val_set,
-    #    replacement=True,
-    #    num_samples=num_samples//10
-    #),
+    #shuffle=False,
+    sampler=RandomSampler(
+        data_source=val_set,
+        replacement=True,
+        num_samples=num_samples//10
+    ),
     collate_fn=collate.CustomCollate(),
     batch_size=batch_size,
     num_workers=num_workers
 )
 
 
-# In[26]:
+from torchvision.ops.misc import Conv2dNormActivation
+from torch import nn
 
-
-network = networks.SmpUnet(
-    encoder=encoder,
-    in_channels=in_channels,
-    out_channels=out_channels,
-    pretrained=pretrained
+network = models.efficientnet_b0(
+    num_classes=out_channels if pretrained is None else 1000,
+    weights=pretrained
 )
+if weights is not None:
+    # switching head for num_class and init
+    head = nn.Linear(1280, out_channels) # 1280 comes from 4 * lastconv_input_channels=320 in efficientnet_b0
+    network.classifier[-1] = head
+    init_range = 1.0 / math.sqrt(out_channels)
+    nn.init.uniform_(head.weight, -init_range, init_range)
+    nn.init.zeros_(head.bias)
+
 
 ### Building lightning module
 module = modules.Supervised(
@@ -311,16 +153,8 @@ module = modules.Supervised(
     num_classes=num_classes,
     class_weights=class_weights,
     initial_lr=initial_lr,
-    ttas=ttas,
-    #alpha_ramp=alpha_ramp,
-    #pseudo_threshold=pseudo_threshold,
-    #consist_aug=consist_aug,
-    #ema_ramp=ema_ramp
+    ttas=ttas
 )
-
-
-# In[27]:
-
 
 ### Metrics and plots from confmat callback
 metrics_from_confmat = callbacks.MetricsFromConfmat(        
@@ -354,13 +188,12 @@ trainer = pl.Trainer(
     ]
 )
 
-
-# In[28]:
-
-
 trainer.fit(
     model=module,
-    train_dataloaders=CombinedLoader(train_dataloaders, mode=multiple_trainloader_mode),
+    train_dataloaders=CombinedLoader(
+        train_dataloaders,
+        mode=multiple_trainloader_mode
+    ),
     val_dataloaders=val_dataloader,
     ckpt_path=ckpt_path
 )

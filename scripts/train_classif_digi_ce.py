@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from pytorch_lightning.utilities import CombinedLoader
 from pathlib import Path
 from datetime import datetime
+import torchvision.models as models
 
 import dl_toolbox.callbacks as callbacks
 import dl_toolbox.modules as modules 
@@ -85,7 +86,7 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'test_classif'
+log_name = 'classif_digi_ce'
 ckpt_path=None 
 
 
