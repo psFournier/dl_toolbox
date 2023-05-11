@@ -36,7 +36,7 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
     if test:
         data_root = Path('/work/OT/ai4geo/DATA/DATASETS')
     else:
-        #bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
+        #!bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
         data_root = Path(os.environ['TMPDIR'])
 
 # datasets params
@@ -44,47 +44,47 @@ dataset_name = 'DIGITANIE'
 data_path = data_root / dataset_name
 nomenclature = datasets.DigitanieNomenclatures['building'].value
 num_classes=len(nomenclature)
-crop_size=256
+crop_size=384
 crop_step=256
 bands = [1,2,3]
 
 # split params
 split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_all.csv'
 
-TO_idx = [0, 66, 88, 99, 110, 154]
+TO_idx = [0, 66, 88, 99, 110, 154, 165]
 train_idx = [i+j for i in TO_idx for j in range(1,9)]
-train_aug = 'd4_color-2'
+train_aug = 'd4_color-3'
 
 val_idx = [i+j for i in TO_idx for j in range(9,11)]
 val_aug = 'no'
 
-unsup_idx = TO_idx
+unsup_idx = []
 unsup_aug = 'd4'
 
 # dataloaders params
 batch_size = 16
-epoch_steps = 1000
+epoch_steps = 200
 num_samples = epoch_steps * batch_size
 num_workers=6
 
 # network params
 in_channels=len(bands)
 out_channels=num_classes
-pretrained = False #'imagenet'
-encoder='efficientnet-b4'
+pretrained = 'imagenet'
+encoder='efficientnet-b7'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 2.] #[1.] * num_classes
+class_weights = [1., 5.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(50,70,0.,2.)
-pseudo_threshold=0.99
+alpha_ramp=utils.SigmoidRamp(10,20,0.,2.)
+pseudo_threshold=0.95
 consist_aug='color-5'
 ema_ramp=utils.SigmoidRamp(2,4,0.9,0.99)
 
 # trainer params
-num_epochs = 100
+num_epochs = 30
 #max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
@@ -127,7 +127,7 @@ val_sets = [
     datasets.PretiledRaster(
         data_src=src,
         crop_size=crop_size,
-        crop_step=crop_size//2,
+        crop_step=crop_step,
         aug=val_aug,
         bands=bands,
         nomenclature=nomenclature
@@ -288,23 +288,23 @@ network = networks.SmpUnet(
 )
 
 ### Building lightning module
-network2 = networks.SmpUnet(
-    encoder=encoder,
-    in_channels=in_channels,
-    out_channels=out_channels,
-    pretrained=pretrained
-)
-module = modules.CrossPseudoSupervision(
+#network2 = networks.SmpUnet(
+#    encoder=encoder,
+#    in_channels=in_channels,
+#    out_channels=out_channels,
+#    pretrained=pretrained
+#)
+module = modules.Supervised(
     mixup=mixup, # incompatible with ignore_zero=True
     network=network,
     num_classes=num_classes,
     class_weights=class_weights,
     initial_lr=initial_lr,
     ttas=ttas,
-    alpha_ramp=alpha_ramp,
-    pseudo_threshold=pseudo_threshold,
-    consist_aug=consist_aug,
-    network2=network2
+    #alpha_ramp=alpha_ramp,
+    #pseudo_threshold=pseudo_threshold,
+    #consist_aug=consist_aug,
+    #network2=network2
     #ema_ramp=ema_ramp
 )
 

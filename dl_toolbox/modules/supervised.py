@@ -30,6 +30,7 @@ class Supervised(pl.LightningModule):
         self.loss = nn.CrossEntropyLoss(
             weight=torch.Tensor(class_weights)
         )
+        #self.dice_loss = DiceLoss(mode="multilabel", log_loss=False, from_logits=True)
         
         self.onehot = TorchOneHot(range(self.num_classes))
         self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
