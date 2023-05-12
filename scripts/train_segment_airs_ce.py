@@ -51,10 +51,10 @@ bands = [1,2,3]
 # split params
 split = home / f'dl_toolbox/dl_toolbox/datamodules/airs_50cm.csv'
 
-train_idx = list(range(539))
+train_idx = list(range(100))
 train_aug = 'd4_color-3'
 
-val_idx = list(range(539, 639))
+val_idx = list(range(625, 639))
 val_aug = 'd4_color-3'
 
 # dataloaders params
