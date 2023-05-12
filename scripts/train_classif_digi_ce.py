@@ -62,23 +62,23 @@ val_aug = 'd4_color-3'
 
 # dataloaders params
 batch_size = 16
-epoch_steps = 200
+epoch_steps = 1000
 num_samples = epoch_steps * batch_size
 num_workers=6
 
 # network params
-in_channels=len(bands)+1
+in_channels=len(bands)+3
 out_channels=num_classes
 pretrained = None
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 5.] #[1.] * num_classes
+class_weights = [1., 3.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
 
 # trainer params
-num_epochs = 30
+num_epochs = 100
 #max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1

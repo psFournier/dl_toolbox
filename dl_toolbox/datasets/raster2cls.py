@@ -60,7 +60,16 @@ class Raster2Cls(Raster):
      
         cx, cy = np.random.randint(self.crop_size, size=2)
         focus = self.get_focus(self.focus_rad, cx, cy)
-        image = torch.vstack([image, focus.unsqueeze(dim=0)])
+        cols, rows = np.meshgrid(
+            np.arange(self.crop_size),
+            np.arange(self.crop_size)
+        )
+        image = torch.vstack([
+            image,
+            focus.unsqueeze(dim=0),
+            torch.from_numpy(cols).float().unsqueeze(dim=0),
+            torch.from_numpy(rows).float().unsqueeze(dim=0),
+        ])
         
         if label is not None:
             #c=self.crop_size
