@@ -7,7 +7,7 @@ cd "${TMPDIR}"
 #done
 
 mkdir miniworld_tif
-cities=( "Arcachon" "Biarritz" "Montpellier" "Toulouse" "Nantes" "Strasbourg" "Paris" )
+cities=( "christchurch" )
 for city in "${cities[@]}" ; do
-    rsync -rv --include="${city}/" --include="COS9/" --include="*.tif" --exclude="*" /work/OT/ai4geo/DATA/DATASETS/DIGITANIE/ DIGITANIE/
+    rsync -rv --include="${city}/" /work/OT/ai4usr/fournip/miniworld_tif/ miniworld_tif/
 done
