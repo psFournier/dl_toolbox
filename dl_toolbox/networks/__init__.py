@@ -3,7 +3,7 @@ from .smp_unet import SmpUnet
 from .vgg import Vgg
 from .flair import *
 from .encode_then_upsample import *
-from torchvision.models import efficientnet_b0
+from .efficientnet import *
 
 networks = {
     'Vgg': Vgg,
