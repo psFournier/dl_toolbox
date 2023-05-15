@@ -33,17 +33,16 @@ class Raster2Cls(Raster):
         
         xx, yy = np.mgrid[:self.crop_size, :self.crop_size]
         
-        #r = self.crop_size
-        #circle = (xx - cx) ** 2 + (yy - cy) ** 2
-        #focus = torch.zeros((self.crop_size, self.crop_size))
-        #focus[circle<r**2]=1
+        circle = (xx - cx) ** 2 + (yy - cy) ** 2
+        focus = torch.zeros((self.crop_size, self.crop_size))
+        focus[circle<r**2]=1
         
-        focus = stats.multivariate_normal.pdf(
-            np.dstack((xx, yy)),
-            mean=np.array([cx, cy]),
-            cov=r**2
-        )
-        focus = torch.from_numpy(focus).float()
+        #focus = stats.multivariate_normal.pdf(
+        #    np.dstack((xx, yy)),
+        #    mean=np.array([cx, cy]),
+        #    cov=r**2
+        #)
+        #focus = torch.from_numpy(focus).float()
         
         return focus
 
@@ -58,7 +57,8 @@ class Raster2Cls(Raster):
         if self.aug is not None:
             image, label = self.aug(img=image, label=label)
      
-        cx, cy = np.random.randint(self.crop_size, size=2)
+        #cx, cy = np.random.randint(self.crop_size, size=2)
+        cx, cy = self.crop_size//2, self.crop_size//2
         focus = self.get_focus(self.focus_rad, cx, cy)
         cols, rows = np.meshgrid(
             np.arange(self.crop_size),
@@ -66,9 +66,9 @@ class Raster2Cls(Raster):
         )
         image = torch.vstack([
             image,
-            focus.unsqueeze(dim=0),
-            torch.from_numpy(cols).float().unsqueeze(dim=0),
-            torch.from_numpy(rows).float().unsqueeze(dim=0),
+            #focus.unsqueeze(dim=0),
+            #torch.from_numpy(cols).float().unsqueeze(dim=0),
+            #torch.from_numpy(rows).float().unsqueeze(dim=0),
         ])
         
         if label is not None:
@@ -82,7 +82,7 @@ class Raster2Cls(Raster):
             )
             bincounts /= sum(bincounts)
             #label = torch.argmax(bincounts)   
-            label = torch.Tensor(bincounts[1] > 0.3).long()
+            label = torch.Tensor(bincounts[1] > 0.2).long()
             #print(bincounts, label)
             
         crop_transform = windows.transform(
