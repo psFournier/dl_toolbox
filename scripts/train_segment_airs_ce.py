@@ -76,7 +76,7 @@ initial_lr=0.001
 ttas=[]
 
 # trainer params
-num_epochs = 100
+num_epochs = 200
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
@@ -84,7 +84,7 @@ limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
 log_name = 'airs_seg_ce'
-ckpt_path=None 
+ckpt_path='/work/OT/ai4usr/fournip/outputs/miniworld_tif/airs_seg_ce/12May23-14h21m22/checkpoints/epoch=99-step=20000.ckpt' 
 
 train_data_src = [
     src for src in datasets.datasets_from_csv(

@@ -51,13 +51,13 @@ bands = [1,2,3]
 # split params
 split = home / f'dl_toolbox/dl_toolbox/datamodules/airs_50cm.csv'
 
-train_idx = list(range(539))
+train_idx = list(range(100))
 train_aug = 'd4_color-3'
 
-val_idx = list(range(539, 639))
+val_idx = list(range(625, 639))
 val_aug = 'd4_color-3'
 
-unsup_idx = []
+unsup_idx = list(range(639))
 unsup_aug = 'd4'
 
 # dataloaders params
@@ -70,26 +70,26 @@ num_workers=6
 in_channels=len(bands)
 out_channels=num_classes
 pretrained = 'imagenet'
-encoder='efficientnet-b7'
+encoder='efficientnet-b3'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 5.] #[1.] * num_classes
+class_weights = [1., 3.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(5,20,0.,2.)
+alpha_ramp=utils.SigmoidRamp(100,150,0.,2.)
 pseudo_threshold=0.99
 consist_aug='color-5'
 
 # trainer params
-num_epochs = 100
+num_epochs = 200
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'airs_seg_cps'
+log_name = 'segment_airs_cps'
 ckpt_path=None
 
 train_data_src = [
@@ -270,10 +270,6 @@ trainer = pl.Trainer(
     logger=logger,
     callbacks=[
         pl.callbacks.ModelCheckpoint(),
-        pl.callbacks.EarlyStopping(
-            monitor='Val_loss',
-            patience=10
-        ),
         metrics_from_confmat,
         callbacks.MyProgressBar()
     ]

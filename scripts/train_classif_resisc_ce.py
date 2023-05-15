@@ -1,13 +1,11 @@
-import os
-import csv
-import numpy as np
-import shapely
 import pytorch_lightning as pl
-import matplotlib.pyplot as plt
+import os
+import numpy as np
 import torch
+import math
+import torch.nn as nn
 
-
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
+from torch.utils.data import DataLoader, Subset, RandomSampler, ConcatDataset
 from pytorch_lightning.utilities import CombinedLoader
 from pathlib import Path
 from datetime import datetime
@@ -15,12 +13,10 @@ import torchvision.models as models
 
 import dl_toolbox.callbacks as callbacks
 import dl_toolbox.modules as modules 
-import dl_toolbox.networks as networks
 import dl_toolbox.datasets as datasets
 import dl_toolbox.torch_collate as collate
 import dl_toolbox.utils as utils
-
-import rasterio.windows as windows
+import dl_toolbox.torch_sample as sample
 
 torch.set_float32_matmul_precision('high')
 test = False
@@ -46,7 +42,7 @@ data_path = data_root / dataset_name
 nomenclature = datasets.ResiscNomenclatures['all'].value
 num_classes=len(nomenclature)
 
-train = (0,500)
+train = (0,50)
 train_idx = [700*i+j for i in range(num_classes) for j in range(*train)]
 train_aug = 'd4_color-3'
 
@@ -72,7 +68,7 @@ initial_lr=0.001
 ttas=[]
 
 # trainer params
-num_epochs = 100
+num_epochs = 200
 #max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
@@ -80,8 +76,8 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'classif_resisc_ce'
-ckpt_path=None 
+log_name = 'classif_resisc_ce_50'
+ckpt_path=None#'/work/OT/ai4usr/fournip/outputs/NWPU-RESISC45/classif_resisc_ce/15May23-12h53m23/checkpoints/epoch=99-step=20000.ckpt'
 
 
 train_set = Subset(
@@ -179,10 +175,10 @@ trainer = pl.Trainer(
     logger=logger,
     callbacks=[
         pl.callbacks.ModelCheckpoint(),
-        pl.callbacks.EarlyStopping(
-            monitor='Val_loss',
-            patience=10
-        ),
+        #pl.callbacks.EarlyStopping(
+        #    monitor='Val_loss',
+        #    patience=10
+        #),
         metrics_from_confmat,
         callbacks.MyProgressBar()
     ]

@@ -1,13 +1,11 @@
-import os
-import csv
-import numpy as np
-import shapely
 import pytorch_lightning as pl
-import matplotlib.pyplot as plt
+import os
+import numpy as np
 import torch
+import math
+import torch.nn as nn
 
-
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
+from torch.utils.data import DataLoader, Subset, RandomSampler, ConcatDataset
 from pytorch_lightning.utilities import CombinedLoader
 from pathlib import Path
 from datetime import datetime
@@ -15,12 +13,10 @@ import torchvision.models as models
 
 import dl_toolbox.callbacks as callbacks
 import dl_toolbox.modules as modules 
-import dl_toolbox.networks as networks
 import dl_toolbox.datasets as datasets
 import dl_toolbox.torch_collate as collate
 import dl_toolbox.utils as utils
-
-import rasterio.windows as windows
+import dl_toolbox.torch_sample as sample
 
 torch.set_float32_matmul_precision('high')
 test = False
@@ -74,12 +70,12 @@ mixup=0. # incompatible with ignore_zero=True
 class_weights = [1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
+alpha_ramp=utils.SigmoidRamp(100,120,0.,2.)
 pseudo_threshold=0.9
 consist_aug='color-5'
 
 # trainer params
-num_epochs = 100
+num_epochs = 200
 #max_steps=num_epochs * epoch_steps
 accelerator='gpu'
 devices=1
@@ -87,7 +83,7 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'classif_resisc_ce'
+log_name = 'classif_resisc_cps'
 ckpt_path=None 
 
 
