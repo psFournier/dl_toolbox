@@ -42,7 +42,7 @@ data_path = data_root / dataset_name
 nomenclature = datasets.ResiscNomenclatures['all'].value
 num_classes=len(nomenclature)
 
-train = (0,500)
+train = (0,50)
 train_idx = [700*i+j for i in range(num_classes) for j in range(*train)]
 train_aug = 'd4_color-3'
 
@@ -70,8 +70,8 @@ mixup=0. # incompatible with ignore_zero=True
 class_weights = [1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(100,120,0.,2.)
-pseudo_threshold=0.9
+alpha_ramp=utils.SigmoidRamp(25,50,0.,10.)
+pseudo_threshold=0.99
 consist_aug='color-5'
 
 # trainer params
@@ -83,7 +83,7 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'classif_resisc_cps'
+log_name = 'cps_tr50_thr99_ramp10_color5'
 ckpt_path=None 
 
 
@@ -194,7 +194,6 @@ module = modules.CrossPseudoSupervision(
     alpha_ramp=alpha_ramp,
     pseudo_threshold=pseudo_threshold,
     consist_aug=consist_aug,
-    ema_ramp=ema_ramp,
     network2=network2
 )
 
@@ -221,10 +220,10 @@ trainer = pl.Trainer(
     logger=logger,
     callbacks=[
         pl.callbacks.ModelCheckpoint(),
-        pl.callbacks.EarlyStopping(
-            monitor='Val_loss',
-            patience=10
-        ),
+        #pl.callbacks.EarlyStopping(
+        #    monitor='Val_loss',
+        #    patience=10
+        #),
         metrics_from_confmat,
         callbacks.MyProgressBar()
     ]

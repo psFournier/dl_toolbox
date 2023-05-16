@@ -77,20 +77,20 @@ mixup=0. # incompatible with ignore_zero=True
 class_weights = [1., 3.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(100,150,0.,2.)
+alpha_ramp=utils.SigmoidRamp(205,230,0.,10.)
 pseudo_threshold=0.99
 consist_aug='color-5'
 
 # trainer params
-num_epochs = 200
+num_epochs = 300
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'segment_airs_cps'
-ckpt_path=None
+log_name = 'cps_thr99_ramp10_color5'
+ckpt_path='/work/OT/ai4usr/fournip/outputs/miniworld_tif/segment_airs_cps/15May23-11h53m09/checkpoints/epoch=199-step=40000.ckpt'
 
 train_data_src = [
     src for src in datasets.datasets_from_csv(
