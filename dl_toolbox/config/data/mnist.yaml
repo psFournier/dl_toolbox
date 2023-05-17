@@ -1,0 +1,4 @@
+name: mnist
+
+input_dim: 784
+output_dim: 10

@@ -80,7 +80,6 @@ initial_lr=0.001
 ttas=[]
 alpha_ramp=utils.SigmoidRamp(2,4,0.,0.)
 pseudo_threshold=0.9
-consist_aug='color-5'
 
 # trainer params
 num_epochs = 30
@@ -239,7 +238,6 @@ module = modules.CrossPseudoSupervision(
     ttas=ttas,
     alpha_ramp=alpha_ramp,
     pseudo_threshold=pseudo_threshold,
-    consist_aug=consist_aug,
     ema_ramp=ema_ramp,
     network2=network2
 )

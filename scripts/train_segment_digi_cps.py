@@ -59,7 +59,7 @@ val_idx = [i+j for i in TO_idx for j in range(9,11)]
 val_aug = 'd4_color-3'
 
 unsup_idx = TO_idx
-unsup_aug = 'd4'
+unsup_aug = 'd4_color-3'
 
 # dataloaders params
 batch_size = 16
@@ -71,26 +71,25 @@ num_workers=6
 in_channels=len(bands)
 out_channels=num_classes
 pretrained = 'imagenet'
-encoder='efficientnet-b7'
+encoder='efficientnet-b3'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 5.] #[1.] * num_classes
+class_weights = [1., 1.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(5,20,0.,2.)
-pseudo_threshold=0.99
-consist_aug='color-5'
+alpha_ramp=utils.SigmoidRamp(0,1,1.,1.)
+pseudo_threshold=0.
 
 # trainer params
-num_epochs = 30
+num_epochs = 300
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'cps'
+log_name = 'cps_thr0_ramp0_w11_alpha1'
 ckpt_path=None
 
 train_data_src = [
@@ -244,7 +243,6 @@ module = modules.CrossPseudoSupervision(
     ttas=ttas,
     alpha_ramp=alpha_ramp,
     pseudo_threshold=pseudo_threshold,
-    consist_aug=consist_aug,
     network2=network2
 )
 
@@ -271,10 +269,6 @@ trainer = pl.Trainer(
     logger=logger,
     callbacks=[
         pl.callbacks.ModelCheckpoint(),
-        pl.callbacks.EarlyStopping(
-            monitor='Val_loss',
-            patience=10
-        ),
         metrics_from_confmat,
         callbacks.MyProgressBar()
     ]

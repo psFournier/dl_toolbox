@@ -33,8 +33,10 @@ class CrossPseudoSupervision(pl.LightningModule):
         )
         
         self.unsup_loss = nn.CrossEntropyLoss(
-            reduction='none'
+            weight=torch.Tensor(class_weights),
+            #reduction='none'
         )
+        
         self.alpha_ramp = alpha_ramp
         self.pseudo_threshold = pseudo_threshold
         
@@ -49,11 +51,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         return self.optimizer
 
     def forward(self, x):
-
-        logits1 = self.network1(x)
-        logits2 = self.network2(x)
         
-        return (logits1 + logits2) / 2
+        return self.network1(x)
 
     def logits2probas(cls, logits):
 
@@ -79,78 +78,63 @@ class CrossPseudoSupervision(pl.LightningModule):
         logits2 = self.network2(inputs)
         loss = (self.loss(logits1, labels)+self.loss(logits2, labels))/2
         self.log('Train_sup_loss', loss)
-        
-        cps_loss = 0.
+    
+        with torch.no_grad():
+            _, sup_pl_2 = torch.max(logits2, dim=1)
+        sup_pl_2_loss = self.unsup_loss(logits1, sup_pl_2)
+        with torch.no_grad():
+            _, sup_pl_1 = torch.max(logits1, dim=1)
+        sup_pl_1_loss = self.unsup_loss(logits2, sup_pl_1)
+        sup_cps_loss = sup_pl_1_loss + sup_pl_2_loss
+        loss += self.alpha * sup_cps_loss
+        self.log('Train_sup_cps_loss', sup_cps_loss)
+           
+        unsup_cps_loss = 0.
         if self.alpha > 0.:
 
             unsup_inputs = unsup_batch['image']
             unsup_logits_1 = self.network1(unsup_inputs)
             unsup_logits_2 = self.network2(unsup_inputs)
-            
-            # Supervising network 1 with pseudolabels from network 2
-            
+                        
             with torch.no_grad():
-                pseudo_probs_2 = self.logits2probas(unsup_logits_2)
-            pseudo_confs_2, pseudo_preds_2 = self.probas2confpreds(pseudo_probs_2)
-            loss_no_reduce_1 = self.unsup_loss(
-                unsup_logits_1,
-                pseudo_preds_2
-            ) # B,H,W
-            pseudo_certain_2 = (pseudo_confs_2 > self.pseudo_threshold).float() # B,H,W
-            pseudo_certain_2_sum = torch.sum(pseudo_certain_2) + 1e-5
-            self.log('Pseudo_certain_2', torch.mean(pseudo_certain_2))
-            pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / pseudo_certain_2_sum
+                _, unsup_pl_2 = torch.max(unsup_logits_2, dim=1)
+            unsup_pl_2_loss = self.unsup_loss(unsup_logits_1, unsup_pl_2)
+            with torch.no_grad():
+                _, unsup_pl_1 = torch.max(unsup_logits_1, dim=1)
+            unsup_pl_1_loss = self.unsup_loss(unsup_logits_2, unsup_pl_1)
+            unsup_cps_loss = unsup_pl_1_loss + unsup_pl_2_loss
+            
+            #pseudo_confs_2, pseudo_preds_2 = self.probas2confpreds(pseudo_probs_2)
+            #loss_no_reduce_1 = self.unsup_loss(
+            #    unsup_logits_1,
+            #    pseudo_preds_2
+            #) # B,H,W
+            #pseudo_certain_2 = (pseudo_confs_2 > self.pseudo_threshold).float() # B,H,W
+            #pseudo_certain_2_sum = torch.sum(pseudo_certain_2) + 1e-5
+            #self.log('Pseudo_certain_2', torch.mean(pseudo_certain_2))
+            #pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / pseudo_certain_2_sum
 
             # Supervising network 2 with pseudolabels from network 1
             
-            with torch.no_grad():
-                pseudo_probs_1 = self.logits2probas(unsup_logits_1)
-            pseudo_confs_1, pseudo_preds_1 = self.probas2confpreds(pseudo_probs_1)
-            loss_no_reduce_2 = self.unsup_loss(
-                unsup_logits_2,
-                pseudo_preds_1
-            ) # B,H,W
-            pseudo_certain_1 = (pseudo_confs_1 > self.pseudo_threshold).float() # B,H,W
-            pseudo_certain_1_sum = torch.sum(pseudo_certain_1) + 1e-5
-            self.log('Pseudo_certain_1', torch.mean(pseudo_certain_1))
-            pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / pseudo_certain_1_sum
+            #with torch.no_grad():
+            #    pseudo_probs_1 = self.logits2probas(unsup_logits_1)
+            #pseudo_confs_1, pseudo_preds_1 = self.probas2confpreds(pseudo_probs_1)
+            #loss_no_reduce_2 = self.unsup_loss(
+            #    unsup_logits_2,
+            #    pseudo_preds_1
+            #) # B,H,W
+            #pseudo_certain_1 = (pseudo_confs_1 > self.pseudo_threshold).float() # B,H,W
+            #pseudo_certain_1_sum = torch.sum(pseudo_certain_1) + 1e-5
+            #self.log('Pseudo_certain_1', torch.mean(pseudo_certain_1))
+            #pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / pseudo_certain_1_sum
             
-            cps_loss = (pseudo_loss_1 + pseudo_loss_2) / 2
+            #cps_loss = (pseudo_loss_1 + pseudo_loss_2) / 2
 
-        self.log('cps loss', cps_loss)
-        loss += self.alpha * cps_loss
+        self.log('Train_unsup_cps_loss', unsup_cps_loss)
+        loss += self.alpha * unsup_cps_loss
         self.log("Train_loss", loss)
         
         return loss
-
-        # Supervising network 1 with pseudolabels from network 2
-            
-        #pseudo_probs_2 = logits2.detach().softmax(dim=1)
-        #top_probs_2, pseudo_preds_2 = torch.max(pseudo_probs_2, dim=1) # B,H,W
-        #loss_no_reduce_1 = self.unsup_loss(
-        #    logits1,
-        #    pseudo_preds_2
-        #) # B,H,W
-        #pseudo_certain_2 = (top_probs_2 > self.pseudo_threshold).float()
-        #certain_2 = torch.sum(pseudo_certain_2)
-        #self.log('Pseudo_certain_2_sup', torch.mean(pseudo_certain_2))
-        #pseudo_loss_1 = torch.sum(pseudo_certain_2 * loss_no_reduce_1) / certain_2
-
-        # Supervising network 2 with pseudolabels from network 1
-
-        #pseudo_probs_1 = logits1.detach().softmax(dim=1)
-        #top_probs_1, pseudo_preds_1 = torch.max(pseudo_probs_1, dim=1)
-        #loss_no_reduce_2 = self.unsup_loss(
-        #    logits2,
-        #    pseudo_preds_1
-        #)
-        #pseudo_certain_1 = (top_probs_1 > self.pseudo_threshold).float()
-        #certain_1 = torch.sum(pseudo_certain_1)
-        #pseudo_loss_2 = torch.sum(pseudo_certain_1 * loss_no_reduce_2) / certain_1
-
-        #pseudo_loss_sup = (pseudo_loss_1 + pseudo_loss_2) / 2
-        #pseudo_loss = pseudo_loss_sup
-
 
     def validation_step(self, batch, batch_idx):
 

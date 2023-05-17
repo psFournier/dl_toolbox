@@ -38,6 +38,8 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
     else:
         #!bash '/home/eh/fournip/dl_toolbox/copy_data_to_node.sh'
         data_root = Path(os.environ['TMPDIR'])
+        
+
 
 # datasets params
 dataset_name = 'miniworld_tif'
@@ -58,7 +60,7 @@ val_idx = list(range(625, 639))
 val_aug = 'd4_color-3'
 
 unsup_idx = list(range(639))
-unsup_aug = 'd4'
+unsup_aug = 'd4_color-3'
 
 # dataloaders params
 batch_size = 16
@@ -74,23 +76,22 @@ encoder='efficientnet-b3'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 3.] #[1.] * num_classes
+class_weights = [1., 1.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(205,230,0.,10.)
-pseudo_threshold=0.99
-consist_aug='color-5'
+alpha_ramp=utils.SigmoidRamp(0,1,1.,1.)
+pseudo_threshold=0.
 
 # trainer params
-num_epochs = 300
+num_epochs = 200
 accelerator='gpu'
 devices=1
 multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'cps_thr99_ramp10_color5'
-ckpt_path='/work/OT/ai4usr/fournip/outputs/miniworld_tif/segment_airs_cps/15May23-11h53m09/checkpoints/epoch=199-step=40000.ckpt'
+log_name = 'cps_thr0_ramp0_w11'
+ckpt_path='/work/OT/ai4usr/fournip/outputs/miniworld_tif/cps_thr0_ramp0_w11/17May23-07h39m54/checkpoints/epoch=49-step=10000.ckpt'
 
 train_data_src = [
     src for src in datasets.datasets_from_csv(
@@ -243,7 +244,6 @@ module = modules.CrossPseudoSupervision(
     ttas=ttas,
     alpha_ramp=alpha_ramp,
     pseudo_threshold=pseudo_threshold,
-    consist_aug=consist_aug,
     network2=network2
 )
 

@@ -52,7 +52,7 @@ val_aug = 'd4_color-3'
 
 unsup_train = (0, 700)
 unsup_idx = [700*i+j for i in range(num_classes) for j in range(*unsup_train)]
-unsup_aug = 'd4'
+unsup_aug = 'd4_color-3'
 
 # dataloaders params
 batch_size = 16
@@ -70,9 +70,8 @@ mixup=0. # incompatible with ignore_zero=True
 class_weights = [1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(25,50,0.,10.)
-pseudo_threshold=0.99
-consist_aug='color-5'
+alpha_ramp=utils.SigmoidRamp(0,1,1.,1.)
+pseudo_threshold=0.
 
 # trainer params
 num_epochs = 200
@@ -83,7 +82,7 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'cps_tr50_thr99_ramp10_color5'
+log_name = 'cps_tr50_thr0_ramp0'
 ckpt_path=None 
 
 
@@ -193,7 +192,6 @@ module = modules.CrossPseudoSupervision(
     ttas=ttas,
     alpha_ramp=alpha_ramp,
     pseudo_threshold=pseudo_threshold,
-    consist_aug=consist_aug,
     network2=network2
 )
 

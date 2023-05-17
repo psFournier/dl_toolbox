@@ -1,0 +1,16 @@
+### config/config.yaml
+
+hydra: 
+  run:
+    # Configure output dir of each experiment programmatically from the arguments
+    # Example "outputs/mnist/classifier/baseline/2021-03-10-141516"
+    dir: ${machine.output_dir}/${data.name}/${model.name}/${experiment}/${now:%Y-%m-%d_%H%M%S}
+
+# Global configurations shared between different modules
+experiment: baseline
+
+# Composing nested config with default
+defaults:
+  - data: mnist  # Path to sub-config, can also omit the .yaml extension
+  - model: classifier.yaml  # I add full path for easy navigation in vim (cursor in path, press gf)
+  - machine: cnes
