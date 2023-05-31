@@ -51,11 +51,11 @@ bands = [1,2,3]
 # split params
 split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_all.csv'
 
-TO_idx = [0, 66, 88, 99, 110, 154, 165]
-train_idx = [i+j for i in TO_idx for j in range(1,8)]
+TO_idx = [99]
+train_idx = [i+j for i in TO_idx for j in range(1,3)]
 train_aug = 'd4_color-3'
 
-val_idx = [i+j for i in TO_idx for j in range(8,9)]
+val_idx = [i+j for i in TO_idx for j in range(9,11)]
 val_aug = 'd4_color-3'
 
 # dataloaders params
@@ -84,7 +84,7 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'ce'
+log_name = 'ce_thr0_ramp0_w13_alpha1'
 ckpt_path=None 
 
 train_data_src = [

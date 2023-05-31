@@ -117,8 +117,6 @@ class Raster(torch.utils.data.Dataset):
             label = F.center_crop(label, output_size=crop_size)
 
         return image, label
-    
-
 
     def normalize(self, image):
         
