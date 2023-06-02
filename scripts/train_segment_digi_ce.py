@@ -42,7 +42,7 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
 # datasets params
 dataset_name = 'DIGITANIE'
 data_path = data_root / dataset_name
-nomenclature = datasets.DigitanieNomenclatures['building'].value
+nomenclature = datasets.DigitanieNomenclatures['main'].value
 num_classes=len(nomenclature)
 crop_size=256
 crop_step=224
@@ -72,7 +72,7 @@ encoder='efficientnet-b3'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 5.] #[1.] * num_classes
+class_weights = [0.]+[1.] * (num_classes-1)
 initial_lr=0.001
 ttas=[]
 
@@ -84,7 +84,7 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'ce_1-5_w15'
+log_name = 'ce_main_1-5_w1'
 ckpt_path=None 
 
 train_data_src = [

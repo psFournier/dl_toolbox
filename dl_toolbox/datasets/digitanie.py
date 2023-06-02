@@ -39,13 +39,12 @@ initial_nomenclature = [
 ]
 
 main_nomenclature = [
-    label('nodata', (250,250,250), {0}),
+    label('nodata', (250,250,250), {0, 1, 6, 8, 9}),
     label('low vegetation', (0,250, 50), {2}),
     label('high vegetation', (0,100,50), {5}),
     label('water', (0, 50, 250), {3}),
     label('building', (250, 50, 50), {4}),
-    label('road', (100, 100, 100), {7}),
-    label('other', (0, 0, 0), {1, 6, 8, 9})
+    label('road', (100, 100, 100), {7})
 ]
 
 def one_class_w_void(nomenc, name):
