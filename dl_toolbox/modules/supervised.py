@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from torch.optim import Adam
+from torch.optim import Adam, SGD
+from torch.optim.lr_scheduler import LambdaLR
 
 import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import TorchOneHot
 from dl_toolbox.networks import NetworkFactory
 
-
+        
 class Supervised(pl.LightningModule):
 
     def __init__(
@@ -39,12 +40,25 @@ class Supervised(pl.LightningModule):
         self.initial_lr = initial_lr
         
     def configure_optimizers(self):
+        
+        self.optimizer = SGD(
+            self.parameters(),
+            lr=self.initial_lr,
+            momentum=0.9,
+            weight_decay=1e-4
+        )
 
-        self.optimizer = Adam(self.parameters(), lr=self.initial_lr)
-        scheduler = MultiStepLR(
+        def lr_foo(epoch):
+            if epoch <= 5:
+                # warm up lr
+                lr_scale = epoch / 5
+            else:
+                lr_scale = (1 - float(epoch) / 100) ** 0.9
+            return lr_scale
+
+        scheduler = LambdaLR(
             self.optimizer,
-            milestones=self.lr_milestones,
-            gamma=0.1
+            lr_lambda=lr_foo
         )
 
         return [self.optimizer], [scheduler]

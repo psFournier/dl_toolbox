@@ -42,7 +42,7 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
 # datasets params
 dataset_name = 'SemCity-Toulouse-bench'
 data_path = data_root / dataset_name
-nomenclature = datasets.SemcityNomenclatures['base'].value
+nomenclature = datasets.SemcityNomenclatures['main'].value
 num_classes=len(nomenclature)
 crop_size=256
 crop_step=224
@@ -72,7 +72,7 @@ encoder='efficientnet-b3'
 # module params
 mixup=0. # incompatible with ignore_zero=True
 class_weights = [0.]+[1.] * (num_classes-1)
-initial_lr=0.001
+initial_lr=0.04
 ttas=[]
 
 # trainer params
