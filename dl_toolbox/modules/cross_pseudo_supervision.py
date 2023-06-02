@@ -33,7 +33,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         )
         
         self.unsup_loss = nn.CrossEntropyLoss(
-            #weight=torch.Tensor(class_weights),
+            weight=torch.Tensor(class_weights),
             #reduction='none'
         )
         

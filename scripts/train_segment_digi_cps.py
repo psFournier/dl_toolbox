@@ -52,13 +52,13 @@ bands = [1,2,3]
 split = home / f'dl_toolbox/dl_toolbox/datamodules/digitanie_all.csv'
 
 TO_idx = [99]
-train_idx = [i+j for i in TO_idx for j in range(1,3)]
+train_idx = [i+j for i in TO_idx for j in range(1,5)]
 train_aug = 'd4_color-3'
 
 val_idx = [i+j for i in TO_idx for j in range(9,11)]
 val_aug = 'd4_color-3'
 
-unsup_idx = [i+j for i in TO_idx for j in range(0,11)]
+unsup_idx = TO_idx
 unsup_aug = 'd4_color-3'
 
 # dataloaders params
@@ -75,10 +75,10 @@ encoder='efficientnet-b3'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [1., 3.] #[1.] * num_classes
+class_weights = [1., 5.] #[1.] * num_classes
 initial_lr=0.001
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(0,1,1.,1.)
+alpha_ramp=utils.SigmoidRamp(0,1,0.2,0.2)
 pseudo_threshold=0.
 
 # trainer params
@@ -89,7 +89,7 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'cps_thr0_ramp0_w13_alpha5'
+log_name = 'cps_1-5_thr0_ramp0_w15_alpha02'
 ckpt_path=None
 
 train_data_src = [
