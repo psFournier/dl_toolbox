@@ -41,8 +41,13 @@ class Supervised(pl.LightningModule):
     def configure_optimizers(self):
 
         self.optimizer = Adam(self.parameters(), lr=self.initial_lr)
+        scheduler = MultiStepLR(
+            self.optimizer,
+            milestones=self.lr_milestones,
+            gamma=0.1
+        )
 
-        return self.optimizer
+        return [self.optimizer], [scheduler]
 
     def forward(self, x):
         

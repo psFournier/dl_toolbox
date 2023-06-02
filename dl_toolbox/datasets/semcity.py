@@ -9,7 +9,7 @@ label = namedtuple('label', ['name', 'color', 'values'])
 initial_nomenclature = [
     label('void', (255, 255, 255), {0}),
     label('impervious surface', (38, 38, 38), {1}),
-    label('building', (238, 118, 33), {2})
+    label('building', (238, 118, 33), {2}),
     label('pervious surface', (34, 139, 34), {3}),
     label('high vegetation', (0, 222, 137), {4}),
     label('car', (255, 0, 0), {5}),
