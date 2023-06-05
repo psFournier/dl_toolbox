@@ -73,7 +73,7 @@ encoder='efficientnet-b3'
 # module params
 mixup=0. # incompatible with ignore_zero=True
 class_weights = [0.]+[1.] * (num_classes-1)
-initial_lr=0.001
+initial_lr=0.04
 ttas=[]
 
 # trainer params
