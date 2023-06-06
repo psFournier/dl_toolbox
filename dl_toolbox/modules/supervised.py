@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
+from lightning import LightningModule
 from torch.optim import Adam
 
 import dl_toolbox.augmentations as augmentations
@@ -8,13 +8,13 @@ from dl_toolbox.utils import TorchOneHot
 from dl_toolbox.networks import NetworkFactory
 
 
-class Supervised(pl.LightningModule):
+class Supervised(LightningModule):
 
     def __init__(
         self,
-        initial_lr,
-        ttas,
         network,
+        optimizer,
+        #ttas,
         num_classes,
         class_weights,
         mixup,
@@ -23,6 +23,8 @@ class Supervised(pl.LightningModule):
     ):
 
         super().__init__()
+        
+        self.save_hyperparameters(logger=False)
         
         self.network = network
         self.num_classes = num_classes
@@ -34,15 +36,13 @@ class Supervised(pl.LightningModule):
         
         self.onehot = TorchOneHot(range(self.num_classes))
         self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
-        self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
-        self.save_hyperparameters(ignore=['network'])
-        self.initial_lr = initial_lr
+        #self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
         
     def configure_optimizers(self):
 
-        self.optimizer = Adam(self.parameters(), lr=self.initial_lr)
+        optimizer = self.hparams.optimizer(params=self.parameters())
 
-        return self.optimizer
+        return optimizer
 
     def forward(self, x):
         
@@ -87,13 +87,13 @@ class Supervised(pl.LightningModule):
         labels = batch['label']
         logits = self.forward(inputs)
         
-        if self.ttas:
-            for tta, reverse in self.ttas:
-                aux, _ = tta(img=inputs)
-                aux_logits = self.forward(aux)
-                tta_logits, _ = reverse(img=aux_logits)
-                logits = torch.stack([logits, tta_logits])
-            logits = logits.mean(dim=0)
+        #if self.ttas:
+        #    for tta, reverse in self.ttas:
+        #        aux, _ = tta(img=inputs)
+        #        aux_logits = self.forward(aux)
+        #        tta_logits, _ = reverse(img=aux_logits)
+        #        logits = torch.stack([logits, tta_logits])
+        #    logits = logits.mean(dim=0)
         
         loss = self.loss(logits, labels)
         self.log('Test_loss', loss)
@@ -105,12 +105,12 @@ class Supervised(pl.LightningModule):
         inputs = batch['image']
         logits = self.forward(inputs)
         
-        if self.ttas:
-            for tta, reverse in self.ttas:
-                aux, _ = tta(img=inputs)
-                aux_logits = self.forward(aux)
-                tta_logits, _ = reverse(img=aux_logits)
-                logits = torch.stack([logits, tta_logits])
-            logits = logits.mean(dim=0)
+        #if self.ttas:
+        #    for tta, reverse in self.ttas:
+        #        aux, _ = tta(img=inputs)
+        #        aux_logits = self.forward(aux)
+        #        tta_logits, _ = reverse(img=aux_logits)
+        #        logits = torch.stack([logits, tta_logits])
+        #    logits = logits.mean(dim=0)
         
         return logits

@@ -80,8 +80,8 @@ class Raster(torch.utils.data.Dataset):
         self.crop_size = crop_size
         self.aug = augmentations.get_transforms(aug)
         self.bands = bands
-        self.nomenclature = nomenclature
-        self.labels_merger = MergeLabels([list(l.values) for l in nomenclature])
+        self.nomenclature = data_src.nomenclatures[nomenclature].value
+        self.labels_merger = MergeLabels([list(l.values) for l in self.nomenclature])
         
         if isinstance(data_src.zone, windows.Window):
             self.get_crop = CropFromWindow(
