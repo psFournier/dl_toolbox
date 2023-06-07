@@ -11,7 +11,6 @@ from dl_toolbox.networks import NetworkFactory
         
 class Supervised(pl.LightningModule):
 
-
     def __init__(
         self,
         network,
@@ -27,7 +26,7 @@ class Supervised(pl.LightningModule):
 
         super().__init__()
         
-        self.save_hyperparameters(logger=False)
+        self.save_hyperparameters()
         
         self.network = network
         self.num_classes = num_classes

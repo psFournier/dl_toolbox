@@ -33,7 +33,7 @@ class FromSplitfile(LightningDataModule):
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
-        self.save_hyperparameters(logger=False)
+        self.save_hyperparameters()
         self.num_samples = self.hparams.epoch_len * self.hparams.batch_size
         
         train_data_src = [
@@ -90,7 +90,7 @@ class FromSplitfile(LightningDataModule):
         careful not to execute things like random split twice!
         """
         # load and split datasets only if not loaded already
-        pass # i load them in init
+        pass # load them in init
 
     def train_dataloader(self):
         
