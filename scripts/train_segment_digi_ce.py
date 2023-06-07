@@ -42,8 +42,9 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
 # datasets params
 dataset_name = 'DIGITANIE'
 data_path = data_root / dataset_name
-nomenclature = datasets.DigitanieNomenclatures['main'].value
-num_classes=len(nomenclature)
+nomenclature = 'main'
+nomenclature_desc = datasets.Digitanie.nomenclatures[nomenclature].value
+num_classes=len(nomenclature_desc)
 crop_size=256
 crop_step=224
 bands = [1,2,3]
@@ -174,7 +175,7 @@ module = modules.Supervised(
 ### Metrics and plots from confmat callback
 metrics_from_confmat = callbacks.MetricsFromConfmat(        
     num_classes=num_classes,
-    class_names=[label.name for label in nomenclature]
+    class_names=[label.name for label in nomenclature_desc]
 )
 
 logger = pl.loggers.TensorBoardLogger(

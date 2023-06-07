@@ -15,11 +15,12 @@ class Supervised(pl.LightningModule):
     def __init__(
         self,
         network,
-        optimizer,
+        #optimizer,
         #ttas,
         num_classes,
         class_weights,
         mixup,
+        initial_lr,
         *args,
         **kwargs
     ):
@@ -30,6 +31,7 @@ class Supervised(pl.LightningModule):
         
         self.network = network
         self.num_classes = num_classes
+        self.initial_lr = initial_lr
         
         self.loss = nn.CrossEntropyLoss(
             weight=torch.Tensor(class_weights)
