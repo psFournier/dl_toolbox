@@ -1,0 +1,14 @@
+_target_: dl_toolbox.datamodules.from_splitfile.FromSplitfile
+data_path: /mnt/d/pfournie/Documents/data/DIGITANIE/
+batch_size: 8
+split: /home/pfournie/dl_toolbox/dl_toolbox/datamodules/digitanie_all.csv
+train_idx: [1]
+train_aug: no
+val_idx: [2]
+val_aug: no
+epoch_len: 200
+bands: [1, 2, 3]
+crop_size: 256
+nomenclature: main
+num_workers: 0
+pin_memory: False

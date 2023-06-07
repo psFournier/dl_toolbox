@@ -43,7 +43,7 @@ elif os.uname().nodename.endswith('sis.cnes.fr'):
 dataset_name = 'DIGITANIE'
 data_path = data_root / dataset_name
 nomenclature = 'main'
-nomenclature_desc = datasets.DigitanieNomenclatures[nomenclature].value
+nomenclature_desc = datasets.Digitanie.nomenclatures[nomenclature].value
 num_classes=len(nomenclature_desc)
 crop_size=256
 crop_step=224
@@ -56,11 +56,8 @@ TO_idx = [99]
 train_idx = [i+j for i in TO_idx for j in range(1,5)]
 train_aug = 'd4_color-3'
 
-val_idx = [i+j for i in TO_idx for j in range(9,11)]
+val_idx = [i+j for i in TO_idx for j in range(5,11)]
 val_aug = 'd4_color-3'
-
-unsup_idx = TO_idx
-unsup_aug = 'd4_color-3'
 
 # dataloaders params
 batch_size = 16
@@ -76,11 +73,9 @@ encoder='efficientnet-b3'
 
 # module params
 mixup=0. # incompatible with ignore_zero=True
-class_weights = [0.] + [1.] * (num_classes-1)
-initial_lr=0.001
+class_weights = [0.]+[1.] * (num_classes-1)
+initial_lr=0.04
 ttas=[]
-alpha_ramp=utils.SigmoidRamp(0,1,1.,1.)
-pseudo_threshold=0.
 
 # trainer params
 num_epochs = 100
@@ -90,8 +85,8 @@ multiple_trainloader_mode='min_size'
 limit_train_batches=1.
 limit_val_batches=1.
 save_dir = save_root / dataset_name
-log_name = 'cps_main_1-5_thr0_ramp0_w1_alpha1'
-ckpt_path=None
+log_name = 'ce_main_1-5_w1'
+ckpt_path=None 
 
 train_data_src = [
     src for src in datasets.datasets_from_csv(
@@ -134,53 +129,6 @@ val_sets = [
 
 val_set = ConcatDataset(val_sets)
 
-    
-#    train_set_coords = []
-#
-#    for src in train_data_src:
-#        if isinstance(src.zone, windows.Window):
-#            bbox = windows.bounds(src.zone, src.meta['transform'])
-#            train_set_coords.append(datasets.polygon_from_bbox(bbox))
-#        elif isinstance(src.zone, shapely.Polygon):
-#            train_set_coords.append(src.zone.exterior.coords)
-
-unsup_sets = []
-
-unsup_data_src = datasets.datasets_from_csv(
-    data_path,
-    split,
-    unsup_idx
-)
-
-for src in unsup_data_src:
-
-#        if isinstance(src.zone, windows.Window):
-#            bbox = windows.bounds(src.zone, src.meta['transform'])
-#            poly_zone = shapely.Polygon(
-#                shell=datasets.polygon_from_bbox(bbox),
-#                #holes=train_set_coords
-#            )
-#
-#        elif isinstance(src.zone, shapely.Polygon):
-#            poly_zone = shapely.Polygon(
-#                shell=src.zone.exterior.coords,
-#                #holes=train_set_coords
-#            )
-#
-#        src.zone = poly_zone
-
-    unsup_set = datasets.Raster(
-        data_src=src,
-        crop_size=crop_size,
-        aug=unsup_aug,
-        bands=bands,
-        nomenclature=nomenclature,
-    )
-
-    unsup_sets.append(unsup_set)
-
-unsup_set = ConcatDataset(unsup_sets) 
-
 train_dataloaders = {}
 train_dataloaders['sup'] = DataLoader(
     dataset=train_set,
@@ -188,19 +136,6 @@ train_dataloaders['sup'] = DataLoader(
     collate_fn=collate.CustomCollate(),
     sampler=RandomSampler(
         data_source=train_set,
-        replacement=True,
-        num_samples=num_samples
-    ),
-    num_workers=num_workers,
-    drop_last=True
-)
-    
-train_dataloaders['unsup'] = DataLoader(
-    dataset=unsup_set,
-    batch_size=batch_size,
-    collate_fn=collate.CustomCollate(),
-    sampler=RandomSampler(
-        data_source=unsup_set,
         replacement=True,
         num_samples=num_samples
     ),
@@ -228,29 +163,19 @@ network = networks.SmpUnet(
     pretrained=pretrained
 )
 
-network2 = networks.SmpUnet(
-    encoder=encoder,
-    in_channels=in_channels,
-    out_channels=out_channels,
-    pretrained=pretrained
-)
-
-module = modules.CrossPseudoSupervision(
+module = modules.Supervised(
     mixup=mixup, # incompatible with ignore_zero=True
     network=network,
     num_classes=num_classes,
     class_weights=class_weights,
     initial_lr=initial_lr,
-    ttas=ttas,
-    alpha_ramp=alpha_ramp,
-    pseudo_threshold=pseudo_threshold,
-    network2=network2
+    ttas=ttas
 )
 
 ### Metrics and plots from confmat callback
 metrics_from_confmat = callbacks.MetricsFromConfmat(        
     num_classes=num_classes,
-    class_names=[label.name for label in nomenclature]
+    class_names=[label.name for label in nomenclature_desc]
 )
 
 logger = pl.loggers.TensorBoardLogger(
@@ -270,6 +195,10 @@ trainer = pl.Trainer(
     logger=logger,
     callbacks=[
         pl.callbacks.ModelCheckpoint(),
+        #pl.callbacks.EarlyStopping(
+        #    monitor='Val_loss',
+        #    patience=50
+        #),
         metrics_from_confmat,
         callbacks.MyProgressBar()
     ]
@@ -284,4 +213,3 @@ trainer.fit(
     val_dataloaders=val_dataloader,
     ckpt_path=ckpt_path
 )
-
