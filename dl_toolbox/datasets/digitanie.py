@@ -84,6 +84,7 @@ class Digitanie:
     mins: ... = np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
     maxs: ... = np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
     label_path: ... = None
+    nomenclatures = DigitanieNomenclatures
     
     def __post_init__(self):
         
