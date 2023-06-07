@@ -14,25 +14,25 @@ class Supervised(pl.LightningModule):
     def __init__(
         self,
         network,
-        #optimizer,
+        optimizer,
+        loss,
+        class_weights,
         #ttas,
         num_classes,
-        class_weights,
         mixup,
-        initial_lr,
         *args,
         **kwargs
     ):
 
         super().__init__()
-        
         self.save_hyperparameters()
         
         self.network = network
-        self.num_classes = num_classes
-        self.initial_lr = initial_lr
+        self.optimizer = optimizer
         
-        self.loss = nn.CrossEntropyLoss(
+        self.num_classes = num_classes
+        
+        self.loss = loss(
             weight=torch.Tensor(class_weights)
         )
         #self.dice_loss = DiceLoss(mode="multilabel", log_loss=False, from_logits=True)
@@ -43,14 +43,14 @@ class Supervised(pl.LightningModule):
         
     def configure_optimizers(self):
         
-        #optimizer = self.hparams.optimizer(params=self.parameters())
+        optimizer = self.optimizer(params=self.parameters())
         
-        optimizer = SGD(
-            self.parameters(),
-            lr=self.initial_lr,
-            momentum=0.9,
-            weight_decay=1e-4
-        )
+        #optimizer = SGD(
+        #    self.parameters(),
+        #    lr=self.initial_lr,
+        #    momentum=0.9,
+        #    weight_decay=1e-4
+        #)
 
         def lr_foo(epoch):
             if epoch <= 5:

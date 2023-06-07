@@ -19,10 +19,10 @@ def train(cfg: DictConfig) -> None:
     module = hydra.utils.instantiate(
         cfg.module,  # Object to instantiate
         # Overwrite arguments at runtime that depends on other modules
-        input_dim=cfg.data.input_dim,
-        output_dim=cfg.data.output_dim,
+        num_classes=datamodule.num_classes,
+        input_dim=datamodule.input_dim,
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
-        _recursive_=False,
+        #_recursive_=False,
     )
 
     # Let hydra manage direcotry outputs
