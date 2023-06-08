@@ -1,4 +1,4 @@
-_target_: dl_toolbox.datamodules.from_splitfile.FromSplitfile
+_target_: dl_toolbox.datamodules.FromSplitfile
 data_path: ${paths.data_dir}/DIGITANIE/
 batch_size: 8
 split: ${paths.root_dir}/dl_toolbox/datamodules/digitanie_all.csv

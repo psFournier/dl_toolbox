@@ -11,7 +11,6 @@ from collections import namedtuple
 import enum
 
 from dl_toolbox.utils import MergeLabels, OneHot
-from dl_toolbox.torch_collate import CustomCollate
 import dl_toolbox.augmentations as augmentations
 
 

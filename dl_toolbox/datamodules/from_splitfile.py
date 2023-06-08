@@ -1,14 +1,13 @@
 from typing import Any, Dict, Optional, Tuple
 
 import torch
-from lightning import LightningDataModule
+from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, Dataset, DataLoader, RandomSampler
 from torchvision.transforms import transforms
 from pytorch_lightning.utilities import CombinedLoader
 
-
 import dl_toolbox.datasets as datasets
-import dl_toolbox.torch_collate as collate
+from dl_toolbox.utils import CustomCollate
 from pathlib import Path
 
 class FromSplitfile(LightningDataModule):
@@ -77,6 +76,7 @@ class FromSplitfile(LightningDataModule):
         self.val_set = ConcatDataset(val_sets)
         
         self.num_classes = len(train_sets[0].nomenclature)
+        print(self.num_classes)
         self.input_dim = len(bands)
 
     def prepare_data(self):
@@ -101,7 +101,7 @@ class FromSplitfile(LightningDataModule):
         train_dataloaders['sup'] = DataLoader(
             dataset=self.train_set,
             batch_size=self.hparams.batch_size,
-            collate_fn=collate.CustomCollate(),
+            collate_fn=CustomCollate(),
             sampler=RandomSampler(
                 data_source=self.train_set,
                 replacement=True,
@@ -123,7 +123,7 @@ class FromSplitfile(LightningDataModule):
                 replacement=True,
                 num_samples=self.num_samples//10
             ),
-            collate_fn=collate.CustomCollate(),
+            collate_fn=CustomCollate(),
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers
         )

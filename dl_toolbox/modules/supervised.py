@@ -18,6 +18,7 @@ class Supervised(pl.LightningModule):
         loss,
         class_weights,
         #ttas,
+        in_channels,
         num_classes,
         mixup,
         *args,
@@ -25,9 +26,12 @@ class Supervised(pl.LightningModule):
     ):
 
         super().__init__()
-        self.save_hyperparameters()
+        #self.save_hyperparameters()
         
-        self.network = network
+        self.network = network(
+            in_channels=in_channels,
+            classes=num_classes
+        )
         self.optimizer = optimizer
         
         self.num_classes = num_classes

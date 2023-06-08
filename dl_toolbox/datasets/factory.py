@@ -15,8 +15,8 @@ datasets = {
     #'DigitanieMontpellier': DigitanieMontpellierDs,
     #'DigitanieParis': DigitanieParisDs,
     #'DigitanieStrasbourg': DigitanieStrasbourgDs,
-    'Semcity': Semcity,
-    'Airs': Airs,
+    #'Semcity': Semcity,
+    #'Airs': Airs,
     #'Miniworld': Miniworld,
     #'Inria': Inria
 }

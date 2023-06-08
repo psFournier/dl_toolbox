@@ -1,16 +1,13 @@
 _target_: dl_toolbox.modules.supervised.Supervised
 
-class_weights: [0., 1., 1., 1., 1., 1., 1.]
-num_classes: ???
-input_dim: ???
+class_weights: [0., 1., 1., 1., 1., 1.]
 mixup: 0.
 
 network:
   _target_: segmentation_models_pytorch.Unet
+  _partial_: True
   encoder_name: efficientnet-b0
   encoder_weights: imagenet
-  in_channels: ${input_dim}
-  classes: ${num_classes}
   
 optimizer:
   _target_: torch.optim.SGD
@@ -21,6 +18,7 @@ optimizer:
   
 loss:
   _target_: torch.nn.CrossEntropyLoss
+  _partial_: True
 
 
 
