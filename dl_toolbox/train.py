@@ -6,7 +6,7 @@ from omegaconf import DictConfig, OmegaConf
 
 logger = logging.getLogger(__name__)
 
-@hydra.main(config_path="../configs", config_name="train.yaml")
+@hydra.main(version_base="1.3", config_path="../configs", config_name="train.yaml")
 def train(cfg: DictConfig) -> None:
     pl.seed_everything(1234)
     logger.info("\n" + OmegaConf.to_yaml(cfg))
@@ -28,19 +28,16 @@ def train(cfg: DictConfig) -> None:
     # Let hydra manage direcotry outputs
     tensorboard = pl.loggers.TensorBoardLogger(".", "", "", log_graph=True, default_hp_metric=False)
     callbacks = [
-        pl.callbacks.ModelCheckpoint(monitor='loss/val'),
-        pl.callbacks.EarlyStopping(monitor='loss/val', patience=50),
+        pl.callbacks.ModelCheckpoint(monitor='Val_loss'),
     ]
 
     trainer = pl.Trainer(
-        **OmegaConf.to_container(cfg.trainer),
+        cfg.trainer,
         logger=tensorboard,
         callbacks=callbacks,
     )
 
     trainer.fit(model, datamodule=data_module)
-    trainer.test(model, datamodule=data_module)  # Optional
-
 
 if __name__ == '__main__':
     train()
