@@ -64,7 +64,10 @@ class FromSplitfile(LightningDataModule):
         self.num_samples = self.hparams.epoch_len * self.hparams.batch_size
         self.num_classes = len(self.train_set[0].nomenclature)
         self.input_dim = len(self.train_set[0].bands)
+        self.class_weights = [1.]*self.num_classes
 
+
+        
     def prepare_data(self):
         """Download data if needed.
 
