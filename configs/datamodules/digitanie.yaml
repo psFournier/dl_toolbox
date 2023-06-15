@@ -1,14 +1,28 @@
 _target_: dl_toolbox.datamodules.FromSplitfile
+
 data_path: ${paths.data_dir}/DIGITANIE/
-batch_size: 8
 split: ${paths.root_dir}/dl_toolbox/datamodules/digitanie_all.csv
 train_idx: [1]
-train_aug: no
 val_idx: [2]
-val_aug: no
+batch_size: 8
 epoch_len: 200
-bands: [1, 2, 3]
-crop_size: 256
-nomenclature: main
 num_workers: 0
 pin_memory: False
+
+datasrc: 
+
+train_aug:
+  _target
+
+datasrc:
+  _target_: dl_toolbox.datasrc.digitanie.Digitanie
+  _partial_: True
+    
+dataset:
+  _target_: dl_toolbox.datasets.raster.Raster
+  _partial_: True
+  bands: [1, 2, 3]
+  crop_size: 256
+  nomenclature: main
+
+augmentations:

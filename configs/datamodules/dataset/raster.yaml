@@ -1,0 +1,6 @@
+dataset:
+  _target_: dl_toolbox.datasets.raster.Raster
+  _partial_: True
+  bands: [1, 2, 3]
+  crop_size: 256
+  nomenclature: main

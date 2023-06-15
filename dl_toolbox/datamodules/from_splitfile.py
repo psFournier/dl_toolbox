@@ -7,23 +7,22 @@ from torchvision.transforms import transforms
 from pytorch_lightning.utilities import CombinedLoader
 
 import dl_toolbox.datasets as datasets
-from dl_toolbox.utils import CustomCollate
+from dl_toolbox.utils import CustomCollate, data_src_from_csv
 from pathlib import Path
 
 class FromSplitfile(LightningDataModule):
 
     def __init__(
         self,
+        datasrc,
+        dataset,
         data_path,
         split,
         train_idx,
-        train_aug,
         val_idx,
         val_aug,
-        bands,
-        nomenclature,
+        train_aug,
         epoch_len,
-        crop_size,
         batch_size,
         num_workers,
         pin_memory
@@ -33,51 +32,38 @@ class FromSplitfile(LightningDataModule):
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters()
+        
+        self.train_set = ConcatDataset(
+            [
+                dataset(
+                    data_src=data_src,
+                    aug=train_aug,
+                ) for data_src in data_src_from_csv(
+                    datasrc,
+                    Path(data_path),
+                    Path(split),
+                    train_idx
+                )
+            ]
+        )
+        
+        self.val_set = ConcatDataset(
+            [
+                dataset(
+                    data_src=data_src,
+                    aug=val_aug,
+                ) for data_src in data_src_from_csv(
+                    datasrc,
+                    Path(data_path),
+                    Path(split),
+                    val_idx
+                )
+            ]
+        )
+
         self.num_samples = self.hparams.epoch_len * self.hparams.batch_size
-        
-        train_data_src = [
-            src for src in datasets.datasets_from_csv(
-                Path(data_path),
-                Path(split),
-                train_idx
-            )
-        ]
-
-        train_sets = [
-            datasets.Raster(
-                data_src=src,
-                crop_size=crop_size,
-                aug=train_aug,
-                bands=bands,
-                nomenclature=nomenclature
-            ) for src in train_data_src
-        ]
-
-        self.train_set = ConcatDataset(train_sets)
-        
-        val_data_src = [
-            src for src in datasets.datasets_from_csv(
-                Path(data_path),
-                Path(split),
-                val_idx
-            )
-        ]
-
-        val_sets = [
-            datasets.Raster(
-                data_src=src,
-                crop_size=crop_size,
-                aug=val_aug,
-                bands=bands,
-                nomenclature=nomenclature
-            ) for src in val_data_src
-        ]
-
-        self.val_set = ConcatDataset(val_sets)
-        
-        self.num_classes = len(train_sets[0].nomenclature)
-        print(self.num_classes)
-        self.input_dim = len(bands)
+        self.num_classes = len(self.train_set[0].nomenclature)
+        self.input_dim = len(self.train_set[0].bands)
 
     def prepare_data(self):
         """Download data if needed.
