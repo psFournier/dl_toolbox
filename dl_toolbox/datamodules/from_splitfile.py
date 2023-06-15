@@ -76,9 +76,10 @@ class FromSplitfile(LightningDataModule):
         self.val_set = ConcatDataset(val_sets)
         
         self.num_classes = len(train_sets[0].nomenclature)
-        print(self.num_classes)
         self.input_dim = len(bands)
+        self.class_weights = [1.]*self.num_classes
 
+        
     def prepare_data(self):
         """Download data if needed.
 

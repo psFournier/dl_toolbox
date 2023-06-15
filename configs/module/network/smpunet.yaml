@@ -1,0 +1,4 @@
+_target_: segmentation_models_pytorch.Unet
+_partial_: True
+encoder_name: efficientnet-b0
+encoder_weights: imagenet
