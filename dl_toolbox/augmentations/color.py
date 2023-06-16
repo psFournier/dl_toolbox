@@ -1,10 +1,10 @@
 import torch
 import torchvision.transforms.functional as F
-from .utils import Compose
+from .utils import OneOf, NoOp
 
 class Gamma(torch.nn.Module):
 
-    def __init__(self, bound=0.5, p=2.5):
+    def __init__(self, bound=0.5, p=0.5):
         super().__init__()
         self.bounds = (1-bound, 1+bound)
         self.p = p
@@ -64,20 +64,26 @@ class Contrast(torch.nn.Module):
         if torch.rand(1).item() < self.p:
             return F.adjust_contrast(img, factor), label
         return img, label
+    
+class Color:
 
-class Color():
-
-    def __init__(self, p=1, bound=0.3):
-        # p has no effect 
-        self.bound = bound
-        self.color_aug = Compose(
+    def __init__(self, bound):
+        self.color = OneOf(
             [
+                NoOp(),
                 Saturation(p=1, bound=bound),
                 Contrast(p=1, bound=bound),
                 Gamma(p=1, bound=bound),
                 Brightness(p=1, bound=bound)
+            ],
+            transforms_ps=[
+                1,
+                1,
+                1,
+                1,
+                1
             ]
         )
 
-    def __call__(self, image, label=None):
-        return self.color_aug(image, label)
+    def __call__(self, img, label=None):
+        return self.color(img, label)

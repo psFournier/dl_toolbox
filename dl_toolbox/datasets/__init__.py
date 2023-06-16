@@ -9,4 +9,4 @@ from .raster2cls import *
 ##from .flair import *
 #from .alumhi import *
 ##from .inria import *
-from .factory import DatasetFactory, datasets_from_csv
+#from .factory import DatasetFactory, datasets_from_csv

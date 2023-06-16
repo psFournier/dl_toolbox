@@ -1,6 +1,6 @@
 from .utils import Compose, rand_bbox, NoOp, OneOf
 from .color import Saturation, Contrast, Brightness, Gamma, Color
-from .d4 import Vflip, Hflip, Transpose1, Transpose2, D4, Rot90, Rot270, Rot180
+from .d4 import Vflip, Hflip, Transpose1, Transpose2, D4, Rot90, Rot270, Rot180, Flip
 from .geometric import Sharpness
 from .histograms import HistEq
 from .mixup import Mixup, Mixup2
@@ -13,6 +13,7 @@ aug_dict = {
     'no': NoOp,
     'imagenet': ImagenetNormalize, 
     'd4': D4,
+    'flip': Flip,
     'hflip': Hflip,
     'vflip': Vflip,
     'd1flip': Transpose1,

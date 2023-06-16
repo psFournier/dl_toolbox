@@ -1,0 +1,5 @@
+_target_: dl_toolbox.augmentations.Compose
+transforms: 
+    - _target_: dl_toolbox.augmentations.D4
+    - _target_: dl_toolbox.augmentations.Color
+      bounds: 0.5

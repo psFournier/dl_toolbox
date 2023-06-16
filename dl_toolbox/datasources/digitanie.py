@@ -6,7 +6,7 @@ import torch
 import rasterio
 import numpy as np
 from shapely import Polygon
-
+from dl_toolbox.utils import MergeLabels
 
 DATA_POLYGON = Polygon(
     [[359326,4833160],
@@ -104,33 +104,40 @@ DigitanieNomenclatures = enum.Enum(
             
 @dataclass
 class Digitanie:
-    
+
+    bands: ... = None
     image_path: str = None
-    zone: object = DATA_POLYGON
-    no_data_vals: object = (
-        np.array([0., 0., 0., 0.]).reshape(-1, 1, 1),
-        np.array([0.0195023, 0.0336404, 0.0569544, 0.00735826]).reshape(-1, 1, 1)
-    )
-    mins: ... = np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
-    maxs: ... = np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
+    zone: object = None #DATA_POLYGON
+    mins: ... = None #np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
+    maxs: ... = None #np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
     label_path: ... = None
-    nomenclatures = DigitanieNomenclatures
-    
+    nomenclature_name: ... = None
+
     def __post_init__(self):
         
         with rasterio.open(self.image_path) as src:
             self.meta = src.meta
+        self.nomenclature = DigitanieNomenclatures[self.nomenclature_name].value
+        self.labels_merger = MergeLabels([list(l.values) for l in self.nomenclature])
 
-    def read_image(self, window=None, bands=None):
+    def read_image(self, window=None):
         
         with rasterio.open(self.image_path, 'r') as file:
-            image = file.read(window=window, out_dtype=np.float32, indexes=bands)
+            image = file.read(
+                window=window,
+                out_dtype=np.float32,
+                indexes=self.bands
+            )
 
         return image
     
     def read_label(self, window=None):
         
         with rasterio.open(self.label_path) as file:
-            label = file.read(window=window, out_dtype=np.float32)
+            label = file.read(
+                window=window,
+                out_dtype=np.float32
+            )
+        label = self.labels_merger(np.squeeze(label))
         
         return label

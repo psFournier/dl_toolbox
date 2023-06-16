@@ -1,6 +1,6 @@
 #from .supervised_dm import SupervisedDm
 #from .semisup_dm import SemisupDm
-from .from_splitfile import *
+from .split_from_csv import *
 #from .from_folder_dataset import *
 #from .flair import *
 #from .splitfile_sup import SplitfileSup

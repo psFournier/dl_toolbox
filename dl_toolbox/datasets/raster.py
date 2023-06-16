@@ -72,16 +72,10 @@ class Raster(torch.utils.data.Dataset):
         data_src,
         crop_size,
         aug,
-        bands,
-        nomenclature
     ):
-        
         self.data_src = data_src
         self.crop_size = crop_size
-        self.aug = augmentations.get_transforms(aug)
-        self.bands = bands
-        self.nomenclature = data_src.nomenclatures[nomenclature].value
-        self.labels_merger = MergeLabels([list(l.values) for l in self.nomenclature])
+        self.aug = aug
         
         if isinstance(data_src.zone, windows.Window):
             self.get_crop = CropFromWindow(
@@ -95,12 +89,11 @@ class Raster(torch.utils.data.Dataset):
             
     def read_crop(self, crop):
         
-        image = self.data_src.read_image(crop, self.bands)
+        image = self.data_src.read_image(crop)
         image = torch.from_numpy(image).float().contiguous()
         label = None
         if self.data_src.label_path:
             label = self.data_src.read_label(crop)
-            label = self.labels_merger(np.squeeze(label))
             label = torch.from_numpy(label).float().contiguous()
             
         return image, label
@@ -120,7 +113,7 @@ class Raster(torch.utils.data.Dataset):
 
     def normalize(self, image):
         
-        bands_idxs = np.array(self.bands).astype(int) - 1
+        bands_idxs = np.array(self.data_src.bands).astype(int) - 1
         mins = torch.Tensor(self.data_src.mins[bands_idxs])
         maxs = torch.Tensor(self.data_src.maxs[bands_idxs])
         normalized = torch.clip((image - mins) / (maxs - mins), 0, 1)

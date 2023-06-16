@@ -4,9 +4,9 @@ _partial_: True
 default_root_dir: ${paths.output_dir}
 
 min_epochs: 1 # prevents early stopping
-max_epochs: 10
-limit_train_batches: 1
-limit_val_batches: 1
+max_epochs: 20
+limit_train_batches: 1.
+limit_val_batches: 1.
 
 accelerator: cpu
 devices: 1

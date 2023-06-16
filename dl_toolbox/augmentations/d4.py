@@ -120,6 +120,29 @@ class Rot270:
             return img, label
 
         return img, label
+    
+class Flip:
+
+    def __init__(self):
+        self.flip = OneOf(
+            [
+                NoOp(),
+                Hflip(p=1),
+                Vflip(p=1),
+                Transpose1(p=1),
+                Transpose2(p=1)
+            ],
+            transforms_ps=[
+                1,
+                1,
+                1,
+                1,
+                1
+            ]
+        )
+
+    def __call__(self, img, label=None):
+        return self.flip(img, label)
 
 class D4:
 
