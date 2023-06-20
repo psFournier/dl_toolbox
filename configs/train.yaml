@@ -5,7 +5,12 @@
 defaults:
   - _self_
   - datamodule: split_from_csv
-  - module: supervised
+  - module: multilabel
+  - callbacks:
+      - confmat
+      - model_checkpoint
+      - rich_progress_bar
+      - model_summary
   - paths: qdtis056z
   - trainer: gpu
   - hydra: default

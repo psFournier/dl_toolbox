@@ -1,12 +1,9 @@
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import LambdaLR
 
 import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import TorchOneHot
-from dl_toolbox.networks import NetworkFactory
 
         
 class Supervised(pl.LightningModule):
@@ -42,7 +39,7 @@ class Supervised(pl.LightningModule):
         #self.dice_loss = DiceLoss(mode="multilabel", log_loss=False, from_logits=True)
         
         self.onehot = TorchOneHot(range(self.num_classes))
-        self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
+        #self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
         #self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
         
     def configure_optimizers(self):

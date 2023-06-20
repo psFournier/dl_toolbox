@@ -1,0 +1,17 @@
+defaults:
+  - _self_
+  - loss: bce
+  - optimizer: sgd
+  - network: smpunet
+  - scheduler: step
+
+_target_: dl_toolbox.modules.BCE.Multilabel
+
+
+  
+
+
+
+
+
+

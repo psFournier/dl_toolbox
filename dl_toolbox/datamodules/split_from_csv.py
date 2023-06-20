@@ -46,13 +46,13 @@ class SplitFromCsv(LightningDataModule):
         val_set,
         data_path,
         csv_path,
-        train_idx,
         train_aug,
-        val_idx,
         epoch_len,
         batch_size,
         num_workers,
-        pin_memory
+        pin_memory,
+        train_idx,
+        val_idx
     ):
         super().__init__()
 
@@ -70,7 +70,7 @@ class SplitFromCsv(LightningDataModule):
             data_src_from_csv,
             datapath=Path(data_path),
             csvpath=Path(csv_path)
-        )
+        )        
         self.train_srcs = [datasource(**d) for d in src_gen(folds=train_idx)]
         self.val_srcs = [datasource(**d) for d in src_gen(folds=val_idx)]   
         
@@ -84,6 +84,10 @@ class SplitFromCsv(LightningDataModule):
     @property
     def num_classes(self):
         return len(self.train_srcs[0].nomenclature)
+    
+    @property
+    def class_names(self):
+        return [l.name for l in self.train_srcs[0].nomenclature]    
                     
     @property
     def input_dim(self):
@@ -125,3 +129,21 @@ class SplitFromCsv(LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers
         )    
+    
+class DigitanieFromCsv(SplitFromCsv):
+    
+    def __init__(self, *args, **kwargs):
+        
+        super().__init__(
+            train_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(1,8)],
+            val_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(8,9)],
+            *args,
+            **kwargs
+        )
+        
+    #def init_srcs(self):
+    #    
+    #    train_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(1,8)]
+    #    self.train_srcs = [datasource(**d) for d in self.src_gen(folds=train_idx)]
+    #    val_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(8,9)]
+    #    self.val_srcs = [datasource(**d) for d in self.src_gen(folds=val_idx)] 

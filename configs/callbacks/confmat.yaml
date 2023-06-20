@@ -1,0 +1,6 @@
+# https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.callbacks.ModelCheckpoint.html
+
+confmat:
+  _target_: dl_toolbox.callbacks.MetricsFromConfmat
+  _partial_: True
+
