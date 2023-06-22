@@ -113,10 +113,11 @@ class Raster(torch.utils.data.Dataset):
 
     def normalize(self, image):
         
-        bands_idxs = np.array(self.data_src.bands).astype(int) - 1
-        mins = torch.Tensor(self.data_src.mins[bands_idxs])
-        maxs = torch.Tensor(self.data_src.maxs[bands_idxs])
-        normalized = torch.clip((image - mins) / (maxs - mins), 0, 1)
+        #bands_idxs = np.array(self.data_src.bands).astype(int) - 1
+        #mins = torch.Tensor(self.data_src.mins[bands_idxs])
+        #maxs = torch.Tensor(self.data_src.maxs[bands_idxs])
+        #normalized = torch.clip((image - mins) / (maxs - mins), 0, 1)
+        normalized = torch.clip(image, 0, 1)
         
         return normalized
             

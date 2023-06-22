@@ -135,7 +135,7 @@ class DigitanieFromCsv(SplitFromCsv):
     def __init__(self, *args, **kwargs):
         
         super().__init__(
-            train_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(1,8)],
+            train_idx=[i+j for i in list(range(0,200, 11)) for j in range(1,8)],
             val_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(8,9)],
             *args,
             **kwargs

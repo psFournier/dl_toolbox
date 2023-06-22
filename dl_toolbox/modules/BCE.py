@@ -32,7 +32,6 @@ class Multilabel(pl.LightningModule):
         self.scheduler = scheduler
         
         self.num_classes = num_classes
-        print(class_weights)
         self.loss = loss(
             pos_weight=torch.Tensor(class_weights[1:]).reshape(1, num_classes-1, 1, 1)
         )
