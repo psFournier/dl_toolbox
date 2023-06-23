@@ -20,22 +20,27 @@ import rasterio.windows as windows
 from functools import partial
 
 
-def data_src_from_csv(datapath, csvpath, folds):
+def splits_from_csv(datasrc_cls, datapath, csvpath, folds):
+    
+    splits = {
+        'train':[],
+        'val':[],
+        'test':[]
+    }
     
     with open(csvpath, newline='') as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
         for row in reader:
             _, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
-            if int(fold) in folds:
-                co, ro, w, h = [int(e) for e in [x0, y0, w, h]]
-                yield {
-                    'image_path': datapath/image_path,
-                    'label_path': datapath/label_path if label_path != 'none' else None,
-                    'mins': np.array(ast.literal_eval(mins)).reshape(-1, 1, 1),
-                    'maxs': np.array(ast.literal_eval(maxs)).reshape(-1, 1, 1),
-                    'zone': windows.Window(co, ro, w, h)
-                }
+            co, ro, w, h = [int(e) for e in [x0, y0, w, h]]
+            splits[fold].append(datasrc_cls(
+                'image_path'=datapath/image_path,
+                'label_path'=datapath/label_path if label_path != 'none' else None,
+                'zone'=windows.Window(co, ro, w, h)
+            ))
+    
+    return splits['train'], splits['val'], splits['test']
 
 class SplitFromCsv(LightningDataModule):
 
@@ -50,9 +55,7 @@ class SplitFromCsv(LightningDataModule):
         epoch_len,
         batch_size,
         num_workers,
-        pin_memory,
-        train_idx,
-        val_idx
+        pin_memory
     ):
         super().__init__()
 
@@ -66,13 +69,11 @@ class SplitFromCsv(LightningDataModule):
         self.train_aug = train_aug
         self.num_samples = epoch_len * batch_size
         
-        src_gen = partial(
-            data_src_from_csv,
-            datapath=Path(data_path),
-            csvpath=Path(csv_path)
-        )        
-        self.train_srcs = [datasource(**d) for d in src_gen(folds=train_idx)]
-        self.val_srcs = [datasource(**d) for d in src_gen(folds=val_idx)]   
+        self.train_srcs, self.val_srcs, self.test_srcs = splits_from_csv(
+            datasource,
+            Path(data_path),
+            Path(csv_path)
+        )
         
     def setup(self, stage):
         

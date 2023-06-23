@@ -4,6 +4,7 @@ defaults:
   - dataset@train_set: raster
   - dataset@val_set: raster
   - augmentations@train_aug: flip_color
+  - normalization: minmax_common
 
 _target_: dl_toolbox.datamodules.DigitanieFromCsv
 

@@ -108,8 +108,9 @@ class Digitanie:
     bands: ... = None
     image_path: str = None
     zone: object = None #DATA_POLYGON
-    mins: ... = None #np.array([0., 0., 0., 0.]).reshape(-1, 1, 1)
-    maxs: ... = None #np.array([1.101, 0.979, 0.948, 1.514]).reshape(-1, 1, 1)
+    minval: ... = None 
+    maxval: ... = None 
+    meanval: ... = None
     label_path: ... = None
     nomenclature_name: ... = None
 
@@ -117,8 +118,11 @@ class Digitanie:
         
         with rasterio.open(self.image_path) as src:
             self.meta = src.meta
+            
         self.nomenclature = DigitanieNomenclatures[self.nomenclature_name].value
         self.labels_merger = MergeLabels([list(l.values) for l in self.nomenclature])
+        
+        
 
     def read_image(self, window=None):
         

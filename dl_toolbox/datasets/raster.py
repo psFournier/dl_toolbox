@@ -71,10 +71,12 @@ class Raster(torch.utils.data.Dataset):
         self,
         data_src,
         crop_size,
+        normalization,
         aug,
     ):
         self.data_src = data_src
         self.crop_size = crop_size
+        self.normalization = normalization
         self.aug = aug
         
         if isinstance(data_src.zone, windows.Window):
@@ -91,6 +93,8 @@ class Raster(torch.utils.data.Dataset):
         
         image = self.data_src.read_image(crop)
         image = torch.from_numpy(image).float().contiguous()
+        image = self.normalization(image, self.data_src)
+        
         label = None
         if self.data_src.label_path:
             label = self.data_src.read_label(crop)
@@ -110,16 +114,6 @@ class Raster(torch.utils.data.Dataset):
             label = F.center_crop(label, output_size=crop_size)
 
         return image, label
-
-    def normalize(self, image):
-        
-        #bands_idxs = np.array(self.data_src.bands).astype(int) - 1
-        #mins = torch.Tensor(self.data_src.mins[bands_idxs])
-        #maxs = torch.Tensor(self.data_src.maxs[bands_idxs])
-        #normalized = torch.clip((image - mins) / (maxs - mins), 0, 1)
-        normalized = torch.clip(image, 0, 1)
-        
-        return normalized
             
     def __len__(self):
         
@@ -131,7 +125,6 @@ class Raster(torch.utils.data.Dataset):
         crop = self.get_crop(pre_crop_size) 
         pre_image, pre_label = self.read_crop(crop)
         image, label = self.rnd_rotate_and_crop(pre_image, self.crop_size, pre_label)       
-        image = self.normalize(image)
         
         if self.aug is not None:
             image, label = self.aug(img=image, label=label)
@@ -181,7 +174,6 @@ class PretiledRaster(Raster):
         crop = self.tiles[idx]
         
         image, label = self.read_crop(crop)
-        image = self.normalize(image)
         
         if self.aug is not None:
             image, label = self.aug(img=image, label=label)
