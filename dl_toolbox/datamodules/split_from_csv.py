@@ -10,6 +10,7 @@ import dl_toolbox.datasets as datasets
 import dl_toolbox.datasources as datasources
 from dl_toolbox.utils import CustomCollate
 from pathlib import Path
+import pandas as pd
 
 import rasterio
 import csv
@@ -20,27 +21,59 @@ import rasterio.windows as windows
 from functools import partial
 
 
-def splits_from_csv(datasrc_cls, datapath, csvpath, folds):
+#def splits_from_csv(datasrc_cls, datapath, csvpath, folds):
+#    
+#    splits = {
+#        'train':[],
+#        'val':[],
+#        'test':[]
+#    }
+#    
+#    with open(csvpath, newline='') as csvfile:
+#        reader = csv.reader(csvfile)
+#        next(reader)
+#        for row in reader:
+#            idx, image_path, x0, y0, w, h, fold, mins, maxs = row[:11]
+#            co, ro, w, h = [int(e) for e in [x0, y0, w, h]]
+#            splits[fold].append(datasrc_cls(
+#                'image_path'=datapath/image_path,
+#                'label_path'=datapath/label_path if label_path != 'none' else None,
+#                'zone'=windows.Window(co, ro, w, h)
+#            ))
+#    
+#    return splits['train'], splits['val'], splits['test']
+
+def splits_from_csv(datasrc, datapath, csvpath):
     
-    splits = {
-        'train':[],
-        'val':[],
-        'test':[]
-    }
-    
-    with open(csvpath, newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        for row in reader:
-            _, _, image_path, label_path, x0, y0, w, h, fold, mins, maxs = row[:11]
-            co, ro, w, h = [int(e) for e in [x0, y0, w, h]]
-            splits[fold].append(datasrc_cls(
-                'image_path'=datapath/image_path,
-                'label_path'=datapath/label_path if label_path != 'none' else None,
-                'zone'=windows.Window(co, ro, w, h)
-            ))
-    
-    return splits['train'], splits['val'], splits['test']
+    splits = [[],[],[]]
+
+    df_split = pd.read_csv(csvpath/'split.csv', index_col=0)
+    df_stats = pd.read_csv(csvpath/'stats.csv', index_col=0)
+    df_cls = pd.read_csv(csvpath/'cls.csv', index_col=0)
+
+    for index, row in df_split.iterrows():
+
+        minval = [df_stats.loc[index][f'min_{i}'] for i in range(1,5)]
+        maxval = [df_stats.loc[index][f'max_{i}'] for i in range(1,5)]
+        meanval = [df_stats.loc[index][f'mean_{i}'] for i in range(1,5)]
+
+        splits[row['split']].append(
+            datasrc(
+                image_path=digitanie/row['img'],
+                zone=windows.Window(
+                    row['col_off'],
+                    row['row_off'],
+                    row['width'],
+                    row['height']
+                ),
+                label_path=digitanie/df_cls.loc[index]['mask'],
+                minval=np.array(minval).reshape((-1, 1, 1)),
+                maxval=np.array(maxval).reshape((-1, 1, 1)),
+                meanval=np.array(meanval).reshape((-1, 1, 1))
+            )
+        )
+        
+    return splits
 
 class SplitFromCsv(LightningDataModule):
 

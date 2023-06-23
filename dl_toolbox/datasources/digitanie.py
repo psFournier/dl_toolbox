@@ -113,6 +113,7 @@ class Digitanie:
     meanval: ... = None
     label_path: ... = None
     nomenclature_name: ... = None
+    all_cls_counts: ... = None
 
     def __post_init__(self):
         
@@ -120,10 +121,10 @@ class Digitanie:
             self.meta = src.meta
             
         self.nomenclature = DigitanieNomenclatures[self.nomenclature_name].value
-        self.labels_merger = MergeLabels([list(l.values) for l in self.nomenclature])
+        merges = [list(l.values) for l in self.nomenclature]
+        self.labels_merger = MergeLabels(merge)
+        self.cls_counts = np.array([np.sum(self.all_cls_counts[np.array(merge)]) for merge in merges])
         
-        
-
     def read_image(self, window=None):
         
         with rasterio.open(self.image_path, 'r') as file:
