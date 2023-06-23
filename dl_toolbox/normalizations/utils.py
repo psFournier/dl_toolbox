@@ -1,6 +1,6 @@
 import numpy as np
 import torch
 
-def stretch_to_minmax(img, minval, maxval):
+def stretch_to_minmax(img, mins, maxs):
     
-    return (img - minval) / (maxval - minval)
+    return (img - mins) / (maxs - mins)

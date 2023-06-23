@@ -122,7 +122,7 @@ class Digitanie:
             
         self.nomenclature = DigitanieNomenclatures[self.nomenclature_name].value
         merges = [list(l.values) for l in self.nomenclature]
-        self.labels_merger = MergeLabels(merge)
+        self.labels_merger = MergeLabels(merges)
         self.cls_counts = np.array([np.sum(self.all_cls_counts[np.array(merge)]) for merge in merges])
         
     def read_image(self, window=None):

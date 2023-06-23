@@ -6,12 +6,10 @@ from .histograms import HistEq
 from .mixup import Mixup, Mixup2
 from .cutmix import Cutmix, Cutmix2
 from .merge_label import MergeLabels
-from .normalizations import ImagenetNormalize
 from .crop import RandomCrop2
 
 aug_dict = {
     'no': NoOp,
-    'imagenet': ImagenetNormalize, 
     'd4': D4,
     'flip': Flip,
     'hflip': Hflip,

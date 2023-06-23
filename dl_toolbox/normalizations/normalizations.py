@@ -1,5 +1,7 @@
 import torchvision.transforms.functional as F
 from .utils import stretch_to_minmax
+import torch
+import numpy as np
 
 class ImagenetNormalize:
 
@@ -15,26 +17,36 @@ class ImagenetNormalize:
 class StretchToMinmaxCommon:
     
     def __init__(self, minval, maxval, meanval):
+                
+        self.minval = np.array(minval).reshape((-1, 1, 1))
+        self.maxval = np.array(maxval).reshape((-1, 1, 1))
+        self.meanval = np.array(meanval).reshape((-1, 1, 1))
         
-        self.minval = minval
-        self.maxval = maxval
-        self.meanval = meanval
+    def __call__(self, img, source):
         
-    def __call__(self, img, source=None):
+        bands = np.array(source.bands)-1
+        mins = torch.from_numpy(self.minval[bands])
+        maxs = torch.from_numpy(self.maxval[bands])
+        means = torch.from_numpy(self.meanval[bands])
         
-        img = stretch_to_minmax(img, self.minval, self.maxval)
+        img = stretch_to_minmax(img, mins, maxs)
         img = torch.clip(img, 0, 1)
-        img -= self.meanval
+        img -= means
         
         return img
         
 class StretchToMinmaxBySource:
         
-    def __call__(self, img, source):        
+    def __call__(self, img, source):   
         
-        img = stretch_to_minmax(img, source.minval, source.maxval)
+        bands = np.array(source.bands)-1
+        mins = torch.from_numpy(source.minval[bands])
+        maxs = torch.from_numpy(source.maxval[bands])
+        means = torch.from_numpy(source.meanval[bands])
+        
+        img = stretch_to_minmax(img, mins, maxs)
         img = torch.clip(img, 0, 1)
-        img -= source.meanval
+        img -= means
         
         return img 
         

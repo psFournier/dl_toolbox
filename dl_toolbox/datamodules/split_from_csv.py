@@ -56,20 +56,22 @@ def splits_from_csv(datasrc, datapath, csvpath):
         minval = [df_stats.loc[index][f'min_{i}'] for i in range(1,5)]
         maxval = [df_stats.loc[index][f'max_{i}'] for i in range(1,5)]
         meanval = [df_stats.loc[index][f'mean_{i}'] for i in range(1,5)]
+        cls_counts = list(df_cls.loc[index][1:])
 
         splits[row['split']].append(
             datasrc(
-                image_path=digitanie/row['img'],
+                image_path=datapath/row['img'],
                 zone=windows.Window(
                     row['col_off'],
                     row['row_off'],
                     row['width'],
                     row['height']
                 ),
-                label_path=digitanie/df_cls.loc[index]['mask'],
+                label_path=datapath/df_cls.loc[index]['mask'],
                 minval=np.array(minval).reshape((-1, 1, 1)),
                 maxval=np.array(maxval).reshape((-1, 1, 1)),
-                meanval=np.array(meanval).reshape((-1, 1, 1))
+                meanval=np.array(meanval).reshape((-1, 1, 1)),
+                all_cls_counts=np.array(cls_counts)
             )
         )
         
@@ -84,6 +86,7 @@ class SplitFromCsv(LightningDataModule):
         val_set,
         data_path,
         csv_path,
+        normalization,
         train_aug,
         epoch_len,
         batch_size,
@@ -101,6 +104,7 @@ class SplitFromCsv(LightningDataModule):
         self.val_set = val_set
         self.train_aug = train_aug
         self.num_samples = epoch_len * batch_size
+        self.normalization = normalization
         
         self.train_srcs, self.val_srcs, self.test_srcs = splits_from_csv(
             datasource,
@@ -110,8 +114,8 @@ class SplitFromCsv(LightningDataModule):
         
     def setup(self, stage):
         
-        train_sets = [self.train_set(src, aug=self.train_aug) for src in self.train_srcs]
-        val_sets = [self.val_set(src, aug=None) for src in self.val_srcs]
+        train_sets = [self.train_set(src, aug=self.train_aug, normalization=self.normalization) for src in self.train_srcs]
+        val_sets = [self.val_set(src, aug=None, normalization=self.normalization) for src in self.val_srcs]
         self.train_set = ConcatDataset(train_sets)
         self.val_set = ConcatDataset(val_sets)
                     
@@ -164,20 +168,13 @@ class SplitFromCsv(LightningDataModule):
             num_workers=self.num_workers
         )    
     
-class DigitanieFromCsv(SplitFromCsv):
-    
-    def __init__(self, *args, **kwargs):
-        
-        super().__init__(
-            train_idx=[i+j for i in list(range(0,200, 11)) for j in range(1,8)],
-            val_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(8,9)],
-            *args,
-            **kwargs
-        )
-        
-    #def init_srcs(self):
-    #    
-    #    train_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(1,8)]
-    #    self.train_srcs = [datasource(**d) for d in self.src_gen(folds=train_idx)]
-    #    val_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(8,9)]
-    #    self.val_srcs = [datasource(**d) for d in self.src_gen(folds=val_idx)] 
+#class DigitanieFromCsv(SplitFromCsv):
+#    
+#    def __init__(self, *args, **kwargs):
+#        
+#        super().__init__(
+#            train_idx=[i+j for i in list(range(0,200, 11)) for j in range(1,8)],
+#            val_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(8,9)],
+#            *args,
+#            **kwargs
+#        )
