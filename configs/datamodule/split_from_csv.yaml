@@ -8,9 +8,9 @@ defaults:
 
 _target_: dl_toolbox.datamodules.SplitFromCsv
 
-data_path: ${paths.data_dir}/DIGITANIE/
-csv_path: ${paths.root_dir}/dl_toolbox/datamodules/splits/digitanie_v0_all
+data_path: ${paths.data_dir}/DIGITANIE_v3/
+csv_path: ${paths.root_dir}/dl_toolbox/datamodules/splits/digitanie_all
 batch_size: 8
 epoch_len: 200
-num_workers: 8
+num_workers: 6
 pin_memory: False

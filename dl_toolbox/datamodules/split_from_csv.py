@@ -133,7 +133,7 @@ class SplitFromCsv(LightningDataModule):
                     
     @property
     def class_counts(self):
-        return self.train_srcs[0].cls_counts
+        return sum([src.cls_counts for src in self.train_srcs])
     
     @property
     def weights_multiclass(self):
@@ -141,7 +141,9 @@ class SplitFromCsv(LightningDataModule):
     
     @property
     def weights_binary(self):
-        return self.train_srcs[0].weights_binary
+        w = [np.round((sum(self.class_counts) - c)/c,1) for c in self.class_counts]
+        print(w)
+        return w
 
     def train_dataloader(self):
         
