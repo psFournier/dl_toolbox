@@ -132,8 +132,16 @@ class SplitFromCsv(LightningDataModule):
         return len(self.val_srcs[0].bands)
                     
     @property
-    def class_weights(self):
-        return [1.]*self.num_classes
+    def class_counts(self):
+        return self.train_srcs[0].cls_counts
+    
+    @property
+    def weights_multiclass(self):
+        return self.train_srcs[0].weights_multiclass
+    
+    @property
+    def weights_binary(self):
+        return self.train_srcs[0].weights_binary
 
     def train_dataloader(self):
         
