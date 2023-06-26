@@ -68,9 +68,9 @@ def splits_from_csv(datasrc, datapath, csvpath):
                     row['height']
                 ),
                 label_path=datapath/df_cls.loc[index]['mask'],
-                minval=np.array(minval).reshape((-1, 1, 1)),
-                maxval=np.array(maxval).reshape((-1, 1, 1)),
-                meanval=np.array(meanval).reshape((-1, 1, 1)),
+                minval=np.array(minval, dtype=np.float32).reshape((-1, 1, 1)),
+                maxval=np.array(maxval, dtype=np.float32).reshape((-1, 1, 1)),
+                meanval=np.array(meanval, dtype=np.float32).reshape((-1, 1, 1)),
                 all_cls_counts=np.array(cls_counts)
             )
         )
