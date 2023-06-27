@@ -10,17 +10,14 @@ class StretchToMinmaxCommon:
                 
         self.minval = np.array(minval, dtype=np.float32).reshape((-1, 1, 1))
         self.maxval = np.array(maxval, dtype=np.float32).reshape((-1, 1, 1))
-        self.meanval = np.array(meanval, dtype=np.float32).reshape((-1, 1, 1))
         
     def __call__(self, img, source):
         
         bands = np.array(source.bands)-1
         mins = torch.from_numpy(self.minval[bands])
         maxs = torch.from_numpy(self.maxval[bands])
-        means = torch.from_numpy(self.meanval[bands])
-        
+                
         img = stretch_to_minmax(img, mins, maxs)
         img = torch.clip(img, 0, 1)
-        img -= means
-        
+                
         return img

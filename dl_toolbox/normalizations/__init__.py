@@ -1,4 +1,4 @@
 from .utils import stretch_to_minmax
 from .imagenet import *
-from .minmax_by_source import *
-from .minmax_common import *
+from .stretch_to_minmax import *
+from .zero_average import *

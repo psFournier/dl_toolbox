@@ -1,4 +1,7 @@
+defaults:
+  - normalization: zero_average_common
+  - _self_
+
 _target_: dl_toolbox.datasets.raster.Raster
 _partial_: True
 crop_size: 256
-aug: 'no'

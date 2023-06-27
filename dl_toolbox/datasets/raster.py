@@ -76,7 +76,7 @@ class Raster(torch.utils.data.Dataset):
     ):
         self.data_src = data_src
         self.crop_size = crop_size
-        self.normalization = normalization
+        self.normalization = normalization(source=data_src)
         self.aug = aug
         
         if isinstance(data_src.zone, windows.Window):
@@ -93,7 +93,7 @@ class Raster(torch.utils.data.Dataset):
         
         image = self.data_src.read_image(crop)
         image = torch.from_numpy(image).float().contiguous()
-        image = self.normalization(image, self.data_src)
+        #image = self.normalization(image, self.data_src)
         
         label = None
         if self.data_src.label_path:
@@ -130,6 +130,8 @@ class Raster(torch.utils.data.Dataset):
             image, label = self.aug(img=image, label=label)
         if label is not None:
             label = label.long().squeeze()
+            
+        image = self.normalization(image)
             
         crop_transform = windows.transform(
             crop,

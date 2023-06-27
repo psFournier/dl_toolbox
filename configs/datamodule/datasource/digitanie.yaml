@@ -1,3 +1,7 @@
+defaults:
+  - normalization: minmax_common
+  - _self_
+  
 _target_: dl_toolbox.datasources.digitanie.Digitanie
 _partial_: True
 bands: [1, 2, 3]

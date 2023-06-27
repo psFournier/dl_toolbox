@@ -114,6 +114,7 @@ class Digitanie:
     label_path: ... = None
     nomenclature_name: ... = None
     all_cls_counts: ... = None
+    normalization: ... = None
 
     def __post_init__(self):
         
@@ -124,6 +125,7 @@ class Digitanie:
         merges = [list(l.values) for l in self.nomenclature]
         self.labels_merger = MergeLabels(merges)
         self.cls_counts = np.array([np.sum(self.all_cls_counts[np.array(merge)]) for merge in merges])
+        self.normalization = self.normalization(source=self)
         #self.weights_multiclass = [np.round(max(self.cls_counts)/c,1) for c in self.cls_counts]
         #self.weights_binary = [np.round((sum(self.cls_counts) - c)/c,1) for c in self.cls_counts]
         
@@ -135,6 +137,8 @@ class Digitanie:
                 out_dtype=np.float32,
                 indexes=self.bands
             )
+            
+        image = self.normalization(image)
 
         return image
     

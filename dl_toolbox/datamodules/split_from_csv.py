@@ -68,9 +68,9 @@ def splits_from_csv(datasrc, datapath, csvpath):
                     row['height']
                 ),
                 label_path=datapath/df_cls.loc[index]['mask'],
-                minval=np.array(minval, dtype=np.float32).reshape((-1, 1, 1)),
-                maxval=np.array(maxval, dtype=np.float32).reshape((-1, 1, 1)),
-                meanval=np.array(meanval, dtype=np.float32).reshape((-1, 1, 1)),
+                minval=minval,
+                maxval=maxval,
+                meanval=meanval,
                 all_cls_counts=np.array(cls_counts)
             )
         )
@@ -86,7 +86,8 @@ class SplitFromCsv(LightningDataModule):
         val_set,
         data_path,
         csv_path,
-        normalization,
+        csv_name,
+        #normalization,
         train_aug,
         epoch_len,
         batch_size,
@@ -104,18 +105,18 @@ class SplitFromCsv(LightningDataModule):
         self.val_set = val_set
         self.train_aug = train_aug
         self.num_samples = epoch_len * batch_size
-        self.normalization = normalization
+        #self.normalization = normalization
         
         self.train_srcs, self.val_srcs, self.test_srcs = splits_from_csv(
             datasource,
             Path(data_path),
-            Path(csv_path)
+            Path(csv_path)/csv_name
         )
         
     def setup(self, stage):
         
-        train_sets = [self.train_set(src, aug=self.train_aug, normalization=self.normalization) for src in self.train_srcs]
-        val_sets = [self.val_set(src, aug=None, normalization=self.normalization) for src in self.val_srcs]
+        train_sets = [self.train_set(src, aug=self.train_aug) for src in self.train_srcs]
+        val_sets = [self.val_set(src, aug=None) for src in self.val_srcs]
         self.train_set = ConcatDataset(train_sets)
         self.val_set = ConcatDataset(val_sets)
                     
@@ -142,7 +143,6 @@ class SplitFromCsv(LightningDataModule):
     @property
     def weights_binary(self):
         w = [np.round((sum(self.class_counts) - c)/c,1) for c in self.class_counts]
-        print(w)
         return w
 
     def train_dataloader(self):

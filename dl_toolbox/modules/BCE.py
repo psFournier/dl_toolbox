@@ -32,10 +32,8 @@ class Multilabel(pl.LightningModule):
         self.scheduler = scheduler
         
         self.num_classes = num_classes
-        self.loss = loss(
-            pos_weight=torch.Tensor(class_weights[1:]).reshape(1, num_classes-1, 1, 1)
-        )
-        print(self.loss)
+        pos_weight = torch.Tensor(class_weights[1:]).reshape(1, num_classes-1, 1, 1)
+        self.loss = loss(pos_weight=pos_weight)
         self.onehot = TorchOneHot(range(1,num_classes))
 
     def configure_optimizers(self):

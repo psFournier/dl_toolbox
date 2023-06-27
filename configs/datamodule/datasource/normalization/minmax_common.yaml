@@ -1,4 +1,4 @@
 _target_: dl_toolbox.normalizations.StretchToMinmaxCommon
+_partial_: True
 minval: [0, 0, 0, 0]
 maxval: [1, 1, 1, 1]
-meanval: [0.123, 0.133, 0.144, 0.197]
