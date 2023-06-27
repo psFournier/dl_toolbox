@@ -138,7 +138,7 @@ class SplitFromCsv(LightningDataModule):
     
     @property
     def weights_multiclass(self):
-        return self.train_srcs[0].weights_multiclass
+        return [np.round(max(self.cls_counts)/c,1) for c in self.class_counts]
     
     @property
     def weights_binary(self):
