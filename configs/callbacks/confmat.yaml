@@ -3,4 +3,5 @@
 confmat:
   _target_: dl_toolbox.callbacks.MetricsFromConfmat
   _partial_: True
+  ignore_idx: 0
 

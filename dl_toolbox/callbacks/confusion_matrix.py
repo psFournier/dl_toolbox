@@ -25,13 +25,23 @@ def compute_conf_mat(labels, preds, num_classes, ignore_idx=None):
 
 class MetricsFromConfmat(pl.Callback):
 
-    def __init__(self, num_classes, class_names, plot_iou=True, plot_confmat=True, *args, **kwargs):
+    def __init__(
+        self,
+        num_classes,
+        class_names,
+        ignore_idx=None,
+        plot_iou=False,
+        plot_confmat=True,
+        *args,
+        **kwargs
+    ):
 
         super().__init__(*args, **kwargs)
         self.num_classes = num_classes
         self.class_names = class_names
         self.plot_iou = plot_iou
         self.plot_confmat = plot_confmat
+        self.ignore_idx = ignore_idx
 
     def on_validation_epoch_start(self, trainer, pl_module):
         
@@ -51,7 +61,7 @@ class MetricsFromConfmat(pl.Callback):
             labels.flatten(),
             preds.flatten(),
             self.num_classes,
-            ignore_idx=None
+            ignore_idx=self.ignore_idx
         )
         
         return conf_mat
@@ -80,13 +90,16 @@ class MetricsFromConfmat(pl.Callback):
         with np.errstate(divide='ignore', invalid='ignore'):
             ious = np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1) - np.diag(cm_array))
             f1s = 2 * np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1))
+            idx = np.array(range(self.num_classes)) != self.ignore_idx
+            ious = ious[idx]
+            f1s = f1s[idx]
             #precisions = np.diag(cm_array) / cm_array.sum(0)
             #recalls = np.diag(cm_array) / cm_array.sum(1)
             
         mIou = np.nansum(ious) / (np.logical_not(np.isnan(ious))).sum()
         mf1 = np.nansum(f1s) / (np.logical_not(np.isnan(f1s))).sum()
-        self.log('Val_miou', mIou.astype(float))
-        self.log('Val_mf1', mf1.astype(float))
+        self.log('miou/val', mIou.astype(float))
+        self.log('mf1/val', mf1.astype(float))
         
         if self.plot_iou:
             trainer.logger.experiment.add_figure(
