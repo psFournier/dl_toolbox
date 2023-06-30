@@ -40,7 +40,6 @@ def train(cfg: DictConfig) -> None:
         num_classes=datamodule.num_classes,
         class_names=datamodule.class_names
     ) 
-    print(callbacks)
     #for name, cb in cfg.callbacks:
     #    if name=='confmat':
     #        callbacks.append()

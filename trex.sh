@@ -3,8 +3,8 @@
 # --output = name of the output file  --error= name of error file (%j = jobID )
 #SBATCH --output=outputfile-%j.out
 #SBATCH --error=errorfile-%j.err
-#SBATCH -N 1                        # number of nodes
-#SBATCH -n 16                       # number of cores
+#SBATCH --nodes=1                        # number of nodes
+#SBATCH --ntasks-per-node=6                   # number of cores
 #SBATCH --gres=gpu:1                # number of gpgpus
 #SBATCH --time=10:00                # Wall Time
 #SBATCH --mem-per-cpu=8G            # memory per core
@@ -17,7 +17,7 @@
 cd ${SLURM_SUBMIT_DIR}
 bash "${HOME}"/dl_toolbox/copy_digi_to_node.sh
 nvidia-smi >  output_$SLURM_JOBID.log
-/work/AI4GEO/users/fournip/latest/bin/python "${HOME}"/dl_toolbox/dl_toolbox/train.py paths=trex trainer=gpu >> output_$SLURM_JOBID.log
+HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/train.py paths=trex trainer=gpu >> output_$SLURM_JOBID.log
 
 
 
