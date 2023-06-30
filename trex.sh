@@ -6,7 +6,7 @@
 #SBATCH --nodes=1                        # number of nodes
 #SBATCH --ntasks-per-node=6                   # number of cores
 #SBATCH --gres=gpu:1                # number of gpgpus
-#SBATCH --time=10:00                # Wall Time
+#SBATCH --time=12:00:00                # Wall Time
 #SBATCH --mem-per-cpu=8G            # memory per core
 #SBATCH --partition=gpu_a100        # material partition 
 #SBATCH --account=ai4geo       # account (launch myaccounts to list your accounts) 
