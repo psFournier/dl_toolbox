@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH --job-name=test_gpu2022     # job's name
+# --output = name of the output file  --error= name of error file (%j = jobID )
+#SBATCH --output=outputfile-%j.out
+#SBATCH --error=errorfile-%j.err
+#SBATCH -N 1                        # number of nodes
+#SBATCH -n 16                       # number of cores
+#SBATCH --gres=gpu:1                # number of gpgpus
+#SBATCH --time=10:00                # Wall Time
+#SBATCH --mem-per-cpu=8G            # memory per core
+#SBATCH --partition=gpu_a100        # material partition 
+#SBATCH --account=ai4geo       # account (launch myaccounts to list your accounts) 
+#SBATCH --qos=gpu_all               # Need to specify QoS because it is not default QoS
+##SBATCH --export=none              # Uncomment to start the job with a clean environnement and source of ~/.bashrc
+
+# to go to the submit directory 
+cd ${SLURM_SUBMIT_DIR}
+bash "${HOME}"/dl_toolbox/copy_digi_to_node.sh
+nvidia-smi >  output_$SLURM_JOBID.log
+/work/AI4GEO/users/fournip/latest/bin/python "${HOME}"/dl_toolbox/dl_toolbox/train.py paths=trex trainer=gpu >> output_$SLURM_JOBID.log
+
+
+
