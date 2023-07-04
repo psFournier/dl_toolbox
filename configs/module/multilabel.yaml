@@ -1,6 +1,5 @@
 defaults:
   - _self_
-  - loss: bce
   - optimizer: sgd
   - network: smpunet
   - scheduler: step

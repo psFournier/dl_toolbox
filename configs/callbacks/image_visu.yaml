@@ -1,0 +1,7 @@
+# https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.callbacks.ModelCheckpoint.html
+
+image_visu:
+  _target_: dl_toolbox.callbacks.SegmentationImagesVisualisation
+  _partial_: True
+  freq: 1
+

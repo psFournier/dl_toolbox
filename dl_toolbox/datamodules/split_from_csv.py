@@ -115,8 +115,8 @@ class SplitFromCsv(LightningDataModule):
         
     def setup(self, stage):
         
-        train_sets = [self.train_set(src, aug=self.train_aug) for src in self.train_srcs]
-        val_sets = [self.val_set(src, aug=None) for src in self.val_srcs]
+        train_sets = [self.train_set(src, transforms=self.train_aug) for src in self.train_srcs]
+        val_sets = [self.val_set(src, transforms=None) for src in self.val_srcs]
         self.train_set = ConcatDataset(train_sets)
         self.val_set = ConcatDataset(val_sets)
                     

@@ -7,6 +7,7 @@ defaults:
   - module: multilabel
   - callbacks:
       - confmat
+      - image_visu
       - model_checkpoint
       - rich_progress_bar
       - model_summary

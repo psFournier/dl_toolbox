@@ -6,7 +6,7 @@ class CustomCollate():
 
     def __call__(self, batch, *args, **kwargs):
                 
-        keys_to_collate = ['image', 'label']
+        keys_to_collate = ['image', 'label', 'pre_image']
         to_collate = [{k: v for k, v in elem.items() if (k in keys_to_collate) and (v is not None)} for elem in batch]
         collated_batch = default_collate(to_collate)
         

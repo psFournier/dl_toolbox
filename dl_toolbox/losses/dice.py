@@ -52,7 +52,7 @@ class DiceLoss(_Loss):
             mode: str,
             log_loss=False,
             from_logits=True,
-            smooth: float = 0.0,
+            smooth: float = 0.01,
             ignore_index=None,
             eps=1e-7
     ):

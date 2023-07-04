@@ -126,8 +126,6 @@ class Digitanie:
         self.labels_merger = MergeLabels(merges)
         self.cls_counts = np.array([np.sum(self.all_cls_counts[np.array(merge)]) for merge in merges])
         self.normalization = self.normalization(source=self)
-        #self.weights_multiclass = [np.round(max(self.cls_counts)/c,1) for c in self.cls_counts]
-        #self.weights_binary = [np.round((sum(self.cls_counts) - c)/c,1) for c in self.cls_counts]
         
     def read_image(self, window=None):
         

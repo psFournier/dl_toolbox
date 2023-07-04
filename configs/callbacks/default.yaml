@@ -1,5 +1,6 @@
 defaults:
   - model_checkpoint.yaml
+  - image_visu.yaml
   - model_summary.yaml
   - rich_progress_bar.yaml
   - _self_

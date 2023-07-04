@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 
 import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import TorchOneHot
+from dl_toolbox.losses import DiceLoss
 
 class Multilabel(pl.LightningModule):
 
@@ -12,7 +13,6 @@ class Multilabel(pl.LightningModule):
         network,
         optimizer,
         scheduler,
-        loss,
         class_weights,
         in_channels,
         num_classes,
@@ -33,7 +33,15 @@ class Multilabel(pl.LightningModule):
         
         self.num_classes = num_classes
         pos_weight = torch.Tensor(class_weights[1:]).reshape(1, num_classes-1, 1, 1)
-        self.loss = loss(pos_weight=pos_weight)
+        self.bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        self.dice = DiceLoss(
+            mode='multilabel',
+            log_loss=False,
+            from_logits=True,
+            smooth=0.01,
+            ignore_index=None,
+            eps=1e-7
+        )
         self.onehot = TorchOneHot(range(1,num_classes))
 
     def configure_optimizers(self):
@@ -67,7 +75,9 @@ class Multilabel(pl.LightningModule):
         labels = batch['label']
         onehot_labels = self.onehot(labels).float() # B,C or C-1,H,W
         logits = self.network(inputs) # B,C or C-1,H,W
-        loss = self.loss(logits, onehot_labels)
+        bce = self.bce(logits, onehot_labels)
+        dice = self.dice(logits, onehot_labels)
+        loss = bce + dice
         self.log('loss/train', loss)
 
         return loss
@@ -78,7 +88,9 @@ class Multilabel(pl.LightningModule):
         labels = batch['label']
         onehot_labels = self.onehot(labels).float() # B,C or C-1,H,W
         logits = self.forward(inputs)        
-        loss = self.loss(logits, onehot_labels)
+        bce = self.bce(logits, onehot_labels)
+        dice = self.dice(logits, onehot_labels)
+        loss = bce + dice
         self.log('loss/val', loss)
         
         return logits

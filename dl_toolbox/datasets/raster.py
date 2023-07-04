@@ -71,13 +71,13 @@ class Raster(torch.utils.data.Dataset):
         self,
         data_src,
         crop_size,
-        normalization,
-        aug,
+        standardize,
+        transforms,
     ):
         self.data_src = data_src
         self.crop_size = crop_size
-        self.normalization = normalization(source=data_src)
-        self.aug = aug
+        self.standardize = standardize(source=data_src)
+        self.transforms = transforms
         
         if isinstance(data_src.zone, windows.Window):
             self.get_crop = CropFromWindow(
@@ -126,13 +126,13 @@ class Raster(torch.utils.data.Dataset):
         pre_image, pre_label = self.read_crop(crop)
         image, label = self.rnd_rotate_and_crop(pre_image, self.crop_size, pre_label)       
         
-        if self.aug is not None:
-            image, label = self.aug(img=image, label=label)
+        if self.transforms is not None:
+            image, label = self.transforms(img=image, label=label)
         if label is not None:
             label = label.long().squeeze()
             
-        image = self.normalization(image)
-            
+        image = self.standardize(image)
+                        
         crop_transform = windows.transform(
             crop,
             transform=self.data_src.meta['transform']
