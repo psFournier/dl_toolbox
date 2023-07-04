@@ -108,7 +108,7 @@ class Digitanie:
     bands: ... = None
     image_path: str = None
     zone: object = None #DATA_POLYGON
-    minval: ... = None 
+    minval: ... = None
     maxval: ... = None 
     meanval: ... = None
     label_path: ... = None
@@ -124,7 +124,8 @@ class Digitanie:
         self.nomenclature = DigitanieNomenclatures[self.nomenclature_name].value
         merges = [list(l.values) for l in self.nomenclature]
         self.labels_merger = MergeLabels(merges)
-        self.cls_counts = np.array([np.sum(self.all_cls_counts[np.array(merge)]) for merge in merges])
+        if self.all_cls_counts:
+            self.cls_counts = np.array([np.sum(self.all_cls_counts[np.array(merge)]) for merge in merges])
         self.normalization = self.normalization(source=self)
         
     def read_image(self, window=None):

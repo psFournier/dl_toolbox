@@ -4,9 +4,9 @@ from .utils import OneOf, NoOp
 
 class Gamma(torch.nn.Module):
 
-    def __init__(self, bound=0.5, p=0.5):
+    def __init__(self, bounds=(0.9, 0.9), p=0.5):
         super().__init__()
-        self.bounds = (1-bound, 1+bound)
+        self.bounds = bounds
         self.p = p
 
     def apply(self, img, label=None, factor=1.):
@@ -24,9 +24,9 @@ class Gamma(torch.nn.Module):
 
 class Saturation(torch.nn.Module):
 
-    def __init__(self, bound=0.5, p=0.5):
+    def __init__(self, bounds=(0.9, 0.9), p=0.5):
         super().__init__()
-        self.bounds = (1-bound, 1+bound)
+        self.bounds = bounds
         self.p = p
 
     def forward(self, img, label=None):
@@ -38,9 +38,9 @@ class Saturation(torch.nn.Module):
 
 class Brightness(torch.nn.Module):
 
-    def __init__(self, bound=0.2, p=0.5):
+    def __init__(self, bounds=(0.9, 0.9), p=0.5):
         super().__init__()
-        self.bounds = (1-bound, 1+bound)
+        self.bounds = bounds
         self.p = p
 
     def forward(self, img, label=None):
@@ -53,9 +53,9 @@ class Brightness(torch.nn.Module):
 
 class Contrast(torch.nn.Module):
 
-    def __init__(self, bound=0.4, p=0.5):
+    def __init__(self, bounds=(0.9, 0.9), p=0.5):
         super().__init__()
-        self.bounds = (1-bound, 1+bound)
+        self.bounds = bounds
         self.p = p
 
     def forward(self, img, label=None):
@@ -67,14 +67,14 @@ class Contrast(torch.nn.Module):
     
 class Color:
 
-    def __init__(self, bound):
+    def __init__(self, bounds):
         self.color = OneOf(
             [
                 NoOp(),
-                Saturation(p=1, bound=bound),
-                Contrast(p=1, bound=bound),
-                Gamma(p=1, bound=bound),
-                Brightness(p=1, bound=bound)
+                Saturation(p=1, bounds=bounds),
+                Contrast(p=1, bounds=bounds),
+                Gamma(p=1, bounds=bounds),
+                Brightness(p=1, bounds=bounds)
             ],
             transforms_ps=[
                 1,
