@@ -14,7 +14,6 @@ class StretchToMinmaxCommon:
     def __call__(self, img):   
         
         img = stretch_to_minmax(img, self.mins, self.maxs)
-        img = np.clip(img, 0, 1)
         
         return img 
         
@@ -29,7 +28,6 @@ class StretchToMinmaxBySource:
     def __call__(self, img):   
         
         img = stretch_to_minmax(img, self.mins, self.maxs)
-        img = np.clip(img, 0, 1)
         
         return img 
         

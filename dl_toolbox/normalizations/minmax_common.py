@@ -18,6 +18,5 @@ class StretchToMinmaxCommon:
         maxs = torch.from_numpy(self.maxval[bands])
                 
         img = stretch_to_minmax(img, mins, maxs)
-        img = torch.clip(img, 0, 1)
                 
         return img
