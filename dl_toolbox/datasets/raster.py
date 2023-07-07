@@ -124,8 +124,8 @@ class Raster(torch.utils.data.Dataset):
         pre_crop_size = int(np.ceil(np.sqrt(2) * self.crop_size))
         crop = self.get_crop(pre_crop_size) 
         pre_image, pre_label = self.read_crop(crop)
-        image, label = self.rnd_rotate_and_crop(pre_image, self.crop_size, pre_label)       
         
+        image, label = self.rnd_rotate_and_crop(pre_image, self.crop_size, pre_label)       
         if self.transforms is not None:
             image, label = self.transforms(img=image, label=label)
         if label is not None:
@@ -177,10 +177,12 @@ class PretiledRaster(Raster):
         
         image, label = self.read_crop(crop)
         
-        if self.aug is not None:
-            image, label = self.aug(img=image, label=label)
+        if self.transforms is not None:
+            image, label = self.transforms(img=image, label=label)
         if label is not None:
             label = label.long().squeeze()
+            
+        image = self.standardize(image)
             
         crop_transform = windows.transform(
             crop,

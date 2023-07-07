@@ -56,14 +56,18 @@ class Multilabel(pl.LightningModule):
         return self.network(x)
 
     def logits2probas(self, logits):
-
-        return torch.sigmoid(logits)
+        
+        probas = torch.sigmoid(logits)
+        confs, preds = torch.max(probas, axis=1)
+        nodata_proba = torch.unsqueeze(1 - confs, 1)
+        all_probas = torch.cat([nodata_proba, probas], axis=1)
+        return all_probas
 
     def probas2confpreds(self, probas):
 
-        aux_confs, aux_preds = torch.max(probas, axis=1)
-        cond = aux_confs > 0.5
-        preds = torch.where(cond, aux_preds + 1, 0)
+        aux_confs, aux_preds = torch.max(probas[:,1:,...], axis=1)
+        cond = aux_confs > 0.9
+        preds = torch.where(cond, aux_preds+1, 0)
         confs = torch.where(cond, aux_confs, 1-aux_confs)
         
         return confs, preds
@@ -92,6 +96,13 @@ class Multilabel(pl.LightningModule):
         dice = self.dice(logits, onehot_labels)
         loss = bce + dice
         self.log('loss/val', loss)
+        
+        return logits
+    
+    def predict_step(self, batch, batch_idx):
+        
+        inputs = batch['image']
+        logits = self.forward(inputs)
         
         return logits
 
