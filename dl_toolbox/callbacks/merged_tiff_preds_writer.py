@@ -5,7 +5,6 @@ from pathlib import Path
 from pytorch_lightning.callbacks import BasePredictionWriter
 import rasterio
 import rasterio.windows as windows 
-from dl_toolbox.datasets import PretiledRaster
 from functools import partial
 
 

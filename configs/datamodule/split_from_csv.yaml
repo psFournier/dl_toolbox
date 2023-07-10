@@ -1,8 +1,7 @@
 defaults:
   - datasource: digitanie
-  - dataset@train_set: raster
-  - dataset@val_set: raster
-  - augmentations@train_aug: flip_color
+  - transforms@train_tf: crop_d4_color
+  - transforms@val_tf: default
   - _self_
 
 _target_: dl_toolbox.datamodules.SplitFromCsv
@@ -10,6 +9,7 @@ _target_: dl_toolbox.datamodules.SplitFromCsv
 data_path: ${paths.data_dir}/DIGITANIE_v3/
 csv_path: ${paths.root_dir}/dl_toolbox/datamodules/splits
 csv_name: digitanie_all
+crop_size: 256
 batch_size: 8
 epoch_len: 200
 num_workers: 6

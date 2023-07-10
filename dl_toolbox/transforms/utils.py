@@ -54,3 +54,9 @@ def rand_bbox(size, lam):
 
     return bbx1, bby1, bbx2, bby2
 
+def stretch_to_minmax(img, mins, maxs):
+    
+    res = (img - mins) / (maxs - mins)
+    
+    return torch.clip(res, 0, 1)
+

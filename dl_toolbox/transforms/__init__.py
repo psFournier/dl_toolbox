@@ -1,12 +1,12 @@
 from .utils import Compose, rand_bbox, NoOp, OneOf
 from .color import Saturation, Contrast, Brightness, Gamma, Color
 from .d4 import Vflip, Hflip, Transpose1, Transpose2, D4, Rot90, Rot270, Rot180, Flip
-from .geometric import Sharpness
-from .histograms import HistEq
 from .mixup import Mixup, Mixup2
 from .cutmix import Cutmix, Cutmix2
-from .merge_label import MergeLabels
 from .crop import RandomCrop2
+from .imagenet import *
+from .stretch_to_minmax import *
+from .zero_average import *
 
 aug_dict = {
     'no': NoOp,
@@ -20,7 +20,6 @@ aug_dict = {
     'rot180': Rot180,
     'rot270': Rot270,
     'saturation': Saturation,
-    'sharpness': Sharpness,
     'contrast': Contrast,
     'gamma': Gamma,
     'brightness': Brightness,

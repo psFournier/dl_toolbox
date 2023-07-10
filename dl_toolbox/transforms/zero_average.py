@@ -6,15 +6,13 @@ import numpy as np
 
 class ZeroAverageCommon:
     
-    def __init__(self, meanval, source):
+    def __init__(self, meanval):
         
-        bands = np.array(source.bands)-1
-        means = np.array(meanval, dtype=np.float32).reshape((-1, 1, 1))
-        self.means = torch.from_numpy(means[bands])
+        self.means = torch.Tensor(meanval).reshape((-1, 1, 1))
+        
+    def __call__(self, img, label=None):   
                 
-    def __call__(self, img):   
-                
-        return img - self.means
+        return img - self.means, label
     
 class ZeroAverageBySource:
     

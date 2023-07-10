@@ -1,5 +1,5 @@
 from .raster import *
-from .raster2cls import *
+#from .raster2cls import *
 #from .semcity import *
 #from .old_digitanie import *
 #from .semcity_bdsd_ds import *

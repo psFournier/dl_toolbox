@@ -107,14 +107,13 @@ class Digitanie:
 
     bands: ... = None
     image_path: str = None
+    label_path: ... = None
     zone: object = None #DATA_POLYGON
     minval: ... = None
     maxval: ... = None 
     meanval: ... = None
-    label_path: ... = None
     nomenclature_name: ... = None
-    all_cls_counts: ... = None
-    normalization: ... = None
+    #cls_counts: ... = None
 
     def __post_init__(self):
         
@@ -124,9 +123,9 @@ class Digitanie:
         self.nomenclature = DigitanieNomenclatures[self.nomenclature_name].value
         merges = [list(l.values) for l in self.nomenclature]
         self.labels_merger = MergeLabels(merges)
-        if self.all_cls_counts is not None:
-            self.cls_counts = np.array([np.sum(self.all_cls_counts[np.array(merge)]) for merge in merges])
-        self.normalization = self.normalization(source=self)
+        #if self.cls_counts:
+        #    self.cls_counts = np.array([np.sum(self.cls_counts[np.array(merge)]) for merge in merges])
+        #self.normalization = self.normalization(source=self)
         
     def read_image(self, window=None):
         
@@ -137,7 +136,7 @@ class Digitanie:
                 indexes=self.bands
             )
             
-        image = self.normalization(image)
+        #image = self.normalization(image)
 
         return image
     
@@ -146,7 +145,7 @@ class Digitanie:
         with rasterio.open(self.label_path) as file:
             label = file.read(
                 window=window,
-                out_dtype=np.float32
+                out_dtype=np.uint8
             )
         label = self.labels_merger(np.squeeze(label))
         

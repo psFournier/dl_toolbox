@@ -18,8 +18,7 @@ import numpy as np
 import ast 
 import rasterio.windows as windows
 
-from functools import partial
-
+from dl_toolbox.datasets import Raster
 
 #def splits_from_csv(datasrc_cls, datapath, csvpath, folds):
 #    
@@ -56,7 +55,7 @@ def splits_from_csv(datasrc, datapath, csvpath):
         minval = [df_stats.loc[index][f'min_{i}'] for i in range(1,5)]
         maxval = [df_stats.loc[index][f'max_{i}'] for i in range(1,5)]
         meanval = [df_stats.loc[index][f'mean_{i}'] for i in range(1,5)]
-        cls_counts = list(df_cls.loc[index][1:])
+        #cls_counts = list(df_cls.loc[index][1:])
 
         splits[row['split']].append(
             datasrc(
@@ -71,7 +70,7 @@ def splits_from_csv(datasrc, datapath, csvpath):
                 minval=minval,
                 maxval=maxval,
                 meanval=meanval,
-                all_cls_counts=np.array(cls_counts)
+                #cls_counts=cls_counts
             )
         )
         
@@ -82,13 +81,12 @@ class SplitFromCsv(LightningDataModule):
     def __init__(
         self,
         datasource,
-        train_set,
-        val_set,
+        crop_size,
         data_path,
         csv_path,
         csv_name,
-        #normalization,
-        train_aug,
+        train_tf,
+        val_tf,
         epoch_len,
         batch_size,
         num_workers,
@@ -96,29 +94,40 @@ class SplitFromCsv(LightningDataModule):
     ):
         super().__init__()
 
-        # this line allows to access init params with 'self.hparams' attribute
-        # also ensures init params will be stored in ckpt
-        #self.save_hyperparameters()
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.train_set = train_set
-        self.val_set = val_set
-        self.train_aug = train_aug
         self.num_samples = epoch_len * batch_size
-        #self.normalization = normalization
+        self.crop_size = crop_size
         
-        self.train_srcs, self.val_srcs, self.test_srcs = splits_from_csv(
+        self.train_srcs, self.val_srcs, _ = splits_from_csv(
             datasource,
             Path(data_path),
             Path(csv_path)/csv_name
         )
         
+        self.train_tf = train_tf
+        self.val_tf = val_tf
+        
     def setup(self, stage):
         
-        train_sets = [self.train_set(src, transforms=self.train_aug) for src in self.train_srcs]
-        val_sets = [self.val_set(src, transforms=None) for src in self.val_srcs]
-        self.train_set = ConcatDataset(train_sets)
-        self.val_set = ConcatDataset(val_sets)
+        self.train_set = ConcatDataset([
+            Raster(
+                src,
+                crop_size=self.crop_size,
+                shuffle=True,
+                transforms=self.train_tf
+            ) for src in self.train_srcs
+        ])
+        
+        self.val_set = ConcatDataset([
+            Raster(
+                src,
+                crop_size=self.crop_size,
+                shuffle=False,
+                transforms=self.val_tf,
+                crop_step=self.crop_size
+            ) for src in self.val_srcs
+        ])
                     
     @property
     def num_classes(self):
@@ -132,18 +141,18 @@ class SplitFromCsv(LightningDataModule):
     def input_dim(self):
         return len(self.val_srcs[0].bands)
                     
-    @property
-    def class_counts(self):
-        return sum([src.cls_counts for src in self.train_srcs])
-    
-    @property
-    def weights_multiclass(self):
-        return [np.round(max(self.cls_counts)/c,1) for c in self.class_counts]
-    
-    @property
-    def weights_binary(self):
-        w = [np.round((sum(self.class_counts) - c)/c,1) for c in self.class_counts]
-        return w
+    #@property
+    #def class_counts(self):
+    #    return sum([src.cls_counts for src in self.train_srcs])
+    #
+    #@property
+    #def weights_multiclass(self):
+    #    return [np.round(max(self.cls_counts)/c,1) for c in self.class_counts]
+    #
+    #@property
+    #def weights_binary(self):
+    #    w = [np.round((sum(self.class_counts) - c)/c,1) for c in self.class_counts]
+    #    return w
 
     def train_dataloader(self):
         
@@ -152,11 +161,7 @@ class SplitFromCsv(LightningDataModule):
             dataset=self.train_set,
             batch_size=self.batch_size,
             collate_fn=CustomCollate(),
-            sampler=RandomSampler(
-                data_source=self.train_set,
-                replacement=True,
-                num_samples=self.num_samples
-            ),
+            shuffle=True,
             num_workers=self.num_workers,
             drop_last=True
         )
@@ -168,11 +173,7 @@ class SplitFromCsv(LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             dataset=self.val_set,
-            sampler=RandomSampler(
-                data_source=self.val_set,
-                replacement=True,
-                num_samples=self.num_samples//10
-            ),
+            shuffle=False,
             collate_fn=CustomCollate(),
             batch_size=self.batch_size,
             num_workers=self.num_workers

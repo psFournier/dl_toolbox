@@ -25,7 +25,7 @@ def train(cfg: DictConfig) -> None:
         # Overwrite arguments at runtime that depends on other modules
         num_classes=datamodule.num_classes,
         in_channels=datamodule.input_dim,
-        class_weights=datamodule.weights_binary,
+        class_weights=[1]*datamodule.num_classes,
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
         #_recursive_=False,
     )

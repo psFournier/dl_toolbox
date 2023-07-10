@@ -3,7 +3,6 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from torch.optim import Adam
 
-import dl_toolbox.augmentations as augmentations
 from dl_toolbox.networks import NetworkFactory
 
 class CrossPseudoSupervision(pl.LightningModule):

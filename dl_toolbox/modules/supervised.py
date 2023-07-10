@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 
-import dl_toolbox.augmentations as augmentations
 from dl_toolbox.utils import TorchOneHot
 
         

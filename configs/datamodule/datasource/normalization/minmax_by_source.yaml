@@ -1,2 +1,2 @@
-_target_: dl_toolbox.normalizations.StretchToMinmaxBySource
+_target_: dl_toolbox.transforms.StretchToMinmaxBySource
 _partial_: True

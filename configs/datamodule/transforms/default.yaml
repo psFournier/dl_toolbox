@@ -1,0 +1,7 @@
+_target_: dl_toolbox.transforms.Compose
+transforms: 
+    - _target_: dl_toolbox.transforms.StretchToMinmaxCommon
+      minval: [0, 0, 0]
+      maxval: [1, 1, 1]
+    - _target_: dl_toolbox.transforms.ZeroAverageCommon
+      meanval: [0.123, 0.133, 0.144]
