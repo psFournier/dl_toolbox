@@ -13,6 +13,5 @@ merge: main
 bands: [1,2,3]
 crop_size: 256
 batch_size: 8
-epoch_len: 200
 num_workers: 6
 pin_memory: False

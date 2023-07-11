@@ -15,9 +15,9 @@ class ZeroAverageCommon:
     
 class ZeroAverageBySource:
     
-    def __init__(self, source):
+    def __init__(self, source, bands):
         
-        meanval = [source.meanval[i-1] for i in source.bands]
+        meanval = [source.meanval[i-1] for i in bands]
         self.means = Tensor(meanval).reshape((-1, 1, 1))
                 
     def __call__(self, img, label=None):   

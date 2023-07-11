@@ -70,7 +70,6 @@ class SplitFromCsv(LightningDataModule):
         csv_name,
         train_tf,
         val_tf,
-        epoch_len,
         batch_size,
         num_workers,
         pin_memory
@@ -79,7 +78,6 @@ class SplitFromCsv(LightningDataModule):
 
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.num_samples = epoch_len * batch_size
         self.crop_size = crop_size
         self.merge = merge
         self.bands = bands
@@ -143,6 +141,7 @@ class SplitFromCsv(LightningDataModule):
         )
 
     def val_dataloader(self):
+        
         return DataLoader(
             dataset=self.val_set,
             shuffle=False,
@@ -171,9 +170,9 @@ class SplitFromCsv2(SplitFromCsv):
                 crop_size=self.crop_size,
                 shuffle=True,
                 transforms=tfs.Compose([
-                    tfs.StretchToMinmaxBySource(src),
+                    tfs.StretchToMinmaxBySource(src, self.bands),
                     self.train_tf,
-                    tfs.ZeroAverageBySource(src)
+                    tfs.ZeroAverageBySource(src, self.bands)
                 ])
             ) for src in self.train_srcs
         ])
@@ -186,9 +185,9 @@ class SplitFromCsv2(SplitFromCsv):
                 crop_size=self.crop_size,
                 shuffle=False,
                 transforms=tfs.Compose([
-                    tfs.StretchToMinmaxBySource(src),
+                    tfs.StretchToMinmaxBySource(src, self.bands),
                     self.val_tf,
-                    tfs.ZeroAverageBySource(src)
+                    tfs.ZeroAverageBySource(src, self.bands)
                 ]),
                 crop_step=self.crop_size
             ) for src in self.val_srcs
