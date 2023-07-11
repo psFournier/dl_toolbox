@@ -5,21 +5,8 @@ import torchvision
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities import rank_zero_warn
 import numpy as np
+from dl_toolbox.utils import labels_to_rgb
 
-
-def log_batch_images(batch, trainer, prefix, visu_fn=None):
-    
-    display_grids = display_batch(
-        batch,
-        visu_fn=visu_fn
-    )
-    
-    for i, grid in enumerate(display_grids):
-        trainer.logger.experiment.add_image(
-            f'Images/{prefix}_batch_part_{i}',
-            grid,
-            global_step=trainer.global_step
-        )
 
 class SegmentationImagesVisualisation(pl.Callback):
     """Generate images based on classifier predictions and log a batch to predefined logger.
@@ -30,18 +17,17 @@ class SegmentationImagesVisualisation(pl.Callback):
 
     NB_COL: int = 8
 
-    def __init__(self, visu_fn, freq, *args, **kwargs):
+    def __init__(self, freq, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        self.visu_fn = visu_fn 
         self.freq = freq
         
-    def display_batch(self, trainer, batch, prefix):
+    def display_batch(self, colors, trainer, batch, prefix):
 
         img = batch['image'].cpu()
         if batch['label'] is not None: 
             labels = batch['label'].cpu()
-            labels_rgb = self.visu_fn(labels).transpose((0,3,1,2))
+            labels_rgb = labels_to_rgb(labels, colors=colors).transpose((0,3,1,2))
             np_labels_rgb = torch.from_numpy(labels_rgb).float()
 
         # Number of grids to log depends on the batch size
@@ -80,9 +66,10 @@ class SegmentationImagesVisualisation(pl.Callback):
         batch,
         batch_idx
     ) -> None:
-
+        
         if trainer.current_epoch % self.freq == 0 and batch_idx == 0:
             self.display_batch(
+                trainer.datamodule.class_colors,
                 trainer,
                 batch['sup'],
                 prefix='Train'
@@ -100,6 +87,7 @@ class SegmentationImagesVisualisation(pl.Callback):
  
         if trainer.current_epoch % self.freq == 0 and batch_idx == 0:
             self.display_batch(
+                trainer.datamodule.class_colors,
                 trainer,
                 batch,
                 prefix='Val'

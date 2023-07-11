@@ -58,6 +58,15 @@ class OneHot:
 
         return np.stack(onehot_masks, axis=0)
 
+def labels_to_rgb(labels, colors):
+    
+    rgb = np.zeros(shape=(*labels.shape, 3), dtype=np.uint8)
+    for label, color in colors:
+        mask = np.array(labels == label)
+        rgb[mask] = np.array(color)
+    
+    return rgb 
+
 class LabelsToRGB:
     # Inputs shape : B,H,W or H,W
     # Outputs shape : B,H,W,3 or H,W,3

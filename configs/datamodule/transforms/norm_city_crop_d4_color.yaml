@@ -1,0 +1,9 @@
+_target_: dl_toolbox.transforms.Compose
+transforms: 
+    - _target_: dl_toolbox.transforms.RandomCrop2
+      size: 256
+    - _target_: dl_toolbox.transforms.D4
+    - _target_: dl_toolbox.transforms.Color
+      bounds: [0.9, 0.9]
+    - _target_: dl_toolbox.transforms.ZeroAverageCommon
+      meanval: [0.28689554, 0.32513303, 0.28389177]

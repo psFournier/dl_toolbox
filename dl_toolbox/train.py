@@ -4,7 +4,6 @@ import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
 
-from dl_toolbox.datasources import main_nomenclature
 from dl_toolbox.utils import NomencToRgb
 
 logger = logging.getLogger(__name__)
@@ -18,13 +17,13 @@ def train(cfg: DictConfig) -> None:
     datamodule = hydra.utils.instantiate(
         cfg.datamodule
     )
-    
+        
     # Instantiate all modules specified in the configs
     module = hydra.utils.instantiate(
         cfg.module,  # Object to instantiate
         # Overwrite arguments at runtime that depends on other modules
         num_classes=datamodule.num_classes,
-        in_channels=len(datamodule.bands),
+        in_channels=datamodule.in_channels,
         class_weights=[1]*datamodule.num_classes,
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
         #_recursive_=False,
@@ -43,9 +42,7 @@ def train(cfg: DictConfig) -> None:
         num_classes=datamodule.num_classes,
         class_names=datamodule.class_names
     ) 
-    callbacks['image_visu'] = callbacks['image_visu'](
-        visu_fn=NomencToRgb(nomenc=main_nomenclature)
-    )
+    
     #for name, cb in cfg.callbacks:
     #    if name=='confmat':
     #        callbacks.append()

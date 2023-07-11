@@ -2,6 +2,5 @@
 
 image_visu:
   _target_: dl_toolbox.callbacks.SegmentationImagesVisualisation
-  _partial_: True
   freq: 1
 

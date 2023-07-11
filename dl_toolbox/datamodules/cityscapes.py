@@ -1,19 +1,20 @@
+from pytorch_lightning import LightningDataModule
+from torch.utils.data import DataLoader
+from pytorch_lightning.utilities import CombinedLoader
+
+import dl_toolbox.datasets as datasets
+from pathlib import Path
+
+
 class Cityscapes(LightningDataModule):
     
     def __init__(
         self,
-        merge,
-        bands,
-        crop_size,
         data_path,
-        csv_path,
-        csv_name,
-        train_tf,
-        val_tf,
-        epoch_len,
         batch_size,
         num_workers,
-        pin_memory
+        train_tf,
+        val_tf
     ):
         super().__init__()
 
@@ -23,44 +24,60 @@ class Cityscapes(LightningDataModule):
         #self.dims = (3, 1024, 2048)
         self.quality_mode = 'fine'
         self.target_type = 'semantic'
-        
-        self.train_transforms = train_transforms
-        self.val_transforms = val_transforms
-        self.test_transforms = test_transforms
-        self.target_transforms = target_transforms
-        
         self.train_tf = train_tf
-        self.val_tf = val_tf            
+        self.val_tf = val_tf 
+        
+        self.classes = datasets.Cityscapes.classes
+        
+    @property
+    def in_channels(self):
+        return 3
+    
+    @property
+    def class_colors(self):
+        return  [(255, (0,0,0))]+[(l.train_id, l.color) for l in datasets.Cityscapes.classes if not l.ignore_in_eval]
+    
+    @property
+    def num_classes(self):
+        return 20
+    
+    @property
+    def class_names(self):
+        return ['ignore'] + [l.name for l in datasets.Cityscapes.classes if not l.ignore_in_eval]
+    
         
     def setup(self, stage):
         
-        self.train_set = Cityscapes(
-            self.data_dir,
+        self.train_set = datasets.Cityscapes(
+            self.data_path,
             split="train",
             target_type=self.target_type,
             mode=self.quality_mode,
-            transforms=transforms,
-            target_transform=target_transforms,
+            transforms=self.train_tf
         )
         
-        self.val_set = Cityscapes(
-            self.data_dir,
+        self.val_set = datasets.Cityscapes(
+            self.data_path,
             split="val",
             target_type=self.target_type,
             mode=self.quality_mode,
-            transform=transforms,
-            target_transform=target_transforms,
+            transforms=self.val_tf
         )
-        
-    def train_dataloader(self) -> DataLoader:
 
-        return DataLoader(
+    def train_dataloader(self):
+        
+        train_dataloaders = {}
+        train_dataloaders['sup'] = DataLoader(
             self.train_set,
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
             drop_last=True,
             pin_memory=True,
+        )
+        return CombinedLoader(
+            train_dataloaders,
+            mode='min_size'
         )
 
     def val_dataloader(self) -> DataLoader:
