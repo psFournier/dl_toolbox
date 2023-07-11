@@ -12,7 +12,6 @@ from dl_toolbox.utils import merge_labels
 @dataclass
 class TifDatasource:
 
-    bands: ... = None
     image_path: ... = None
     label_path: ... = None
     zone: ... = None 
@@ -29,13 +28,13 @@ class TifDatasource:
         #merges = [list(l.values) for l in self.nomenclature]
         #self.labels_merger = MergeLabels(merges)
         
-    def read_image(self, window=None):
+    def read_image(self, window=None, bands=None):
         
         with rasterio.open(self.image_path, 'r') as file:
             image = file.read(
                 window=window,
                 out_dtype=np.float32,
-                indexes=self.bands
+                indexes=bands
             )
             
         return image

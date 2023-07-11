@@ -11,6 +11,7 @@ class Raster(torch.utils.data.Dataset):
     def __init__(
         self,
         data_src,
+        bands,
         merge,
         crop_size,
         shuffle,
@@ -18,6 +19,7 @@ class Raster(torch.utils.data.Dataset):
         crop_step=None
     ):
         self.data_src = data_src
+        self.bands=bands
         self.merge = merge
         self.crop_size = crop_size
         self.shuffle = shuffle
@@ -41,7 +43,7 @@ class Raster(torch.utils.data.Dataset):
         
     def read_crop(self, crop):
         
-        image = self.data_src.read_image(crop)
+        image = self.data_src.read_image(crop, bands=self.bands)
         image = torch.from_numpy(image)
         
         label = None
