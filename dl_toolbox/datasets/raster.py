@@ -11,12 +11,14 @@ class Raster(torch.utils.data.Dataset):
     def __init__(
         self,
         data_src,
+        merge,
         crop_size,
         shuffle,
         transforms,
         crop_step=None
     ):
         self.data_src = data_src
+        self.merge = merge
         self.crop_size = crop_size
         self.shuffle = shuffle
         self.transforms = transforms
@@ -44,7 +46,7 @@ class Raster(torch.utils.data.Dataset):
         
         label = None
         if self.data_src.label_path:
-            label = self.data_src.read_label(crop)
+            label = self.data_src.read_label(crop, merge=self.merge)
             label = torch.from_numpy(label)
             
         return image, label

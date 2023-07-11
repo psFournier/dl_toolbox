@@ -1,7 +1,6 @@
 defaults:
   - _self_
   
-_target_: dl_toolbox.datasources.digitanie.Digitanie
+_target_: dl_toolbox.datasources.digitanie.Digitanie9
 _partial_: True
 bands: [1, 2, 3]
-nomenclature_name: main

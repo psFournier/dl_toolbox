@@ -62,6 +62,7 @@ class SplitFromCsv(LightningDataModule):
     def __init__(
         self,
         datasource,
+        merge,
         crop_size,
         data_path,
         csv_path,
@@ -79,6 +80,7 @@ class SplitFromCsv(LightningDataModule):
         self.num_workers = num_workers
         self.num_samples = epoch_len * batch_size
         self.crop_size = crop_size
+        self.merge = merge
         
         self.train_srcs, self.val_srcs, _ = splits_from_csv(
             datasource,
@@ -94,6 +96,7 @@ class SplitFromCsv(LightningDataModule):
         self.train_set = ConcatDataset([
             Raster(
                 src,
+                merge=self.merge,
                 crop_size=self.crop_size,
                 shuffle=True,
                 transforms=self.train_tf
@@ -103,6 +106,7 @@ class SplitFromCsv(LightningDataModule):
         self.val_set = ConcatDataset([
             Raster(
                 src,
+                merge=self.merge,
                 crop_size=self.crop_size,
                 shuffle=False,
                 transforms=self.val_tf,
@@ -112,11 +116,11 @@ class SplitFromCsv(LightningDataModule):
                     
     @property
     def num_classes(self):
-        return len(self.train_srcs[0].nomenclature)
+        return len(self.train_srcs[0].classes[self.merge].value)
     
     @property
     def class_names(self):
-        return [l.name for l in self.train_srcs[0].nomenclature]    
+        return [l.name for l in self.train_srcs[0].classes[self.merge].value]    
                     
     @property
     def input_dim(self):
@@ -162,6 +166,7 @@ class SplitFromCsv2(SplitFromCsv):
         self.train_set = ConcatDataset([
             Raster(
                 src,
+                merge=self.merge,
                 crop_size=self.crop_size,
                 shuffle=True,
                 transforms=tfs.Compose([
@@ -175,6 +180,7 @@ class SplitFromCsv2(SplitFromCsv):
         self.val_set = ConcatDataset([
             Raster(
                 src,
+                merge=self.merge,
                 crop_size=self.crop_size,
                 shuffle=False,
                 transforms=tfs.Compose([

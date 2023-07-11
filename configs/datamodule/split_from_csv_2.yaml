@@ -9,6 +9,7 @@ _target_: dl_toolbox.datamodules.SplitFromCsv2
 data_path: ${paths.data_dir}/DIGITANIE_v3/
 csv_path: ${paths.root_dir}/dl_toolbox/datamodules/splits
 csv_name: digitanie_all
+merge: main
 crop_size: 256
 batch_size: 8
 epoch_len: 200

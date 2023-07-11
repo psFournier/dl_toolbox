@@ -1,6 +1,16 @@
 import numpy as np
 import torch
 
+
+def merge_labels(labels, merge):
+    
+    ret = np.zeros(labels.shape, dtype=labels.dtype)
+    for i, val in enumerate(merge):
+        for j in val:
+            ret[labels == j] = i
+            
+    return ret
+
 class MergeLabels:
 
     def __init__(self, labels, label_names=None):

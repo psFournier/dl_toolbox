@@ -1,20 +1,12 @@
 from dataclasses import dataclass
 from collections import namedtuple
 import enum
+from .tif_datasource import TifDatasource
 
 import torch
 import rasterio
 import numpy as np
-from shapely import Polygon
-from dl_toolbox.utils import MergeLabels
 
-DATA_POLYGON = Polygon(
-    [[359326,4833160],
-     [376735,4842547],
-     [385238,4826271],
-     [367914,4816946],
-     [359326,4833160]]
-)
 
 label = namedtuple(
     'label',
@@ -75,72 +67,24 @@ nomenc24 = [
     label('industry', (200, 0, 250), {23}),
     label('beach', (250, 250, 100), {24})
 ]
-
-def one_class_w_void(nomenc, name):
-    idx = [l.name for l in nomenc].index(name)
-    return [
-        label('nodata', (250,250,250), {0}),
-        label('other', (0, 0, 0), set(range(1, len(nomenc))) - {idx}),
-        nomenc[idx]
-    ]
-
-def one_class(nomenc, name):
-    idx = [l.name for l in nomenc].index(name)
-    return [
-        label('other', (0, 0, 0), set(range(0, len(nomenc))) - {idx}),
-        nomenc[idx]
-    ]
-
-DigitanieNomenclatures = enum.Enum(
-    'DigitanieNomenclatures',
-    {
-        'all':initial_nomenclature,
-        'main':main_nomenclature,
-        'building_void': one_class_w_void(initial_nomenclature, 'building'),
-        'building': one_class(initial_nomenclature, 'building'),
-        '24': nomenc24
-    }
-)
             
 @dataclass
-class Digitanie:
+class Digitanie9(TifDatasource):
 
-    bands: ... = None
-    image_path: ... = None
-    label_path: ... = None
-    zone: ... = None 
-    minval: ... = None
-    maxval: ... = None 
-    meanval: ... = None
-    nomenclature_name: ... = None
+    classes = enum.Enum(
+        'Digitanie9classes',
+        {
+            'all':initial_nomenclature,
+            'main':main_nomenclature,
+        }
+    )
     
-    def __post_init__(self):
-        
-        with rasterio.open(self.image_path) as src:
-            self.meta = src.meta
-            
-        self.nomenclature = DigitanieNomenclatures[self.nomenclature_name].value
-        merges = [list(l.values) for l in self.nomenclature]
-        self.labels_merger = MergeLabels(merges)
-        
-    def read_image(self, window=None):
-        
-        with rasterio.open(self.image_path, 'r') as file:
-            image = file.read(
-                window=window,
-                out_dtype=np.float32,
-                indexes=self.bands
-            )
-            
-        return image
-    
-    def read_label(self, window=None):
-        
-        with rasterio.open(self.label_path) as file:
-            label = file.read(
-                window=window,
-                out_dtype=np.uint8
-            )
-        label = self.labels_merger(np.squeeze(label))
-        
-        return label
+@dataclass
+class Digitanie24(TifDatasource):
+
+    classes = enum.Enum(
+        'Digitanie24classes',
+        {
+            'all':nomenc24,
+        }
+    )
