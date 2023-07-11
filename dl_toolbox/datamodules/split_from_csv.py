@@ -9,6 +9,8 @@ from pytorch_lightning.utilities import CombinedLoader
 import dl_toolbox.datasets as datasets
 import dl_toolbox.datasources as datasources
 from dl_toolbox.utils import CustomCollate
+import dl_toolbox.transforms as tfs 
+
 from pathlib import Path
 import pandas as pd
 
@@ -20,27 +22,6 @@ import rasterio.windows as windows
 
 from dl_toolbox.datasets import Raster
 
-#def splits_from_csv(datasrc_cls, datapath, csvpath, folds):
-#    
-#    splits = {
-#        'train':[],
-#        'val':[],
-#        'test':[]
-#    }
-#    
-#    with open(csvpath, newline='') as csvfile:
-#        reader = csv.reader(csvfile)
-#        next(reader)
-#        for row in reader:
-#            idx, image_path, x0, y0, w, h, fold, mins, maxs = row[:11]
-#            co, ro, w, h = [int(e) for e in [x0, y0, w, h]]
-#            splits[fold].append(datasrc_cls(
-#                'image_path'=datapath/image_path,
-#                'label_path'=datapath/label_path if label_path != 'none' else None,
-#                'zone'=windows.Window(co, ro, w, h)
-#            ))
-#    
-#    return splits['train'], splits['val'], splits['test']
 
 def splits_from_csv(datasrc, datapath, csvpath):
     
@@ -106,7 +87,7 @@ class SplitFromCsv(LightningDataModule):
         )
         
         self.train_tf = train_tf
-        self.val_tf = val_tf
+        self.val_tf = val_tf            
         
     def setup(self, stage):
         
@@ -140,19 +121,6 @@ class SplitFromCsv(LightningDataModule):
     @property
     def input_dim(self):
         return len(self.val_srcs[0].bands)
-                    
-    #@property
-    #def class_counts(self):
-    #    return sum([src.cls_counts for src in self.train_srcs])
-    #
-    #@property
-    #def weights_multiclass(self):
-    #    return [np.round(max(self.cls_counts)/c,1) for c in self.class_counts]
-    #
-    #@property
-    #def weights_binary(self):
-    #    w = [np.round((sum(self.class_counts) - c)/c,1) for c in self.class_counts]
-    #    return w
 
     def train_dataloader(self):
         
@@ -179,13 +147,41 @@ class SplitFromCsv(LightningDataModule):
             num_workers=self.num_workers
         )    
     
-#class DigitanieFromCsv(SplitFromCsv):
-#    
-#    def __init__(self, *args, **kwargs):
-#        
-#        super().__init__(
-#            train_idx=[i+j for i in list(range(0,200, 11)) for j in range(1,8)],
-#            val_idx=[i+j for i in [0, 66, 88, 99, 110, 154, 165] for j in range(8,9)],
-#            *args,
-#            **kwargs
-#        )
+class SplitFromCsv2(SplitFromCsv):
+
+    def __init__(
+        self,
+        *args,
+        **kwargs
+    ):
+        
+        super().__init__(*args, **kwargs)
+        
+    def setup(self, stage):
+        
+        self.train_set = ConcatDataset([
+            Raster(
+                src,
+                crop_size=self.crop_size,
+                shuffle=True,
+                transforms=tfs.Compose([
+                    tfs.StretchToMinmaxBySource(src),
+                    self.train_tf,
+                    tfs.ZeroAverageBySource(src)
+                ])
+            ) for src in self.train_srcs
+        ])
+        
+        self.val_set = ConcatDataset([
+            Raster(
+                src,
+                crop_size=self.crop_size,
+                shuffle=False,
+                transforms=tfs.Compose([
+                    tfs.StretchToMinmaxBySource(src),
+                    self.val_tf,
+                    tfs.ZeroAverageBySource(src)
+                ]),
+                crop_step=self.crop_size
+            ) for src in self.val_srcs
+        ])

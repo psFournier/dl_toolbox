@@ -18,7 +18,6 @@ class Raster(torch.utils.data.Dataset):
     ):
         self.data_src = data_src
         self.crop_size = crop_size
-        #self.standardize = standardize(source=data_src)
         self.shuffle = shuffle
         self.transforms = transforms
         
@@ -41,12 +40,12 @@ class Raster(torch.utils.data.Dataset):
     def read_crop(self, crop):
         
         image = self.data_src.read_image(crop)
-        image = torch.from_numpy(image).float().contiguous()
+        image = torch.from_numpy(image)
         
         label = None
         if self.data_src.label_path:
             label = self.data_src.read_label(crop)
-            label = torch.from_numpy(label).float().contiguous()
+            label = torch.from_numpy(label)
             
         return image, label
             

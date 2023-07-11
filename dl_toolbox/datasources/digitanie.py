@@ -106,15 +106,14 @@ DigitanieNomenclatures = enum.Enum(
 class Digitanie:
 
     bands: ... = None
-    image_path: str = None
+    image_path: ... = None
     label_path: ... = None
-    zone: object = None #DATA_POLYGON
+    zone: ... = None 
     minval: ... = None
     maxval: ... = None 
     meanval: ... = None
     nomenclature_name: ... = None
-    #cls_counts: ... = None
-
+    
     def __post_init__(self):
         
         with rasterio.open(self.image_path) as src:
@@ -123,9 +122,6 @@ class Digitanie:
         self.nomenclature = DigitanieNomenclatures[self.nomenclature_name].value
         merges = [list(l.values) for l in self.nomenclature]
         self.labels_merger = MergeLabels(merges)
-        #if self.cls_counts:
-        #    self.cls_counts = np.array([np.sum(self.cls_counts[np.array(merge)]) for merge in merges])
-        #self.normalization = self.normalization(source=self)
         
     def read_image(self, window=None):
         
@@ -136,8 +132,6 @@ class Digitanie:
                 indexes=self.bands
             )
             
-        #image = self.normalization(image)
-
         return image
     
     def read_label(self, window=None):

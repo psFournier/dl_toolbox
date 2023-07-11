@@ -1,10 +1,10 @@
 defaults:
   - datasource: digitanie
-  - transforms@train_tf: norm_crop_d4_color
-  - transforms@val_tf: norm
+  - transforms@train_tf: crop_d4_color
+  - transforms@val_tf: none
   - _self_
 
-_target_: dl_toolbox.datamodules.SplitFromCsv
+_target_: dl_toolbox.datamodules.SplitFromCsv2
 
 data_path: ${paths.data_dir}/DIGITANIE_v3/
 csv_path: ${paths.root_dir}/dl_toolbox/datamodules/splits

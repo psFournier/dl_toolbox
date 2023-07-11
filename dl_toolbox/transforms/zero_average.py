@@ -1,6 +1,5 @@
-import torchvision.transforms.functional as F
 from .utils import stretch_to_minmax
-import torch
+from torch import Tensor
 import numpy as np
 
 
@@ -8,7 +7,7 @@ class ZeroAverageCommon:
     
     def __init__(self, meanval):
         
-        self.means = torch.Tensor(meanval).reshape((-1, 1, 1))
+        self.means = Tensor(meanval).reshape((-1, 1, 1))
         
     def __call__(self, img, label=None):   
                 
@@ -18,10 +17,9 @@ class ZeroAverageBySource:
     
     def __init__(self, source):
         
-        bands = np.array(source.bands)-1
-        means = np.array(source.meanval, dtype=np.float32).reshape((-1, 1, 1))
-        self.means = torch.from_numpy(means[bands])
+        meanval = [source.meanval[i-1] for i in source.bands]
+        self.means = Tensor(meanval).reshape((-1, 1, 1))
                 
-    def __call__(self, img):   
+    def __call__(self, img, label=None):   
                 
-        return img - self.means
+        return img - self.means, label
