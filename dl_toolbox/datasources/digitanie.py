@@ -9,7 +9,7 @@ import numpy as np
 import shapely
 
 
-class polygons(enum.Enum):
+class DigiPolygons(enum.Enum):
     
     toulouse = shapely.Polygon(
         [[359326,4833160],
