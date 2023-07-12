@@ -24,7 +24,7 @@ class SegmentationImagesVisualisation(pl.Callback):
         
     def display_batch(self, colors, trainer, batch, prefix):
 
-        img = batch['image'].cpu()
+        img = batch['image'].cpu()[:,:3,...]
         if batch['label'] is not None: 
             labels = batch['label'].cpu()
             labels_rgb = labels_to_rgb(labels, colors=colors).transpose((0,3,1,2))

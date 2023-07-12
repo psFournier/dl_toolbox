@@ -115,7 +115,12 @@ class SplitFromCsv(LightningDataModule):
                 crop_step=self.crop_size
             ) for src in self.val_srcs
         ])
-                    
+         
+            
+    @property
+    def in_channels(self):
+        return len(self.bands)
+    
     @property
     def num_classes(self):
         return len(self.train_srcs[0].classes[self.merge].value)
@@ -123,6 +128,10 @@ class SplitFromCsv(LightningDataModule):
     @property
     def class_names(self):
         return [l.name for l in self.train_srcs[0].classes[self.merge].value]    
+    
+    @property
+    def class_colors(self):
+        return  [(i, l.color) for i, l in enumerate(self.train_srcs[0].classes[self.merge].value)]
 
     def train_dataloader(self):
         
@@ -172,7 +181,7 @@ class SplitFromCsv2(SplitFromCsv):
                 transforms=tfs.Compose([
                     tfs.StretchToMinmaxBySource(src, self.bands),
                     self.train_tf,
-                    #tfs.ZeroAverageBySource(src, self.bands)
+                    tfs.ZeroAverageBySource(src, self.bands)
                 ])
             ) for src in self.train_srcs
         ])
@@ -187,7 +196,7 @@ class SplitFromCsv2(SplitFromCsv):
                 transforms=tfs.Compose([
                     tfs.StretchToMinmaxBySource(src, self.bands),
                     self.val_tf,
-                    #tfs.ZeroAverageBySource(src, self.bands)
+                    tfs.ZeroAverageBySource(src, self.bands)
                 ]),
                 crop_step=self.crop_size
             ) for src in self.val_srcs
