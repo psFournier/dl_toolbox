@@ -172,7 +172,7 @@ class SplitFromCsv2(SplitFromCsv):
                 transforms=tfs.Compose([
                     tfs.StretchToMinmaxBySource(src, self.bands),
                     self.train_tf,
-                    tfs.ZeroAverageBySource(src, self.bands)
+                    #tfs.ZeroAverageBySource(src, self.bands)
                 ])
             ) for src in self.train_srcs
         ])
@@ -187,7 +187,7 @@ class SplitFromCsv2(SplitFromCsv):
                 transforms=tfs.Compose([
                     tfs.StretchToMinmaxBySource(src, self.bands),
                     self.val_tf,
-                    tfs.ZeroAverageBySource(src, self.bands)
+                    #tfs.ZeroAverageBySource(src, self.bands)
                 ]),
                 crop_step=self.crop_size
             ) for src in self.val_srcs
