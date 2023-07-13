@@ -35,7 +35,7 @@ def splits_from_csv(datasrc, datapath, csvpath):
 
         minval = [df_stats.loc[index][f'min_{i}'] for i in range(1,5)]
         maxval = [df_stats.loc[index][f'max_{i}'] for i in range(1,5)]
-        meanval = [df_stats.loc[index][f'mean_{i}'] for i in range(1,5)]
+        #meanval = [df_stats.loc[index][f'mean_{i}'] for i in range(1,5)]
         #cls_counts = list(df_cls.loc[index][1:])
 
         splits[row['split']].append(
@@ -50,7 +50,7 @@ def splits_from_csv(datasrc, datapath, csvpath):
                 label_path=datapath/df_cls.loc[index]['mask'],
                 minval=minval,
                 maxval=maxval,
-                meanval=meanval,
+                #meanval=meanval,
                 #cls_counts=cls_counts
             )
         )
