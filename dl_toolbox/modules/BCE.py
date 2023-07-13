@@ -65,7 +65,7 @@ class Multilabel(pl.LightningModule):
     def probas2confpreds(self, probas):
 
         aux_confs, aux_preds = torch.max(probas[:,1:,...], axis=1)
-        cond = aux_confs > 0.9
+        cond = aux_confs > 0.6
         preds = torch.where(cond, aux_preds+1, 0)
         confs = torch.where(cond, aux_confs, 1-aux_confs)
         

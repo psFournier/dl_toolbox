@@ -32,9 +32,13 @@ def splits_from_csv(datasrc, datapath, csvpath):
     df_cls = pd.read_csv(csvpath/'cls.csv', index_col=0)
 
     for index, row in df_split.iterrows():
-
-        minval = [df_stats.loc[index][f'min_{i}'] for i in range(1,5)]
-        maxval = [df_stats.loc[index][f'max_{i}'] for i in range(1,5)]
+        
+        stats = {}
+        for p in [0, 0.5, 1, 2, 98, 99, 99.5, 100]:
+            stats[f'p{p}']=[df_stats.loc[index][f'p{p}_{i}'] for i in range(1,5)]
+            
+        #minval = [df_stats.loc[index][f'p0_{i}'] for i in range(1,5)]
+        #maxval = [df_stats.loc[index][f'p100_{i}'] for i in range(1,5)]
         #meanval = [df_stats.loc[index][f'mean_{i}'] for i in range(1,5)]
         #cls_counts = list(df_cls.loc[index][1:])
 
@@ -48,8 +52,9 @@ def splits_from_csv(datasrc, datapath, csvpath):
                     row['height']
                 ),
                 label_path=datapath/df_cls.loc[index]['mask'],
-                minval=minval,
-                maxval=maxval,
+                stats=stats
+                #minval=minval,
+                #maxval=maxval,
                 #meanval=meanval,
                 #cls_counts=cls_counts
             )
@@ -181,7 +186,7 @@ class SplitFromCsv2(SplitFromCsv):
                 transforms=tfs.Compose([
                     tfs.StretchToMinmaxBySource(src, self.bands),
                     self.train_tf,
-                    tfs.ZeroAverageBySource(src, self.bands)
+                    #tfs.ZeroAverageBySource(src, self.bands)
                 ])
             ) for src in self.train_srcs
         ])
@@ -196,7 +201,7 @@ class SplitFromCsv2(SplitFromCsv):
                 transforms=tfs.Compose([
                     tfs.StretchToMinmaxBySource(src, self.bands),
                     self.val_tf,
-                    tfs.ZeroAverageBySource(src, self.bands)
+                    #tfs.ZeroAverageBySource(src, self.bands)
                 ]),
                 crop_step=self.crop_size
             ) for src in self.val_srcs

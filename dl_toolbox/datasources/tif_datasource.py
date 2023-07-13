@@ -15,9 +15,10 @@ class TifDatasource:
     image_path: ... = None
     label_path: ... = None
     zone: ... = None 
-    minval: ... = None
-    maxval: ... = None 
-    meanval: ... = None
+    stats: ... = None
+    #minval: ... = None
+    #maxval: ... = None 
+    #meanval: ... = None
     
     def __post_init__(self):
         
