@@ -7,7 +7,7 @@ from .cityscapes import *
 #from .resisc import *
 #from .airs import *
 #from .miniworld import *
-##from .flair import *
+from .flair import *
 #from .alumhi import *
 ##from .inria import *
 #from .factory import DatasetFactory, datasets_from_csv

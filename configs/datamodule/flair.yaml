@@ -1,0 +1,9 @@
+defaults:
+  - transforms@train_tf: norm_city_crop_d4_color
+  - transforms@val_tf: norm_city
+  - _self_
+
+_target_: dl_toolbox.datamodules.Cityscapes
+data_path: ${paths.data_dir}/Cityscapes/
+batch_size: 8
+num_workers: 6

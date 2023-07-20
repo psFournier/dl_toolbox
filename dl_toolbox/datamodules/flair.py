@@ -1,7 +1,8 @@
 from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from pytorch_lightning import LightningDataModule
-import dl_toolbox.torch_datasets as datasets
-from dl_toolbox.torch_collate import CustomCollate
+import dl_toolbox.datasets as datasets
+from dl_toolbox.utils import CustomCollate
+from pytorch_lightning.utilities import CombinedLoader
 
 import os
 import numpy as np
@@ -63,9 +64,15 @@ def _gather_data(path_folders, path_metadata: str, use_metadata: bool, test_set:
     data = {'IMG':[],'MSK':[],'MTD':[]}
     if path_folders:
         for domain in path_folders:
-            data['IMG'] += sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+            list_img = sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-2][1:]))
+            #data['IMG'] += sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+            data['IMG'] += list_img
             if test_set == False:
-                data['MSK'] += sorted(list(get_data_paths(domain, 'MSK*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+                list_msk = sorted(list(get_data_paths(domain, 'MSK*.tif')), key=lambda x: int(x.split('_')[-2][1:]))
+                #data['MSK'] += sorted(list(get_data_paths(domain, 'MSK*.tif')), key=lambda x: int(x.split('_')[-1][:-4]))
+                data['MSK'] += list_msk
+            #print(f'domain {domain}: {[(img, msk) for img, msk in zip(list_img, list_msk)]}')
+            #break
 
         if use_metadata == True:
 
@@ -177,7 +184,10 @@ class Flair(LightningDataModule):
                 drop_last=True
             )
 
-        return train_dataloaders
+        return CombinedLoader(
+            train_dataloaders,
+            mode='min_size'
+        )
 
     def val_dataloader(self):
 

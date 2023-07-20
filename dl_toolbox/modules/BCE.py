@@ -76,6 +76,7 @@ class Multilabel(pl.LightningModule):
         batch = batch["sup"]
         inputs = batch['image']
         labels = batch['label']
+        
         onehot_labels = self.onehot(labels).float() # B,C or C-1,H,W
         logits = self.network(inputs) # B,C or C-1,H,W
         bce = self.bce(logits, onehot_labels)

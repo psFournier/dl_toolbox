@@ -1,14 +1,13 @@
 import os
 import numpy as np
 import rasterio
-from skimage import img_as_float
 from rasterio.windows import Window
 
 import torch
 from torch.utils.data import Dataset
 import matplotlib.colors as colors
-from dl_toolbox.torch_datasets.utils import *
 from dl_toolbox.utils import MergeLabels, OneHot, LabelsToRGB, RGBToLabels
+import dl_toolbox.transforms as transforms
 
 
 lut_colors = {
@@ -89,7 +88,7 @@ class Flair(Dataset):
         self.use_metadata = use_metadata
         if use_metadata == True:
             self.list_metadata = np.array(dict_files["MTD"])
-        self.img_aug = get_transforms(img_aug)
+        self.img_aug = transforms.get_transforms(img_aug)
         #self.num_classes = num_classes
         self.labels_to_rgb = LabelsToRGB(self.labels)
         self.rgb_to_labels = RGBToLabels(self.labels)
@@ -97,7 +96,7 @@ class Flair(Dataset):
     def read_image(self, image_path, window):
         
         with rasterio.open(image_path) as image_file:
-            image = image_file.read(window=window, out_dtype=np.float32)
+            image = image_file.read(window=window, out_dtype=np.float32)[:3]
             
         return image
     
@@ -128,7 +127,7 @@ class Flair(Dataset):
         if self.list_msks.size: # a changer
             mask_file = self.list_msks[index] 
             label = self.read_label(mask_file, window)
-            label = torch.from_numpy(label).long().contiguous()
+            label = torch.from_numpy(label).long().contiguous()            
 
         if self.img_aug is not None:
             end_image, end_mask = self.img_aug(img=image, label=label)
@@ -138,10 +137,10 @@ class Flair(Dataset):
         # todo : gerer metadata
         
         return {
-            'orig_image':image,
-            'orig_mask':label,
+            #'orig_image':image,
+            #'orig_mask':label,
             'image':end_image,
-            'mask':end_mask,
+            'label':end_mask,
             'path': '/'.join(image_file.split('/')[-4:])
         }
 
@@ -158,37 +157,37 @@ class Flair(Dataset):
     
     
 
-class Predict_Dataset(Dataset):
-
-    def __init__(self,
-                 dict_files,
-                 num_classes=13, use_metadata=True
-                 ):
-        self.list_imgs = np.array(dict_files["IMG"])
-        self.num_classes = num_classes
-        self.use_metadata = use_metadata
-        if use_metadata == True:
-            self.list_metadata = np.array(dict_files["MTD"])
-
-    def read_img(self, raster_file: str) -> np.ndarray:
-        with rasterio.open(raster_file) as src_img:
-            array = src_img.read()
-            return array
-        
-    def __len__(self):
-        return len(self.list_imgs)
-
-    def __getitem__(self, index):
-        image_file = self.list_imgs[index]
-        img = self.read_img(raster_file=image_file)
-        img = img_as_float(img)
-
-        if self.use_metadata == True:
-            mtd = self.list_metadata[index]
-            return {"img": torch.as_tensor(img, dtype=torch.float), 
-                    "mtd": torch.as_tensor(mtd, dtype=torch.float),
-                    "id": '/'.join(image_file.split('/')[-4:])}
-        else:
-           
-            return {"img": torch.as_tensor(img, dtype=torch.float),
-                    "id": '/'.join(image_file.split('/')[-4:])}  
+#class Predict_Dataset(Dataset):
+#
+#    def __init__(self,
+#                 dict_files,
+#                 num_classes=13, use_metadata=True
+#                 ):
+#        self.list_imgs = np.array(dict_files["IMG"])
+#        self.num_classes = num_classes
+#        self.use_metadata = use_metadata
+#        if use_metadata == True:
+#            self.list_metadata = np.array(dict_files["MTD"])
+#
+#    def read_img(self, raster_file: str) -> np.ndarray:
+#        with rasterio.open(raster_file) as src_img:
+#            array = src_img.read()
+#            return array
+#        
+#    def __len__(self):
+#        return len(self.list_imgs)
+#
+#    def __getitem__(self, index):
+#        image_file = self.list_imgs[index]
+#        img = self.read_img(raster_file=image_file)
+#        img = img_as_float(img)
+#
+#        if self.use_metadata == True:
+#            mtd = self.list_metadata[index]
+#            return {"img": torch.as_tensor(img, dtype=torch.float), 
+#                    "mtd": torch.as_tensor(mtd, dtype=torch.float),
+#                    "id": '/'.join(image_file.split('/')[-4:])}
+#        else:
+#           
+#            return {"img": torch.as_tensor(img, dtype=torch.float),
+#                    "id": '/'.join(image_file.split('/')[-4:])}  
