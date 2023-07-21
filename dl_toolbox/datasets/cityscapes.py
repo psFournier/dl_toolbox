@@ -22,8 +22,7 @@ class Cityscapes(Cityscapes):
         image = Image.open(self.images[index]).convert("RGB")
         image = pil_to_tensor(image)
         
-
-        targets: Any = []
+        targets = []
         for i, t in enumerate(self.target_type):
             if t == "polygon":
                 target = self._load_json(self.targets[index][i])

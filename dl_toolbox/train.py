@@ -32,24 +32,11 @@ def train(cfg: DictConfig) -> None:
     # Let hydra manage direcotry outputs
     tensorboard = pl.loggers.TensorBoardLogger(".", "", "", log_graph=True, default_hp_metric=False)
     
-    #metrics_from_confmat = callbacks.MetricsFromConfmat(        
-    #    num_classes=num_classes,
-    #    class_names=[label.name for label in nomenclature_desc]
-    #)
-    
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     callbacks['confmat'] = callbacks['confmat'](
         num_classes=datamodule.num_classes,
         class_names=datamodule.class_names
     ) 
-    
-    #for name, cb in cfg.callbacks:
-    #    if name=='confmat':
-    #        callbacks.append()
-    #    else:
-    #        callbacks.append(hydra.utils.instantiate(cb))
-    #callbacks = [ for cb in cfg.callbacks.values()]
-    #confmat_cb = hydra.utils.instantiate(
     
     trainer = hydra.utils.instantiate(cfg.trainer)(
         logger=tensorboard,

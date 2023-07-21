@@ -34,7 +34,7 @@ def main():
         crop_size=256,
         epoch_len=10000,
         labels='13',
-        workers=0,
+        workers=8,
         use_metadata=False,
         train_domains=train_domains,
         val_domains=val_domains,
@@ -55,7 +55,6 @@ def main():
             momentum=0.9,
             weight_decay=0.0001
         ),
-        loss=partial(torch.nn.CrossEntropyLoss),
         scheduler=partial(
             torch.optim.lr_scheduler.StepLR,
             step_size=10,
@@ -68,12 +67,12 @@ def main():
     )
 
     trainer = Trainer(
-        max_steps=100,
+        max_steps=100000,
         accelerator='gpu',
         devices=1,
         default_root_dir='/data/outputs/flair',
-        limit_train_batches=1,
-        limit_val_batches=1,
+        limit_train_batches=1.,
+        limit_val_batches=1.,
         logger=TensorBoardLogger(
             save_dir='/data/outputs/flair',
             #save_dir='/data/outputs/flair',

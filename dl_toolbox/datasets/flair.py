@@ -65,7 +65,7 @@ labels_dict = {
 
 mergers = {
     'base' : [[i] for i in range(1, 20)],
-    '13' : [[i] for i in range(1, 13)] + [[13, 14, 15, 16, 17, 18, 19]]
+    '13' : [[13, 14, 15, 16, 17, 18, 19]]+[[i] for i in range(1, 13)] 
 }
 
 
