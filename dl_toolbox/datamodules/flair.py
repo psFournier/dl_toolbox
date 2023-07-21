@@ -110,8 +110,7 @@ class Flair(LightningDataModule):
         val_tf,
         batch_size,
         num_workers,
-        pin_memory     
-        use_metadata,
+        pin_memory,     
         #train_domains,
         #val_domains,
         #test_domains,
@@ -122,43 +121,41 @@ class Flair(LightningDataModule):
 
         super().__init__()
         self.batch_size = batch_size
-        self.epoch_len = epoch_len
         self.crop_size = crop_size
         self.num_workers = num_workers
+        self.bands = bands
         
-        domains = [data_path / "train" / domain for domain in baseline_val_domains + baseline_train_domains]
+        domains = [data_path / "train" / domain for domain in self.baseline_val_domains + self.baseline_train_domains]
         #shuffle(domains)
         idx_split = int(len(domains) * 0.95)
         train_domains, val_domains = domains[:idx_split], domains[idx_split:] 
         
-        dict_train = _gather_data(train_domains, path_metadata=None, use_metadata=True, test_set=False)
-        dict_val = _gather_data(val_domains, path_metadata=None, use_metadata=True, test_set=False)
+        dict_train = _gather_data(train_domains, path_metadata=None, use_metadata=False, test_set=False)
+        dict_val = _gather_data(val_domains, path_metadata=None, use_metadata=False, test_set=False)
         
         self.train_set = ConcatDataset([
             datasets.Flair(
                 img,
                 msk,
-                meta,
                 bands,
                 merge,
                 crop_size,
                 shuffle=True,
                 transforms=train_tf,
-            )] for img, msk, meta in zip([dict_train['IMG'], dict_train['MSK'], dict_train['MTD']])
-        )
+            ) for img, msk in zip(dict_train['IMG'], dict_train['MSK'])
+        ])
         
         self.val_set = ConcatDataset([
             datasets.Flair(
                 img,
                 msk,
-                meta,
                 bands,
                 merge,
                 crop_size,
                 shuffle=False,
                 transforms=val_tf,
-            )] for img, msk, meta in zip([dict_val['IMG'], dict_val['MSK'], dict_val['MTD']])
-        )
+            ) for img, msk in zip(dict_val['IMG'], dict_val['MSK'])
+        ])
         
         self.in_channels = len(self.bands)
         self.classes = datasets.Flair.classes[merge].value

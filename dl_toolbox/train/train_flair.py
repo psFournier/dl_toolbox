@@ -11,6 +11,7 @@ from random import shuffle
 from functools import partial
 import segmentation_models_pytorch as smp
 import torch
+import dl_toolbox.transforms as transforms
 
 
 def main():
@@ -19,23 +20,16 @@ def main():
     """
     #data_path = Path('/data/toy_dataset_flair-one')
     
-    
-    
-
     datamodule = datamodules.Flair(
         data_path=Path('/data/flair_merged'),
+        bands=[1,2,3],
         batch_size=32,
         crop_size=256,
-        epoch_len=10000,
-        labels='13',
-        workers=8,
-        use_metadata=False,
-        #train_domains=train_domains,
-        #val_domains=val_domains,
-        #test_domains=None,
-        unsup_train_idxs=None,
-        img_aug='d4',
-        unsup_img_aug=None,
+        train_tf=transforms.Compose([transforms.D4()]),
+        val_tf=transforms.NoOp(),
+        merge='main13',
+        num_workers=0,
+        pin_memory=True
     )
     
     module = modules.Multilabel(
@@ -65,8 +59,8 @@ def main():
         accelerator='gpu',
         devices=1,
         default_root_dir='/data/outputs/flair',
-        limit_train_batches=1.,
-        limit_val_batches=1.,
+        limit_train_batches=1,
+        limit_val_batches=1,
         logger=TensorBoardLogger(
             save_dir='/data/outputs/flair',
             #save_dir='/data/outputs/flair',

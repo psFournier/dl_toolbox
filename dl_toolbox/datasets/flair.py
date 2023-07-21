@@ -1,13 +1,7 @@
-import os
-import numpy as np
-import rasterio
-from rasterio.windows import Window
-
-import torch
-from torch.utils.data import Dataset
 import matplotlib.colors as colors
-import dl_toolbox.transforms as transforms
-from dl_toolbox.utils import merge_labels
+from dl_toolbox.datasets import Raster
+from .utils import label
+import enum
 
 
 lut_colors = {
@@ -52,14 +46,6 @@ lut_classes = {
 18  : 'greenhouse',
 19  : 'other'}
 
-label = namedtuple(
-    'label',
-    [
-        'name',
-        'color',
-        'values'
-    ]
-)
 
 def hex2color(hex):
     return tuple([int(z * 255) for z in colors.hex2color(hex)])
@@ -67,7 +53,7 @@ def hex2color(hex):
 all19 = [
     label(
         lut_classes[i], 
-        hex2color(lut_colors[i]);
+        hex2color(lut_colors[i]),
         {i}
     ) for i in range(1, 20)
 ]
@@ -75,12 +61,12 @@ all19 = [
 main13 = [label('other', (0,0,0), {13,14,15,16,17,18,19})] + [
     label(
         lut_classes[i], 
-        hex2color(lut_colors[i]);
+        hex2color(lut_colors[i]),
         {i}
     ) for i in range(1, 13)
 ]
 
-class Flair(Dataset):
+class Flair(Raster):
     
     classes = enum.Enum(
         'FlairClasses',
@@ -89,110 +75,7 @@ class Flair(Dataset):
             'main13':main13,
         }
     )
-    
-    @classmethod
-    def read_image(cls, path, window=None, bands=None):
-        
-        with rasterio.open(path, 'r') as file:
-            image = file.read(
-                window=window,
-                out_dtype=np.float32,
-                indexes=bands
-            )
-            
-        return torch.from_numpy(image)
-    
-    @classmethod
-    def read_label(cls, path, window=None, merge=None):
-        
-        with rasterio.open(path, 'r') as file:
-            label = file.read(
-                window=window,
-                out_dtype=np.uint8
-            )
-            
-        if merge is not None:
-            label = merge_labels(
-                label.squeeze(),
-                [list(l.values) for l in cls.classes[merge].value]
-            )
-        
-        return torch.from_numpy(label)
 
-    def __init__(
-        self,
-        img_path,
-        label_path,
-        bands,
-        merge,
-        crop_size,
-        shuffle,
-        transforms,
-        crop_step=None
-    ):
-        self.img_path = img_path
-        self.label_path = label_path
-        self.bands=bands
-        self.merge = merge
-        self.crop_size = crop_size
-        self.transforms = transforms
-        
-        w, h = imagesize.get(img_path)
-        self.nb_crops = h*w/(crop_size**2)
-        
-        if shuffle:
-            self.get_crop = RandomCropFromWindow(
-                rasterio.windows.Window(0, 0, w, h),
-                crop_size
-            )
-        else:
-            self.get_crop = FixedCropFromWindow(
-                rasterio.windows.Window(0, 0, w, h),
-                crop_size,
-                crop_step
-            )
-            
-    def __len__(self):
-        
-        if self.shuffle:
-            return int(self.nb_crops)
-        else:
-            return len(self.get_crop.crops)
-        
-    def __getitem__(self, idx):
-        
-        crop = self.get_crop(idx)
-        
-        image = self.read_img(
-            self.img_path,
-            crop,
-            self.bands
-        )
-        
-        label=None
-        if self.label_path:
-            label = self.read_label(
-                self.label_path,
-                crop,
-                self.merge)
-            )
-        
-        image, label = self.transforms(img=raw_image, label=raw_label) 
-        
-        # Here transform means the affine transform from matrix coords to long/lat
-        #crop_transform = rasterio.windows.transform(
-        #    crop,
-        #    transform=self.data_src.meta['transform']
-        #)
-        
-        return {
-            'image':image,
-            'label':label,
-            #'crop':crop,
-            #'crop_tf':crop_transform,
-            #'path': self.data_src.image_path,
-            #'crs': self.data_src.meta['crs']
-        }
         
 
         
@@ -235,13 +118,6 @@ class Flair(Dataset):
 #            return {"img": torch.as_tensor(img, dtype=torch.float), 
 #                    "mtd": torch.as_tensor(mtd, dtype=torch.float),
 #                    "msk": torch.as_tensor(msk, dtype=torch.float)}
-     
-
-    
-    
-    
-    
-    
 
 #class Predict_Dataset(Dataset):
 #

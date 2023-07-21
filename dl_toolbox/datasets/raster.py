@@ -5,8 +5,11 @@ from rasterio.windows import Window
 
 import torch
 from torch.utils.data import Dataset
+import matplotlib.colors as colors
 import dl_toolbox.transforms as transforms
 from dl_toolbox.utils import merge_labels
+from dl_toolbox.datasets.utils import *
+import imagesize
 
 
 class Raster(Dataset):
@@ -56,6 +59,7 @@ class Raster(Dataset):
         self.bands=bands
         self.merge = merge
         self.crop_size = crop_size
+        self.shuffle = shuffle
         self.transforms = transforms
         
         w, h = imagesize.get(img_path)
@@ -84,21 +88,21 @@ class Raster(Dataset):
         
         crop = self.get_crop(idx)
         
-        image = self.read_img(
+        image = self.read_image(
             self.img_path,
             crop,
             self.bands
         )
-        
+                
         label=None
         if self.label_path:
             label = self.read_label(
                 self.label_path,
                 crop,
-                self.merge)
+                self.merge
             )
         
-        image, label = self.transforms(img=raw_image, label=raw_label) 
+        image, label = self.transforms(img=image, label=label) 
         
         return {
             'image':image,
