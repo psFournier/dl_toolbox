@@ -1,6 +1,6 @@
 #from .supervised_dm import SupervisedDm
 #from .semisup_dm import SemisupDm
-from .split_from_csv import *
+from .digitanie import *
 from .cityscapes import *
 #from .from_folder_dataset import *
 from .flair import *

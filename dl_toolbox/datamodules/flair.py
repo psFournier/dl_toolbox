@@ -97,59 +97,74 @@ def _gather_data(path_folders, path_metadata: str, use_metadata: bool, test_set:
 
 class Flair(LightningDataModule):
     
+    baseline_val_domains = ['D004_2021', 'D014_2020', 'D029_2021', 'D031_2019', 'D058_2020', 'D077_2021', 'D067_2021', 'D066_2021']
+    baseline_train_domains = ['D033_2021', 'D055_2018', 'D072_2019', 'D044_2020', 'D017_2018', 'D086_2020', 'D049_2020', 'D016_2020', 'D063_2019', 'D091_2021', 'D070_2020', 'D013_2020', 'D023_2020', 'D074_2020', 'D021_2020', 'D080_2021', 'D078_2021', 'D032_2019', 'D081_2020', 'D046_2019', 'D052_2019', 'D051_2019', 'D038_2021', 'D009_2019', 'D034_2021', 'D006_2020', 'D008_2019', 'D041_2021', 'D035_2020', 'D007_2020', 'D060_2021', 'D030_2021']
+    
     def __init__(
         self,
-        #data_path,
-        batch_size,
+        data_path,
+        merge,
+        bands,
         crop_size,
-        epoch_len,
-        labels,
-        workers,
+        train_tf,
+        val_tf,
+        batch_size,
+        num_workers,
+        pin_memory     
         use_metadata,
-        train_domains,
-        val_domains,
-        test_domains,
-        unsup_train_idxs=None,
-        img_aug=None,
-        unsup_img_aug=None,
-        *args,
-        **kwargs
+        #train_domains,
+        #val_domains,
+        #test_domains,
+        #unsup_train_idxs=None,
+        #*args,
+        #**kwargs
     ):
 
         super().__init__()
         self.batch_size = batch_size
         self.epoch_len = epoch_len
         self.crop_size = crop_size
-        self.num_workers = workers
-        #self.data_path = data_path
+        self.num_workers = num_workers
         
-        dict_train = _gather_data(train_domains, path_metadata=None, use_metadata=use_metadata, test_set=False)
-        dict_val = _gather_data(val_domains, path_metadata=None, use_metadata=use_metadata, test_set=False)
-        dict_test = _gather_data(test_domains, path_metadata=None, use_metadata=use_metadata, test_set=True)
-                
-        self.train_set = datasets.Flair(
-            dict_files=dict_train,
-            labels=labels,
-            crop_size=crop_size,
-            use_metadata=False,
-            img_aug=img_aug
+        domains = [data_path / "train" / domain for domain in baseline_val_domains + baseline_train_domains]
+        #shuffle(domains)
+        idx_split = int(len(domains) * 0.95)
+        train_domains, val_domains = domains[:idx_split], domains[idx_split:] 
+        
+        dict_train = _gather_data(train_domains, path_metadata=None, use_metadata=True, test_set=False)
+        dict_val = _gather_data(val_domains, path_metadata=None, use_metadata=True, test_set=False)
+        
+        self.train_set = ConcatDataset([
+            datasets.Flair(
+                img,
+                msk,
+                meta,
+                bands,
+                merge,
+                crop_size,
+                shuffle=True,
+                transforms=train_tf,
+            )] for img, msk, meta in zip([dict_train['IMG'], dict_train['MSK'], dict_train['MTD']])
         )
         
-        self.unsup_train_set = None
-        
-        self.val_set = datasets.Flair(
-            dict_files=dict_val,
-            labels=labels,
-            crop_size=512
+        self.val_set = ConcatDataset([
+            datasets.Flair(
+                img,
+                msk,
+                meta,
+                bands,
+                merge,
+                crop_size,
+                shuffle=False,
+                transforms=val_tf,
+            )] for img, msk, meta in zip([dict_val['IMG'], dict_val['MSK'], dict_val['MTD']])
         )
         
-        self.test_set = datasets.Flair(
-            dict_files=dict_test,
-            labels=labels,
-            crop_size=512
-        )
-
-        self.class_names = list(self.val_set.labels.keys())
+        self.in_channels = len(self.bands)
+        self.classes = datasets.Flair.classes[merge].value
+        self.num_classes = len(self.classes)
+        self.class_names = [l.name for l in self.classes]
+        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
         
     def train_dataloader(self):
         
@@ -158,62 +173,36 @@ class Flair(LightningDataModule):
             dataset=self.train_set,
             batch_size=self.batch_size,
             collate_fn=CustomCollate(),
-            sampler=RandomSampler(
-                data_source=self.train_set,
-                replacement=True,
-                num_samples=self.epoch_len
-            ),
+            shuffle=True,
             num_workers=self.num_workers,
-            pin_memory=True,
             drop_last=True
         )
-        
-        if self.unsup_train_set:
-    
-            train_dataloaders['unsup'] = DataLoader(
-                dataset=self.unsup_train_set,
-                batch_size=self.batch_size,
-                sampler=RandomSampler(
-                    data_source=self.train_set,
-                    replacement=True,
-                    num_samples=self.epoch_len
-                ),
-                collate_fn=CustomCollate(),
-                num_workers=self.num_workers,
-                pin_memory=True,
-                drop_last=True
-            )
-
         return CombinedLoader(
             train_dataloaders,
             mode='min_size'
         )
 
     def val_dataloader(self):
-
-        val_dataloader = DataLoader(
+        
+        return DataLoader(
             dataset=self.val_set,
             shuffle=False,
             collate_fn=CustomCollate(),
-            batch_size=8,
-            num_workers=self.num_workers,
-            pin_memory=True
-        )
-        self.nb_val_batch = len(self.val_set) // self.batch_size
-
-        return val_dataloader
-    
-    def predict_dataloader(self):
-        
-        predict_dataloader = DataLoader(
-            dataset=self.test_set,
-            shuffle=False,
-            batch_size=8,
-            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
             num_workers=self.num_workers
-        )
-        
-        return predict_dataloader
+        )    
+    
+    #def predict_dataloader(self):
+    #    
+    #    predict_dataloader = DataLoader(
+    #        dataset=self.test_set,
+    #        shuffle=False,
+    #        batch_size=8,
+    #        collate_fn=CustomCollate(),
+    #        num_workers=self.num_workers
+    #    )
+    #    
+    #    return predict_dataloader
     
 class OCS_DataModule(LightningDataModule):
 

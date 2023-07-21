@@ -62,7 +62,7 @@ def splits_from_csv(datasrc, datapath, csvpath):
         
     return splits
 
-class SplitFromCsv(LightningDataModule):
+class Digitanie(LightningDataModule):
 
     def __init__(
         self,
@@ -87,6 +87,8 @@ class SplitFromCsv(LightningDataModule):
         self.merge = merge
         self.bands = bands
         
+        self.classes = datasources.Digitanie9.classes[self.merge].value
+        
         self.train_srcs, self.val_srcs, _ = splits_from_csv(
             datasource,
             Path(data_path),
@@ -94,8 +96,13 @@ class SplitFromCsv(LightningDataModule):
         )
         
         self.train_tf = train_tf
-        self.val_tf = val_tf            
+        self.val_tf = val_tf    
         
+        self.in_channels = len(self.bands)
+        self.num_classes = len(self.classes)
+        self.class_names = [l.name for l in self.classes]
+        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
+
     def setup(self, stage):
         
         self.train_set = ConcatDataset([
@@ -120,23 +127,6 @@ class SplitFromCsv(LightningDataModule):
                 crop_step=self.crop_size
             ) for src in self.val_srcs
         ])
-         
-            
-    @property
-    def in_channels(self):
-        return len(self.bands)
-    
-    @property
-    def num_classes(self):
-        return len(self.train_srcs[0].classes[self.merge].value)
-    
-    @property
-    def class_names(self):
-        return [l.name for l in self.train_srcs[0].classes[self.merge].value]    
-    
-    @property
-    def class_colors(self):
-        return  [(i, l.color) for i, l in enumerate(self.train_srcs[0].classes[self.merge].value)]
 
     def train_dataloader(self):
         
@@ -164,7 +154,7 @@ class SplitFromCsv(LightningDataModule):
             num_workers=self.num_workers
         )    
     
-class SplitFromCsv2(SplitFromCsv):
+class Digitanie2(Digitanie):
 
     def __init__(
         self,

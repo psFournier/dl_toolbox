@@ -18,27 +18,21 @@ def main():
     TODO
     """
     #data_path = Path('/data/toy_dataset_flair-one')
-    data_path = Path('/data/flair_merged')
-    baseline_val_domains = ['D004_2021', 'D014_2020', 'D029_2021', 'D031_2019', 'D058_2020', 'D077_2021', 'D067_2021', 'D066_2021']
-    baseline_train_domains = ['D033_2021', 'D055_2018', 'D072_2019', 'D044_2020', 'D017_2018', 'D086_2020', 'D049_2020', 'D016_2020', 'D063_2019', 'D091_2021', 'D070_2020', 'D013_2020', 'D023_2020', 'D074_2020', 'D021_2020', 'D080_2021', 'D078_2021', 'D032_2019', 'D081_2020', 'D046_2019', 'D052_2019', 'D051_2019', 'D038_2021', 'D009_2019', 'D034_2021', 'D006_2020', 'D008_2019', 'D041_2021', 'D035_2020', 'D007_2020', 'D060_2021', 'D030_2021']
-    domains = baseline_val_domains + baseline_train_domains
-    trainval_domains = [data_path / "train" / domain for domain in domains]
-    #train_domains, val_domains = trainval_domains[:39], trainval_domains[39:]
-    shuffle(trainval_domains)
-    idx_split = int(len(trainval_domains) * 0.95)
-    train_domains, val_domains = trainval_domains[:idx_split], trainval_domains[idx_split:] 
+    
+    
+    
 
     datamodule = datamodules.Flair(
-        #data_path,
+        data_path=Path('/data/flair_merged'),
         batch_size=32,
         crop_size=256,
         epoch_len=10000,
         labels='13',
         workers=8,
         use_metadata=False,
-        train_domains=train_domains,
-        val_domains=val_domains,
-        test_domains=None,
+        #train_domains=train_domains,
+        #val_domains=val_domains,
+        #test_domains=None,
         unsup_train_idxs=None,
         img_aug='d4',
         unsup_img_aug=None,

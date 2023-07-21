@@ -6,8 +6,8 @@ from rasterio.windows import Window
 import torch
 from torch.utils.data import Dataset
 import matplotlib.colors as colors
-from dl_toolbox.utils import MergeLabels, OneHot, LabelsToRGB, RGBToLabels
 import dl_toolbox.transforms as transforms
+from dl_toolbox.utils import merge_labels
 
 
 lut_colors = {
@@ -52,97 +52,183 @@ lut_classes = {
 18  : 'greenhouse',
 19  : 'other'}
 
+label = namedtuple(
+    'label',
+    [
+        'name',
+        'color',
+        'values'
+    ]
+)
+
 def hex2color(hex):
     return tuple([int(z * 255) for z in colors.hex2color(hex)])
 
-labels_dict = {
-    'base': {lut_classes[i]: {'color': hex2color(lut_colors[i])} for i in range(1,20)},
-    '13': {
-        **{lut_classes[i]: {'color': hex2color(lut_colors[i])} for i in range(1,13)},
-        **{'other': {'color': hex2color(lut_colors[19])}}
-    }
-}
-
-mergers = {
-    'base' : [[i] for i in range(1, 20)],
-    '13' : [[13, 14, 15, 16, 17, 18, 19]]+[[i] for i in range(1, 13)] 
-}
-
+all19 = [
+    label(
+        lut_classes[i], 
+        hex2color(lut_colors[i]);
+        {i}
+    ) for i in range(1, 20)
+]
+    
+main13 = [label('other', (0,0,0), {13,14,15,16,17,18,19})] + [
+    label(
+        lut_classes[i], 
+        hex2color(lut_colors[i]);
+        {i}
+    ) for i in range(1, 13)
+]
 
 class Flair(Dataset):
+    
+    classes = enum.Enum(
+        'FlairClasses',
+        {
+            'all19':all19,
+            'main13':main13,
+        }
+    )
+    
+    @classmethod
+    def read_image(cls, path, window=None, bands=None):
+        
+        with rasterio.open(path, 'r') as file:
+            image = file.read(
+                window=window,
+                out_dtype=np.float32,
+                indexes=bands
+            )
+            
+        return torch.from_numpy(image)
+    
+    @classmethod
+    def read_label(cls, path, window=None, merge=None):
+        
+        with rasterio.open(path, 'r') as file:
+            label = file.read(
+                window=window,
+                out_dtype=np.uint8
+            )
+            
+        if merge is not None:
+            label = merge_labels(
+                label.squeeze(),
+                [list(l.values) for l in cls.classes[merge].value]
+            )
+        
+        return torch.from_numpy(label)
 
-    def __init__(self,
-                 dict_files,
-                 labels,
-                 crop_size,
-                 #num_classes=13, 
-                 use_metadata=False,
-                 img_aug=None,
-                 ):
-
-        self.list_imgs = np.array(dict_files["IMG"])
-        self.list_msks = np.array(dict_files["MSK"])
-        self.labels = labels_dict[labels]
+    def __init__(
+        self,
+        img_path,
+        label_path,
+        bands,
+        merge,
+        crop_size,
+        shuffle,
+        transforms,
+        crop_step=None
+    ):
+        self.img_path = img_path
+        self.label_path = label_path
+        self.bands=bands
+        self.merge = merge
         self.crop_size = crop_size
-        self.label_merger = MergeLabels(mergers[labels])
-        self.use_metadata = use_metadata
-        if use_metadata == True:
-            self.list_metadata = np.array(dict_files["MTD"])
-        self.img_aug = transforms.get_transforms(img_aug)
-        #self.num_classes = num_classes
-        self.labels_to_rgb = LabelsToRGB(self.labels)
-        self.rgb_to_labels = RGBToLabels(self.labels)
-
-    def read_image(self, image_path, window):
+        self.transforms = transforms
         
-        with rasterio.open(image_path) as image_file:
-            image = image_file.read(window=window, out_dtype=np.float32)[:3]
-            
-        return image
-    
-    def read_label(self, label_path, window):
-    
-        with rasterio.open(label_path) as label_file:
-            label = label_file.read(window=window, out_dtype=np.float32)
-            
-        label = np.squeeze(label)
-        label = self.label_merger(label)
-        # attention on a enelvé le onehot encoding par rapport au code falir initial
+        w, h = imagesize.get(img_path)
+        self.nb_crops = h*w/(crop_size**2)
         
-        return label
-        
-    def __len__(self):
-        return len(self.list_imgs)
-
-    def __getitem__(self, index):
-        
-        image_file = self.list_imgs[index]
-        cx = np.random.randint(0, 512 - self.crop_size + 1)
-        cy = np.random.randint(0, 512 - self.crop_size + 1)
-        window = Window(cx, cy, self.crop_size, self.crop_size)
-        image = self.read_image(image_file, window)
-        image = torch.from_numpy(image).float().contiguous()
-        
-        label = None
-        if self.list_msks.size: # a changer
-            mask_file = self.list_msks[index] 
-            label = self.read_label(mask_file, window)
-            label = torch.from_numpy(label).long().contiguous()            
-
-        if self.img_aug is not None:
-            end_image, end_mask = self.img_aug(img=image, label=label)
+        if shuffle:
+            self.get_crop = RandomCropFromWindow(
+                rasterio.windows.Window(0, 0, w, h),
+                crop_size
+            )
         else:
-            end_image, end_mask = image, label
+            self.get_crop = FixedCropFromWindow(
+                rasterio.windows.Window(0, 0, w, h),
+                crop_size,
+                crop_step
+            )
+            
+    def __len__(self):
         
-        # todo : gerer metadata
+        if self.shuffle:
+            return int(self.nb_crops)
+        else:
+            return len(self.get_crop.crops)
+        
+    def __getitem__(self, idx):
+        
+        crop = self.get_crop(idx)
+        
+        image = self.read_img(
+            self.img_path,
+            crop,
+            self.bands
+        )
+        
+        label=None
+        if self.label_path:
+            label = self.read_label(
+                self.label_path,
+                crop,
+                self.merge)
+            )
+        
+        image, label = self.transforms(img=raw_image, label=raw_label) 
+        
+        # Here transform means the affine transform from matrix coords to long/lat
+        #crop_transform = rasterio.windows.transform(
+        #    crop,
+        #    transform=self.data_src.meta['transform']
+        #)
         
         return {
-            #'orig_image':image,
-            #'orig_mask':label,
-            'image':end_image,
-            'label':end_mask,
-            'path': '/'.join(image_file.split('/')[-4:])
+            'image':image,
+            'label':label,
+            #'crop':crop,
+            #'crop_tf':crop_transform,
+            #'path': self.data_src.image_path,
+            #'crs': self.data_src.meta['crs']
         }
+        
+
+        
+#    def __len__(self):
+#        return len(self.list_imgs)
+#
+#    def __getitem__(self, index):
+#        
+#        image_file = self.list_imgs[index]
+#        
+#        cx = np.random.randint(0, 512 - self.crop_size + 1)
+#        cy = np.random.randint(0, 512 - self.crop_size + 1)
+#        window = Window(cx, cy, self.crop_size, self.crop_size)
+#        image = self.read_image(image_file, window)
+#        image = torch.from_numpy(image).float().contiguous()
+#        
+#        label = None
+#        if self.list_msks.size: # a changer
+#            mask_file = self.list_msks[index] 
+#            label = self.read_label(mask_file, window)
+#            label = torch.from_numpy(label).long().contiguous()            
+#
+#        if self.img_aug is not None:
+#            end_image, end_mask = self.img_aug(img=image, label=label)
+#        else:
+#            end_image, end_mask = image, label
+#        
+#        # todo : gerer metadata
+#        
+#        return {
+#            #'orig_image':image,
+#            #'orig_mask':label,
+#            'image':end_image,
+#            'label':end_mask,
+#            'path': '/'.join(image_file.split('/')[-4:])
+#        }
 
 #        if self.use_metadata == True:
 #            mtd = self.list_metadata[index]

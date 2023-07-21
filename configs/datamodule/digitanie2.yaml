@@ -1,14 +1,14 @@
 defaults:
   - datasource: digitanie
-  - transforms@train_tf: minmax_crop_d4_color
-  - transforms@val_tf: minmax
+  - transforms@train_tf: crop_d4_color
+  - transforms@val_tf: none
   - _self_
 
-_target_: dl_toolbox.datamodules.SplitFromCsv
+_target_: dl_toolbox.datamodules.Digitanie2
 
 data_path: ${paths.data_dir}/DIGITANIE_v3/
 csv_path: ${paths.root_dir}/dl_toolbox/datamodules/splits
-csv_name: digitanie_france
+csv_name: digitanie_all
 merge: main
 bands: [1,2,3]
 crop_size: 256

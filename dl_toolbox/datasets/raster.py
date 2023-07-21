@@ -1,16 +1,49 @@
-import torch
+import os
 import numpy as np
-
 import rasterio
+from rasterio.windows import Window
 
-from .utils import FixedCropFromWindow, RandomCropFromWindow
+import torch
+from torch.utils.data import Dataset
+import dl_toolbox.transforms as transforms
+from dl_toolbox.utils import merge_labels
 
 
-class Raster(torch.utils.data.Dataset):
+class Raster(Dataset):
     
+    @classmethod
+    def read_image(cls, path, window=None, bands=None):
+        
+        with rasterio.open(path, 'r') as file:
+            image = file.read(
+                window=window,
+                out_dtype=np.float32,
+                indexes=bands
+            )
+            
+        return torch.from_numpy(image)
+    
+    @classmethod
+    def read_label(cls, path, window=None, merge=None):
+        
+        with rasterio.open(path, 'r') as file:
+            label = file.read(
+                window=window,
+                out_dtype=np.uint8
+            )
+            
+        if merge is not None:
+            label = merge_labels(
+                label.squeeze(),
+                [list(l.values) for l in cls.classes[merge].value]
+            )
+        
+        return torch.from_numpy(label)
+
     def __init__(
         self,
-        data_src,
+        img_path,
+        label_path,
         bands,
         merge,
         crop_size,
@@ -18,40 +51,27 @@ class Raster(torch.utils.data.Dataset):
         transforms,
         crop_step=None
     ):
-        self.data_src = data_src
+        self.img_path = img_path
+        self.label_path = label_path
         self.bands=bands
         self.merge = merge
         self.crop_size = crop_size
-        self.shuffle = shuffle
         self.transforms = transforms
         
-        h = data_src.zone.height
-        w = data_src.zone.width
+        w, h = imagesize.get(img_path)
         self.nb_crops = h*w/(crop_size**2)
         
         if shuffle:
             self.get_crop = RandomCropFromWindow(
-                data_src.zone,
+                rasterio.windows.Window(0, 0, w, h),
                 crop_size
             )
         else:
             self.get_crop = FixedCropFromWindow(
-                data_src.zone,
+                rasterio.windows.Window(0, 0, w, h),
                 crop_size,
                 crop_step
             )
-        
-    def read_crop(self, crop):
-        
-        image = self.data_src.read_image(crop, bands=self.bands)
-        image = torch.from_numpy(image)
-        
-        label = None
-        if self.data_src.label_path:
-            label = self.data_src.read_label(crop, merge=self.merge)
-            label = torch.from_numpy(label)
-            
-        return image, label
             
     def __len__(self):
         
@@ -63,20 +83,24 @@ class Raster(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         
         crop = self.get_crop(idx)
-        raw_image, raw_label = self.read_crop(crop)
-        image, label = self.transforms(img=raw_image, label=raw_label) 
         
-        # Here transform means the affine transform from matrix coords to long/lat
-        crop_transform = rasterio.windows.transform(
+        image = self.read_img(
+            self.img_path,
             crop,
-            transform=self.data_src.meta['transform']
+            self.bands
         )
+        
+        label=None
+        if self.label_path:
+            label = self.read_label(
+                self.label_path,
+                crop,
+                self.merge)
+            )
+        
+        image, label = self.transforms(img=raw_image, label=raw_label) 
         
         return {
             'image':image,
             'label':label,
-            'crop':crop,
-            'crop_tf':crop_transform,
-            'path': self.data_src.image_path,
-            'crs': self.data_src.meta['crs']
         }
