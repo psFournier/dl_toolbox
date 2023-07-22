@@ -110,7 +110,8 @@ class Flair(LightningDataModule):
         val_tf,
         batch_size,
         num_workers,
-        pin_memory,     
+        pin_memory, 
+        class_weights=None
         #train_domains,
         #val_domains,
         #test_domains,
@@ -140,7 +141,7 @@ class Flair(LightningDataModule):
                 bands,
                 merge,
                 crop_size,
-                shuffle=True,
+                shuffle=False,
                 transforms=train_tf,
             ) for img, msk in zip(dict_train['IMG'], dict_train['MSK'])
         ])
@@ -162,6 +163,7 @@ class Flair(LightningDataModule):
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
+        self.class_weights = [1.] * self.num_classes if class_weights is None else class_weights
         
     def train_dataloader(self):
         
