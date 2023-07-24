@@ -54,7 +54,7 @@ def main():
             save_dir="/data/outputs/flair", version=f"{datetime.now():%d%b%y-%Hh%Mm%S}"
         ),
         callbacks=[
-            ModelCheckpoint(monitor="loss/val", filename="epoch_{epoch:03d}"),
+            ModelCheckpoint(monitor="loss/val", filename=f"epoch_{epoch:03d}"),
             callbacks.MetricsFromConfmat(
                 num_classes=datamodule.num_classes,
                 class_names=datamodule.class_names,

@@ -1,7 +1,5 @@
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint  # , DeviceStatsMonitor
-
-# from pytorch_lightning.profiler import SimpleProfiler
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
 import dl_toolbox.callbacks as callbacks
