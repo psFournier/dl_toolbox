@@ -1,9 +1,11 @@
+import itertools
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torchmetrics import ConfusionMatrix
-import matplotlib.pyplot as plt
-import numpy as np
-import itertools
+
 from dl_toolbox.utils import plot_confusion_matrix, plot_ious
 
 # Necessary for imshow to run on machines with no graphical interface.

@@ -1,8 +1,9 @@
+from copy import deepcopy
+
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
 from torch.optim import Adam
-from copy import deepcopy
 
 import dl_toolbox.augmentations as augmentations
 from dl_toolbox.networks import NetworkFactory

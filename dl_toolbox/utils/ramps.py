@@ -1,5 +1,6 @@
-import numpy as np
 from functools import partial
+
+import numpy as np
 
 
 def lin_ramp(current, start, end, start_val, end_val):

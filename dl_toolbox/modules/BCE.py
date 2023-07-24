@@ -1,9 +1,10 @@
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
+
+from dl_toolbox.losses import DiceLoss
 
 from dl_toolbox.utils import TorchOneHot
-from dl_toolbox.losses import DiceLoss
 
 
 class Multilabel(pl.LightningModule):

@@ -1,20 +1,27 @@
 import random
+from argparse import ArgumentParser
 
-import torch
-import rasterio
 import numpy as np
-import shapely
-from scipy import stats
+import rasterio
 
 import rasterio.windows as windows
-from argparse import ArgumentParser
-import torchvision.transforms.functional as F
+import shapely
 
-from dl_toolbox.utils import get_tiles
-from dl_toolbox.utils import MergeLabels, OneHot, LabelsToRGB, RGBToLabels
+import torch
+import torchvision.transforms.functional as F
+from scipy import stats
+
 import dl_toolbox.augmentations as augmentations
-from dl_toolbox.utils import minmax
 from dl_toolbox.datasets import Raster
+
+from dl_toolbox.utils import (
+    get_tiles,
+    LabelsToRGB,
+    MergeLabels,
+    minmax,
+    OneHot,
+    RGBToLabels,
+)
 
 
 class Raster2Cls(Raster):

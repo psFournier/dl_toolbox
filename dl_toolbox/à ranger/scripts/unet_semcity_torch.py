@@ -1,15 +1,16 @@
-from argparse import ArgumentParser
-import torch
-from rasterio.windows import Window
-from dl_toolbox.torch_datasets import SemcityBdsdDs
 import os
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
-from dl_toolbox.utils import worker_init_function
+import time
+from argparse import ArgumentParser
+
 import segmentation_models_pytorch as smp
+import tabulate
+import torch
+from dl_toolbox.torch_datasets import SemcityBdsdDs
+from dl_toolbox.utils import worker_init_function
+from rasterio.windows import Window
 from torch.optim import SGD
 from torch.optim.lr_scheduler import LambdaLR
-import time
-import tabulate
+from torch.utils.data import ConcatDataset, DataLoader, RandomSampler
 
 
 def main():

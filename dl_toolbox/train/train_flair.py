@@ -1,17 +1,19 @@
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
-import dl_toolbox.modules as modules
-import dl_toolbox.datamodules as datamodules
-from pathlib import Path, PurePath
-from datetime import datetime
 import os
-from random import shuffle
+from datetime import datetime
 from functools import partial
+from pathlib import Path, PurePath
+from random import shuffle
+
 import segmentation_models_pytorch as smp
 import torch
-import dl_toolbox.transforms as transforms
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
+
 import dl_toolbox.callbacks as callbacks
+import dl_toolbox.datamodules as datamodules
+import dl_toolbox.modules as modules
+import dl_toolbox.transforms as transforms
 
 
 def main():

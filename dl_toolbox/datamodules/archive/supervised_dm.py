@@ -1,13 +1,14 @@
-from argparse import ArgumentParser
-import os
 import csv
+import os
+from argparse import ArgumentParser
 
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 from rasterio.windows import Window
+from torch.utils.data import ConcatDataset, DataLoader, RandomSampler
+
+from dl_toolbox.torch_collate import CustomCollate
 
 from dl_toolbox.utils import worker_init_function
-from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.torch_datasets import *
 
 

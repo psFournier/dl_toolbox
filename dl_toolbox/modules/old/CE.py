@@ -1,11 +1,11 @@
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
 from torch.optim import Adam
 
 import dl_toolbox.augmentations as augmentations
-from dl_toolbox.utils import TorchOneHot
 from dl_toolbox.networks import NetworkFactory
+from dl_toolbox.utils import TorchOneHot
 
 
 class CE(pl.LightningModule):

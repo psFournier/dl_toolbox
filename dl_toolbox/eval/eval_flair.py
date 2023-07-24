@@ -1,16 +1,17 @@
-from pytorch_lightning.callbacks import ModelCheckpoint  # , DeviceStatsMonitor
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint  # , DeviceStatsMonitor
 
 # from pytorch_lightning.profiler import SimpleProfiler
 from pytorch_lightning.loggers import TensorBoardLogger
-import dl_toolbox.lightning_modules as modules
-import dl_toolbox.lightning_datamodules as datamodules
+
 import dl_toolbox.callbacks as callbacks
+import dl_toolbox.lightning_datamodules as datamodules
+import dl_toolbox.lightning_modules as modules
 from dl_toolbox.lightning_modules import *
 from dl_toolbox.lightning_datamodules import *
-from pathlib import Path, PurePath
-from datetime import datetime
 import os
+from datetime import datetime
+from pathlib import Path, PurePath
 from random import shuffle
 
 

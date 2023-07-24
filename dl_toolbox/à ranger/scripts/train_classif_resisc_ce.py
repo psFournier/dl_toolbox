@@ -1,22 +1,22 @@
-import pytorch_lightning as pl
-import os
-import numpy as np
-import torch
 import math
-import torch.nn as nn
-
-from torch.utils.data import DataLoader, Subset, RandomSampler, ConcatDataset
-from pytorch_lightning.utilities import CombinedLoader
-from pathlib import Path
+import os
 from datetime import datetime
-import torchvision.models as models
+from pathlib import Path
 
 import dl_toolbox.callbacks as callbacks
-import dl_toolbox.modules as modules
 import dl_toolbox.datasets as datasets
+import dl_toolbox.modules as modules
 import dl_toolbox.torch_collate as collate
-import dl_toolbox.utils as utils
 import dl_toolbox.torch_sample as sample
+import dl_toolbox.utils as utils
+import numpy as np
+import pytorch_lightning as pl
+import torch
+import torch.nn as nn
+import torchvision.models as models
+from pytorch_lightning.utilities import CombinedLoader
+
+from torch.utils.data import ConcatDataset, DataLoader, RandomSampler, Subset
 
 torch.set_float32_matmul_precision("high")
 test = False
@@ -114,8 +114,8 @@ val_dataloader = DataLoader(
 )
 
 
-from torchvision.ops.misc import Conv2dNormActivation
 from torch import nn
+from torchvision.ops.misc import Conv2dNormActivation
 
 network = models.efficientnet_b0(
     num_classes=out_channels if pretrained is None else 1000, weights=pretrained

@@ -1,5 +1,5 @@
-from torchvision.transforms import RandomCrop
 import torchvision.transforms.functional as F
+from torchvision.transforms import RandomCrop
 
 
 class RandomCrop2(RandomCrop):

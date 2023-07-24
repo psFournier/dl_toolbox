@@ -1,9 +1,9 @@
 import fiona
-import rasterio
 import imagesize
 import numpy as np
-from rasterio.features import rasterize
+import rasterio
 from fiona.transform import transform as f_transform
+from rasterio.features import rasterize
 
 tile = rasterio.open("data/DIGITANIE/Toulouse/toulouse_tuile_1_img_normalized.tif")
 print(tile.crs)

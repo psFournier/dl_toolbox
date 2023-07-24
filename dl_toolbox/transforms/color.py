@@ -1,6 +1,7 @@
 import torch
 import torchvision.transforms.functional as F
-from .utils import OneOf, NoOp
+
+from .utils import NoOp, OneOf
 
 
 class Gamma(torch.nn.Module):

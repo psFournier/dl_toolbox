@@ -1,6 +1,6 @@
 import numpy as np
-import torch
 import rasterio
+import torch
 
 
 def read_window_from_big_raster(window, path, raster_path):

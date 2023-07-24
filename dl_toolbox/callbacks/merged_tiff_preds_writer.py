@@ -1,11 +1,12 @@
 import os
-import torch
-import numpy as np
+from functools import partial
 from pathlib import Path
-from pytorch_lightning.callbacks import BasePredictionWriter
+
+import numpy as np
 import rasterio
 import rasterio.windows as windows
-from functools import partial
+import torch
+from pytorch_lightning.callbacks import BasePredictionWriter
 
 
 def dist_to_edge_mask(crop_size):

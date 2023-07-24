@@ -1,18 +1,20 @@
 from argparse import ArgumentParser
-import segmentation_models_pytorch as smp
-import torch.nn as nn
-import pytorch_lightning as pl
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import MultiStepLR, LambdaLR
-import torch
-import torchmetrics.functional as torchmetrics
-from dl_toolbox.losses import DiceLoss
 from copy import deepcopy
+
+import numpy as np
+import pytorch_lightning as pl
+import segmentation_models_pytorch as smp
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
+import torchmetrics.functional as torchmetrics
+from torch.optim import Adam, SGD
+from torch.optim.lr_scheduler import LambdaLR, MultiStepLR
+
+from dl_toolbox.augmentations import Cutmix, Cutmix2
 
 from dl_toolbox.lightning_modules import BaseModule
-import numpy as np
-from dl_toolbox.augmentations import Cutmix, Cutmix2
+from dl_toolbox.losses import DiceLoss
 
 
 class MT(BaseModule):

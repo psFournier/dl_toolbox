@@ -1,12 +1,13 @@
 from argparse import ArgumentParser
 
-from dl_toolbox.lightning_datamodules import SupervisedDm
+import torch
 from torch.utils.data import DataLoader, RandomSampler
 from torch.utils.data._utils.collate import default_collate
-import torch
+
+from dl_toolbox.lightning_datamodules import SupervisedDm
+from dl_toolbox.torch_collate import CustomCollate
 
 from dl_toolbox.utils import worker_init_function
-from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.torch_datasets import *
 
 

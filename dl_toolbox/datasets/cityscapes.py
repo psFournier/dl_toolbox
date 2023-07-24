@@ -1,6 +1,6 @@
+from PIL import Image
 from torchvision.datasets import Cityscapes
 from torchvision.transforms.functional import pil_to_tensor
-from PIL import Image
 
 
 class Cityscapes(Cityscapes):

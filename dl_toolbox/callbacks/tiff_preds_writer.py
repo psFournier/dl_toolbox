@@ -1,9 +1,10 @@
 import os
-import torch
-import numpy as np
 from pathlib import Path
-from pytorch_lightning.callbacks import BasePredictionWriter
+
+import numpy as np
 import rasterio
+import torch
+from pytorch_lightning.callbacks import BasePredictionWriter
 
 
 class TiffPredsWriter(BasePredictionWriter):

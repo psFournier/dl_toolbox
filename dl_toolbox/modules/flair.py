@@ -1,6 +1,6 @@
-import torch
-from torchmetrics import MeanMetric, JaccardIndex
 import pytorch_lightning as pl
+import torch
+from torchmetrics import JaccardIndex, MeanMetric
 
 
 class SegmentationTask(pl.LightningModule):

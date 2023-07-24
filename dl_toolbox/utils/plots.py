@@ -1,9 +1,10 @@
+import itertools
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torchmetrics import ConfusionMatrix
-import matplotlib.pyplot as plt
-import numpy as np
-import itertools
 
 
 # Taken from https://www.tensorflow.org/tensorboard/image_summaries

@@ -1,8 +1,9 @@
-import torch
-from collections import OrderedDict
-from omegaconf import OmegaConf
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 import os
+from collections import OrderedDict
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
+
+import torch
+from omegaconf import OmegaConf
 
 
 class Class(NamedTuple):

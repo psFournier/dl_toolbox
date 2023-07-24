@@ -1,6 +1,7 @@
 from torch.optim import SGD
 from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.swa_utils import SWALR
+
 from dl_toolbox.lightning_modules import Unet
 
 module = Unet(

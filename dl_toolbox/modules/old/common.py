@@ -1,14 +1,16 @@
 from argparse import ArgumentParser
-import torch.nn as nn
-import pytorch_lightning as pl
-from torch.optim import Adam
-from torch.optim.lr_scheduler import MultiStepLR
-import torch
-import torchmetrics.functional as torchmetrics
-from torchmetrics import MeanMetric, JaccardIndex
+
 import matplotlib.pyplot as plt
 
 import numpy as np
+import pytorch_lightning as pl
+import torch
+import torch.nn as nn
+import torchmetrics.functional as torchmetrics
+from torch.optim import Adam
+from torch.optim.lr_scheduler import MultiStepLR
+from torchmetrics import JaccardIndex, MeanMetric
+
 from dl_toolbox.networks import NetworkFactory
 
 

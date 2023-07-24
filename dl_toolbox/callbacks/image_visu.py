@@ -1,10 +1,11 @@
 # Third-party libraries
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torchvision
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities import rank_zero_warn
-import numpy as np
+
 from dl_toolbox.utils import labels_to_rgb
 
 

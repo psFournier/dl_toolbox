@@ -1,21 +1,19 @@
-import matplotlib.colors as colors
-from dl_toolbox.datasets import Raster
-from .utils import label
 import enum
-import rasterio
-from rasterio.windows import Window
-from torch.utils.data import Dataset
-import random
 import os
+import random
+
+import matplotlib.colors as colors
 import numpy as np
 import rasterio
-from rasterio.windows import Window
 
 import torch
+from rasterio.windows import Window
 from torch.utils.data import Dataset
-import matplotlib.colors as colors
+
 import dl_toolbox.transforms as transforms
+from dl_toolbox.datasets import Raster
 from dl_toolbox.utils import merge_labels
+from .utils import label
 from dl_toolbox.datasets.utils import *
 import imagesize
 

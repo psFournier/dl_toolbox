@@ -1,11 +1,12 @@
-from torch_datasets import IsprsVLabeled
-from torch.utils.data import DataLoader
-import albumentations as A
-from matplotlib import pyplot as plt
-from albumentations.core.transforms_interface import ImageOnlyTransform
 import random
-from albumentations import functional as F
+
+import albumentations as A
 import numpy as np
+from albumentations import functional as F
+from albumentations.core.transforms_interface import ImageOnlyTransform
+from matplotlib import pyplot as plt
+from torch.utils.data import DataLoader
+from torch_datasets import IsprsVLabeled
 
 
 class MistakenFancyPCA(ImageOnlyTransform):

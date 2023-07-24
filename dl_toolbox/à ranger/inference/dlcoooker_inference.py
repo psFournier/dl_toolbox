@@ -1,21 +1,22 @@
-from dataclasses import dataclass
-from dlcooker import dlcooker_infer
 import glob
-import numpy as np
 import os
+from dataclasses import dataclass
+
+import numpy as np
+from dlcooker import dlcooker_infer
 from dlcooker.configs.inference import (
     GeoTIFFOutputConf,
     ImageConf,
+    LabelMergeStrategy,
     ModelConf,
     SemanticSegmentationInferenceConfig,
-    LabelMergeStrategy,
-    TTAMergeStrategy,
     TilingConf,
-    TTASequentialPipelineConf,
-    TTAHorizontalFlipConf,
-    TTAVerticalFlipConf,
-    TTARotationsConf,
     TTACombinationPipelineConf,
+    TTAHorizontalFlipConf,
+    TTAMergeStrategy,
+    TTARotationsConf,
+    TTASequentialPipelineConf,
+    TTAVerticalFlipConf,
 )
 
 

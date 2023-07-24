@@ -1,12 +1,13 @@
-import os
-import numpy as np
+import csv
 import json
+import os
+import random
+
+import numpy as np
 import PIL
+import rasterio
 from PIL import Image, ImageDraw
 from rasterio.enums import Resampling
-import rasterio
-import random
-import csv
 
 
 def resizefile(root, XY, output, nativeresolution, outputresolution=50.0):

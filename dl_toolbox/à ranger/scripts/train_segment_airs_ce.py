@@ -1,24 +1,24 @@
-import os
 import csv
-import numpy as np
-import shapely
-import pytorch_lightning as pl
-import matplotlib.pyplot as plt
-import torch
-
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
-from pytorch_lightning.utilities import CombinedLoader
-from pathlib import Path
+import os
 from datetime import datetime
+from pathlib import Path
 
 import dl_toolbox.callbacks as callbacks
+import dl_toolbox.datasets as datasets
 import dl_toolbox.modules as modules
 import dl_toolbox.networks as networks
-import dl_toolbox.datasets as datasets
 import dl_toolbox.torch_collate as collate
 import dl_toolbox.utils as utils
+import matplotlib.pyplot as plt
+import numpy as np
+import pytorch_lightning as pl
 
 import rasterio.windows as windows
+import shapely
+import torch
+from pytorch_lightning.utilities import CombinedLoader
+
+from torch.utils.data import ConcatDataset, DataLoader, RandomSampler
 
 torch.set_float32_matmul_precision("high")
 test = False

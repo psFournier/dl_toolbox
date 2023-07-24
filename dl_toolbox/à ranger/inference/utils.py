@@ -1,16 +1,17 @@
-from torch.utils.data import DataLoader, ConcatDataset
 from argparse import ArgumentParser
-import torch
+
+import dl_toolbox.augmentations as aug
 import imagesize
 import numpy as np
+import pandas as pd
 import rasterio
+import torch
+import torchmetrics.functional as M
+from dl_toolbox.torch_collate import CustomCollate
+from dl_toolbox.utils import get_tiles, worker_init_function
 from rasterio.windows import Window
 from torch import nn
-from dl_toolbox.torch_collate import CustomCollate
-from dl_toolbox.utils import worker_init_function, get_tiles
-import torchmetrics.functional as M
-import dl_toolbox.augmentations as aug
-import pandas as pd
+from torch.utils.data import ConcatDataset, DataLoader
 from dl_toolbox.torch_datasets.utils import *
 from functools import partial
 

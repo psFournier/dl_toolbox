@@ -1,6 +1,6 @@
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import pytorch_lightning as pl
 from torch.optim import Adam
 
 from dl_toolbox.networks import NetworkFactory

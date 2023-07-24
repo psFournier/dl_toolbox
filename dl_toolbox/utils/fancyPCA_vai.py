@@ -1,10 +1,11 @@
 import os
+from time import time
+
+import numpy as np
+import rasterio
 import torch
 from torch.utils.data.dataset import Dataset
 from tqdm.notebook import tqdm
-from time import time
-import rasterio
-import numpy as np
 
 N_CHANNELS = 3
 

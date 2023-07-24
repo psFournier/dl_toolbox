@@ -1,9 +1,9 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import rasterio
+from rasterio.windows import Window
 from scipy import ndimage
 from skimage import color
-from rasterio.windows import Window
 
 with rasterio.open("data/SemcityTLS_DL/train/TLS_GT_08.tif") as f:
     label = np.transpose(f.read(window=Window(0, 0, 128, 128)), axes=(1, 2, 0))

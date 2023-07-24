@@ -1,11 +1,12 @@
+import json
 import os
-import numpy as np
+import random
+import re
 from os.path import join
 from pathlib import Path
-import json
-import random
 from random import shuffle
-import re
+
+import numpy as np
 
 
 def load_data(path_data, path_metadata, val_percent=0.8, use_metadata=True):

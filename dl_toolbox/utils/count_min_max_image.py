@@ -1,5 +1,5 @@
-import rasterio
 import numpy as np
+import rasterio
 
 # src = rasterio.open('/work/OT/ai4geo/DATA/DATASETS/DIGITANIE/Paris/emprise_ORTHO_cropped.tif')
 src = rasterio.open("/d/pfournie/ai4geo/data/SemcityTLS_DL/BDSD_M.tif")

@@ -1,8 +1,9 @@
 import numpy as np
-import torch
-from dl_toolbox.lightning_modules import Unet
 import onnx
 import onnxruntime
+import torch
+
+from dl_toolbox.lightning_modules import Unet
 
 
 def main():

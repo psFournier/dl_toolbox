@@ -1,16 +1,17 @@
-from argparse import ArgumentParser
-import matplotlib.pyplot as plt
-import os
-import pandas as pd
 import csv
-import torch
-import numpy as np
-import rasterio
-from dl_toolbox.lightning_modules import Unet
-import dl_toolbox.inference as dl_inf
-from dl_toolbox.callbacks import plot_confusion_matrix
-from dl_toolbox.torch_datasets import DigitanieDs, SemcityBdsdDs
+import os
 import pathlib
+from argparse import ArgumentParser
+
+import dl_toolbox.inference as dl_inf
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import rasterio
+import torch
+from dl_toolbox.callbacks import plot_confusion_matrix
+from dl_toolbox.lightning_modules import Unet
+from dl_toolbox.torch_datasets import DigitanieDs, SemcityBdsdDs
 
 datasets = {"semcity": SemcityBdsdDs, "digitanie": DigitanieDs}
 

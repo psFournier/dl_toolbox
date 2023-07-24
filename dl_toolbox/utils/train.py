@@ -1,16 +1,17 @@
+import sys
 from argparse import ArgumentParser
+
+from pytorch_lightning import loggers, Trainer
 from pytorch_lightning.callbacks import (
-    ModelCheckpoint,
     LearningRateMonitor,
+    ModelCheckpoint,
     StochasticWeightAveraging,
 )
-from pytorch_lightning import Trainer, loggers
 from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
-import sys
 
 from lightning_modules import *
 from lightning_datamodules import *
-from callbacks import SegmentationImagesVisualisation, CustomSwa, ConfMatLogger
+from callbacks import ConfMatLogger, CustomSwa, SegmentationImagesVisualisation
 
 modules = {
     "sup": Unet,

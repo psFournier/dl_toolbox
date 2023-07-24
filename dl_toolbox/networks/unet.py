@@ -1,5 +1,6 @@
-import torch
 from argparse import ArgumentParser
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 

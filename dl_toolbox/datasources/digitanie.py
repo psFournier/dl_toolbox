@@ -1,12 +1,14 @@
-from dataclasses import dataclass
-from collections import namedtuple
 import enum
-from .tif_datasource import TifDatasource
+from collections import namedtuple
+from dataclasses import dataclass
+
+import numpy as np
+import rasterio
+import shapely
 
 import torch
-import rasterio
-import numpy as np
-import shapely
+
+from .tif_datasource import TifDatasource
 
 
 class DigiPolygons(enum.Enum):

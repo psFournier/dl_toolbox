@@ -9,8 +9,8 @@
 # from .BCE_PL import BCE_PL
 # from .fgsm import FGSM
 # from .flair import *
-from .supervised import Supervised
 from .BCE import Multilabel
+from .supervised import Supervised
 
 # from .cross_pseudo_supervision import CrossPseudoSupervision
 # from .mean_teacher import MeanTeacher

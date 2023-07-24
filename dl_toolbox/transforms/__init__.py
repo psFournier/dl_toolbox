@@ -1,9 +1,9 @@
-from .utils import Compose, rand_bbox, NoOp, OneOf
-from .color import Saturation, Contrast, Brightness, Gamma, Color
-from .d4 import Vflip, Hflip, Transpose1, Transpose2, D4, Rot90, Rot270, Rot180, Flip
-from .mixup import Mixup, Mixup2
-from .cutmix import Cutmix, Cutmix2
+from .color import Brightness, Color, Contrast, Gamma, Saturation
 from .crop import RandomCrop2
+from .cutmix import Cutmix, Cutmix2
+from .d4 import D4, Flip, Hflip, Rot180, Rot270, Rot90, Transpose1, Transpose2, Vflip
+from .mixup import Mixup, Mixup2
+from .utils import Compose, NoOp, OneOf, rand_bbox
 from .imagenet import *
 from .stretch_to_minmax import *
 from .zero_average import *

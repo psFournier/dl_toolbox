@@ -1,7 +1,9 @@
+import random
+
 import torch
 import torchvision.transforms.functional as F
-import random
-from .utils import OneOf, NoOp
+
+from .utils import NoOp, OneOf
 
 
 class Vflip(torch.nn.Module):

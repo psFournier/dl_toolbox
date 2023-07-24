@@ -1,6 +1,7 @@
 from itertools import product
-from rasterio.windows import Window
+
 import numpy as np
+from rasterio.windows import Window
 
 
 def get_tiles(

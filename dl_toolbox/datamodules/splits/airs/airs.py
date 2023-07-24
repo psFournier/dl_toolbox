@@ -1,6 +1,7 @@
 import csv
-import rasterio
 from pathlib import Path
+
+import rasterio
 
 
 with open(Path.home() / f"ai4geo/splits/airs/airs.csv", "w", newline="") as csvfile:

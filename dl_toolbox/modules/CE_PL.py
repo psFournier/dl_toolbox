@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 
-from dl_toolbox.lightning_modules import CE
 import dl_toolbox.utils as utils
+
+from dl_toolbox.lightning_modules import CE
 from dl_toolbox.torch_datasets.utils import get_transforms
 
 

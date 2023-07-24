@@ -1,5 +1,6 @@
-from pytorch_lightning.callbacks import TQDMProgressBar
 import sys
+
+from pytorch_lightning.callbacks import TQDMProgressBar
 
 
 class MyProgressBar(TQDMProgressBar):

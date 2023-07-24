@@ -1,7 +1,8 @@
 from argparse import ArgumentParser
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+
 import matplotlib.pyplot as plt
 import numpy as np
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 # parser = ArgumentParser()
 # parser.add_argument("--path", type=str)

@@ -1,10 +1,11 @@
-import pytorch_lightning as pl
-import torch
-from torchmetrics import ConfusionMatrix
+from functools import partial
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pytorch_lightning as pl
 import rasterio.windows as windows
-from functools import partial
+import torch
+from torchmetrics import ConfusionMatrix
 
 
 def dist_to_edge(i, j, h, w):

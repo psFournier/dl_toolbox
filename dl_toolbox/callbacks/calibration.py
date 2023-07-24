@@ -1,12 +1,13 @@
-import pytorch_lightning as pl
-import torch
-from torchmetrics import CalibrationError
+import itertools
+
 import matplotlib.pyplot as plt
 import numpy as np
-import itertools
+import pytorch_lightning as pl
+import seaborn as sns
+import torch
+from torchmetrics import CalibrationError
 from torchmetrics.functional.classification.calibration_error import _binning_bucketize
 from torchmetrics.utilities.data import dim_zero_cat
-import seaborn as sns
 
 # Necessary for imshow to run on machines with no graphical interface.
 plt.switch_backend("agg")

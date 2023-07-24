@@ -1,16 +1,18 @@
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
-from pytorch_lightning import LightningDataModule
-import dl_toolbox.datasets as datasets
-from dl_toolbox.utils import CustomCollate
-from pytorch_lightning.utilities import CombinedLoader
+import json
 
 import os
-import numpy as np
-from os.path import join
-from pathlib import Path
-import json
 import random
 import re
+from os.path import join
+from pathlib import Path
+
+import numpy as np
+from pytorch_lightning import LightningDataModule
+from pytorch_lightning.utilities import CombinedLoader
+from torch.utils.data import ConcatDataset, DataLoader, RandomSampler
+
+import dl_toolbox.datasets as datasets
+from dl_toolbox.utils import CustomCollate
 
 
 def _gather_data(

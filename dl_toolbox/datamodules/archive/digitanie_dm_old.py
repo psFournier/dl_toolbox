@@ -1,15 +1,17 @@
-from argparse import ArgumentParser
 import os
+from argparse import ArgumentParser
+
+import numpy as np
+import torch
 
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
+from torch.utils.data import ConcatDataset, DataLoader, RandomSampler
 from torch.utils.data._utils.collate import default_collate
-import torch
-import numpy as np
 
-from dl_toolbox.utils import worker_init_function
 from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.torch_datasets import DigitanieDs
+
+from dl_toolbox.utils import worker_init_function
 
 
 class DigitanieDm(LightningDataModule):

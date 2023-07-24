@@ -1,9 +1,10 @@
+from pathlib import Path
+
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import DataLoader
 from pytorch_lightning.utilities import CombinedLoader
+from torch.utils.data import DataLoader
 
 import dl_toolbox.datasets as datasets
-from pathlib import Path
 
 
 class Cityscapes(LightningDataModule):

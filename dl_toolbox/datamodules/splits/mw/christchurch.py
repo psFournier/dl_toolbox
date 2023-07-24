@@ -1,6 +1,7 @@
 import csv
-import imagesize
 from pathlib import Path
+
+import imagesize
 
 data = Path("/data/miniworld_tif")
 csv_dst = Path.home() / "ai4geo/splits/mw/christchurch.csv"

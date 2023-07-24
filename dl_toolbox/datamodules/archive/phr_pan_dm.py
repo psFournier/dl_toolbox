@@ -1,4 +1,4 @@
-from lightning_datamodules import BaseSupervisedDatamodule, BaseSemisupDatamodule
+from lightning_datamodules import BaseSemisupDatamodule, BaseSupervisedDatamodule
 from torch_datasets import PhrPanDs
 
 

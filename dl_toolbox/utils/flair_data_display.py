@@ -4,16 +4,17 @@
 
 ## Imports
 import os
-import re
 import random
+import re
 from pathlib import Path
-import numpy as np
+
 import matplotlib
-from matplotlib.colors import hex2color
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+import numpy as np
 import rasterio
 import rasterio.plot as plot
+from matplotlib.colors import hex2color
 
 
 lut_colors = {

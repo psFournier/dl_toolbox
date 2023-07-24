@@ -1,11 +1,13 @@
+from argparse import ArgumentParser
+
+import dltoolbox.inference as dl_inf
 import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 from scipy import ndimage
 from skimage import color
+
 from dl_toolbox.utils import MergeLabels
-from argparse import ArgumentParser
-import dltoolbox.inference as dl_inf
 
 parser = ArgumentParser()
 parser.add_argument("--label_path", type=str)

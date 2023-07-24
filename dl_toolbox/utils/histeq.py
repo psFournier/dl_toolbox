@@ -2,8 +2,8 @@
 # Reference: https://github.com/torywalker/histogram-equalizer/blob/master/HistogramEqualization.ipynb
 
 import cv2
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 img_tif = cv2.imread("scan.tif", cv2.IMREAD_ANYDEPTH)
 

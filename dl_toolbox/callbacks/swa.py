@@ -1,8 +1,9 @@
+from copy import deepcopy
+
 import pytorch_lightning as pl
 import torch
 import torchmetrics.functional as metrics
 from pytorch_lightning.callbacks import StochasticWeightAveraging
-from copy import deepcopy
 
 
 class CustomSwa(StochasticWeightAveraging):

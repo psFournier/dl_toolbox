@@ -1,10 +1,10 @@
+import enum
 import random
+from collections import namedtuple
 
 import rasterio.windows as windows
 
 from dl_toolbox.utils import get_tiles
-from collections import namedtuple
-import enum
 
 label = namedtuple("label", ["name", "color", "values"])
 

@@ -6,11 +6,6 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import nn, Tensor
-from torchvision.ops import StochasticDepth
-
-from torchvision.ops.misc import SqueezeExcitation, Conv2dNormActivation
-from torchvision.transforms._presets import ImageClassification, InterpolationMode
-from torchvision.utils import _log_api_usage_once
 from torchvision.models._api import register_model, Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import (
@@ -18,6 +13,11 @@ from torchvision.models._utils import (
     _ovewrite_named_param,
     handle_legacy_interface,
 )
+from torchvision.ops import StochasticDepth
+
+from torchvision.ops.misc import Conv2dNormActivation, SqueezeExcitation
+from torchvision.transforms._presets import ImageClassification, InterpolationMode
+from torchvision.utils import _log_api_usage_once
 
 
 __all__ = [

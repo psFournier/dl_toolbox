@@ -1,9 +1,10 @@
 import os
 import warnings
-from torch_datasets import Base, BaseLabeled, BaseUnlabeled
+from abc import ABC
+
 import numpy as np
 import rasterio
-from abc import ABC
+from torch_datasets import Base, BaseLabeled, BaseUnlabeled
 
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 

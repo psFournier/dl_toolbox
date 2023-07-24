@@ -1,14 +1,14 @@
-from .image_visu import SegmentationImagesVisualisation
-from .swa import CustomSwa
+from .calibration import CalibrationLogger, compute_calibration_bins, plot_calib
+from .class_distrib import ClassDistribLogger
 from .confusion_matrix import (
-    MetricsFromConfmat,
     compute_conf_mat,
+    MetricsFromConfmat,
     plot_confusion_matrix,
 )
-from .calibration import CalibrationLogger, plot_calib, compute_calibration_bins
-from .class_distrib import ClassDistribLogger
-from .tiff_preds_writer import TiffPredsWriter
+from .image_visu import SegmentationImagesVisualisation
 from .merged_tiff_preds_writer import MergedTiffPredsWriter
 from .progress_bar import MyProgressBar
+from .swa import CustomSwa
+from .tiff_preds_writer import TiffPredsWriter
 
 # from .merge_tile import MergeTile

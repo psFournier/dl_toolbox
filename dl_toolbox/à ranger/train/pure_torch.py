@@ -1,18 +1,19 @@
-from argparse import ArgumentParser
-import torch
-from rasterio.windows import Window
-from dl_toolbox.torch_datasets import SemcityBdsdDs
 import os
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
-from dl_toolbox.utils import worker_init_function
-import segmentation_models_pytorch as smp
-from torch.optim import Adam
-from torch.optim.lr_scheduler import LambdaLR
 import time
+from argparse import ArgumentParser
+
+import segmentation_models_pytorch as smp
 import tabulate
-from dl_toolbox.torch_collate import CustomCollate
+import torch
 from dl_toolbox.lightning_datamodules import SplitfilSup
 from dl_toolbox.lightning_modules import CE
+from dl_toolbox.torch_collate import CustomCollate
+from dl_toolbox.torch_datasets import SemcityBdsdDs
+from dl_toolbox.utils import worker_init_function
+from rasterio.windows import Window
+from torch.optim import Adam
+from torch.optim.lr_scheduler import LambdaLR
+from torch.utils.data import ConcatDataset, DataLoader, RandomSampler
 
 
 def main():

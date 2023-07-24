@@ -1,14 +1,15 @@
 from argparse import ArgumentParser
-import torch
+
+import dl_toolbox.inference as dl_inf
 import numpy as np
 import rasterio
+import torch
 from dl_toolbox.lightning_modules import Unet
-import dl_toolbox.inference as dl_inf
 from dl_toolbox.torch_datasets import *
 
+from dl_toolbox.utils import MergeLabels, OneHot
 # from dl_toolbox.torch_datasets.utils import *
 from sklearn.metrics import confusion_matrix as confusion_matrix
-from dl_toolbox.utils import MergeLabels, OneHot
 
 datasets = {
     "semcity": SemcityBdsdDs,

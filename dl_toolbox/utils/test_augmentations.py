@@ -1,9 +1,9 @@
-from torch_datasets import ChristchurchLabeled, AustinLabeled
-from torch.utils.data import DataLoader
-from matplotlib import pyplot as plt
-from utils import get_image_level_aug
 import torch
+from matplotlib import pyplot as plt
+from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
+from torch_datasets import AustinLabeled, ChristchurchLabeled
+from utils import get_image_level_aug
 
 
 augname = "gamma"

@@ -1,17 +1,19 @@
-from torch.utils.data import Dataset, DataLoader, Subset
-from torchvision.datasets.folder import DatasetFolder
-from argparse import ArgumentParser
-from PIL import Image
-import matplotlib.pyplot as plt
+import enum
 import os
-import torch
-import numpy as np
+from argparse import ArgumentParser
 
 from collections import namedtuple
-import enum
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from PIL import Image
+from torch.utils.data import DataLoader, Dataset, Subset
+from torchvision.datasets.folder import DatasetFolder
+
+import dl_toolbox.augmentations as augmentations
 
 from dl_toolbox.utils import MergeLabels, OneHot
-import dl_toolbox.augmentations as augmentations
 
 
 label = namedtuple("label", ["name", "color", "values"])

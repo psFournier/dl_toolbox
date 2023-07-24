@@ -1,9 +1,11 @@
 from argparse import ArgumentParser
-import rasterio
-import dl_toolbox.inference as dl_inf
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pydensecrf.densecrf as dcrf
-import matplotlib.pyplot as plt
+import rasterio
+
+import dl_toolbox.inference as dl_inf
 
 parser = ArgumentParser()
 parser.add_argument("--probas_path", type=str)

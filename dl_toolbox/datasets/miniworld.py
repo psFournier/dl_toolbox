@@ -1,9 +1,10 @@
-import torch
-import rasterio
 import numpy as np
+import rasterio
+import torch
+
+from dl_toolbox.torch_datasets import RasterDs
 
 from dl_toolbox.utils import minmax
-from dl_toolbox.torch_datasets import RasterDs
 
 
 labels_dict = {

@@ -1,5 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 # v1 = np.random.multivariate_normal(mean=np.array([2, 2]), cov=np.diag([1, 0.5]), size=100)
 # c = np.zeros(shape=(100, 3))
