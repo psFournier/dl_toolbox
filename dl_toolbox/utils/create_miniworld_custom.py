@@ -10,78 +10,58 @@ import csv
 
 
 def resizefile(root, XY, output, nativeresolution, outputresolution=50.0):
-
     i = 0
     upscale_factor = nativeresolution / outputresolution
 
     for name in XY:
-
         x, y = XY[name]
 
         with rasterio.open(root + "/" + x) as imagefile:
-
             out_profile = imagefile.profile
             out_height = int(imagefile.height * upscale_factor)
             out_width = int(imagefile.width * upscale_factor)
 
             # resample data to target shape
             data = imagefile.read(
-                out_shape=(
-                    imagefile.count,
-                    out_height,
-                    out_width
-                ),
-                resampling=Resampling.bilinear
+                out_shape=(imagefile.count, out_height, out_width),
+                resampling=Resampling.bilinear,
             )
 
             # scale image transform
             transform = imagefile.transform * imagefile.transform.scale(
-                (imagefile.width / data.shape[-1]),
-                (imagefile.height / data.shape[-2])
+                (imagefile.width / data.shape[-1]), (imagefile.height / data.shape[-2])
             )
 
-            out_profile.update(
-                transform=transform,
-                height=out_height,
-                width=out_width
-            )
+            out_profile.update(transform=transform, height=out_height, width=out_width)
 
-        with rasterio.open(output + "/" + str(i) + "_x.tif", 'w', **out_profile) as dstimage:
-
+        with rasterio.open(
+            output + "/" + str(i) + "_x.tif", "w", **out_profile
+        ) as dstimage:
             dstimage.write(data)
 
         with rasterio.open(root + "/" + y) as labelfile:
-
             out_profile = labelfile.profile
             out_height = int(labelfile.height * upscale_factor)
             out_width = int(labelfile.width * upscale_factor)
 
             # resample data to target shape
             data = labelfile.read(
-                out_shape=(
-                    labelfile.count,
-                    out_height,
-                    out_width
-                ),
-                resampling=Resampling.bilinear
+                out_shape=(labelfile.count, out_height, out_width),
+                resampling=Resampling.bilinear,
             )
 
             transform = labelfile.transform * labelfile.transform.scale(
-                (labelfile.width / data.shape[-1]),
-                (labelfile.height / data.shape[-2])
+                (labelfile.width / data.shape[-1]), (labelfile.height / data.shape[-2])
             )
 
-            out_profile.update(
-                transform=transform,
-                height=out_height,
-                width=out_width
-            )
+            out_profile.update(transform=transform, height=out_height, width=out_width)
 
-        with rasterio.open(output + "/" + str(i) + "_y.tif", 'w', **out_profile) as dst_label:
-
+        with rasterio.open(
+            output + "/" + str(i) + "_y.tif", "w", **out_profile
+        ) as dst_label:
             dst_label.write(data)
 
-        i+=1
+        i += 1
 
 
 # XY = {
@@ -99,11 +79,11 @@ root = "/scratch_ai4geo/DATASETS/"
 rootminiworld = "/scratch_ai4geo/miniworld_tif/"
 
 
-
 def makepath(name):
     os.makedirs(rootminiworld + name)
     os.makedirs(rootminiworld + name + "/train")
     os.makedirs(rootminiworld + name + "/test")
+
 
 if "inria" in availabledata:
     print("export inria")
@@ -123,7 +103,7 @@ if "inria" in availabledata:
             XY,
             rootminiworld + town + "/train/",
             30,
-            )
+        )
 
         XY = {}
         for i in range(16):
@@ -136,7 +116,7 @@ if "inria" in availabledata:
             XY,
             rootminiworld + town + "/test/",
             30,
-            )
+        )
 
 if "airs" in availabledata:
     print("export airs")
@@ -157,10 +137,9 @@ if "airs" in availabledata:
             XY,
             rootminiworld + "christchurch/" + flag + "/",
             7.5,
-            )
+        )
 
 if "isprs" in availabledata:
-
     print("export isprs potsdam")
     makepath("potsdam")
 
@@ -199,7 +178,7 @@ if "isprs" in availabledata:
         for name in names[flag]:
             XY[name] = (
                 "2_Ortho_RGB/" + name + "RGB.tif",
-                "5_Labels_for_participants/" + name + "label.tif"
+                "5_Labels_for_participants/" + name + "label.tif",
             )
         resizefile(root + "ISPRS_POTSDAM/", XY, rootminiworld + "potsdam/" + flag, 5)
 
@@ -216,8 +195,10 @@ if "semcity" in availabledata:
     for flag in ["train", "test"]:
         XY = {}
         for name in names[flag]:
-            XY[name] = (
-                "TLS_BDSD_M_" + name + ".tif",
-                "TLS_GT_" + name + ".tif"
-            )
-        resizefile(root + hack + "SEMCITY_TOULOUSE/", XY, rootminiworld + "toulouse/" + flag, 50)
+            XY[name] = ("TLS_BDSD_M_" + name + ".tif", "TLS_GT_" + name + ".tif")
+        resizefile(
+            root + hack + "SEMCITY_TOULOUSE/",
+            XY,
+            rootminiworld + "toulouse/" + flag,
+            50,
+        )

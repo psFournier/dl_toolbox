@@ -11,8 +11,13 @@ BINARY_MODE = "binary"
 MULTICLASS_MODE = "multiclass"
 MULTILABEL_MODE = "multilabel"
 
+
 def soft_jaccard_score(
-    output: torch.Tensor, target: torch.Tensor, smooth: float = 0.0, eps: float = 1e-7, dims=None
+    output: torch.Tensor,
+    target: torch.Tensor,
+    smooth: float = 0.0,
+    eps: float = 1e-7,
+    dims=None,
 ) -> torch.Tensor:
     """
     :param output:
@@ -40,6 +45,7 @@ def soft_jaccard_score(
     jaccard_score = (intersection + smooth) / (union + smooth).clamp_min(eps)
     return jaccard_score
 
+
 class JaccardLoss(_Loss):
     """
     Implementation of Jaccard loss for image segmentation task.
@@ -47,13 +53,13 @@ class JaccardLoss(_Loss):
     """
 
     def __init__(
-        self, 
-        mode: str, 
-        log_loss=False, 
-        from_logits=True, 
-        smooth=0, 
+        self,
+        mode: str,
+        log_loss=False,
+        from_logits=True,
+        smooth=0,
         ignore_index=None,
-        eps=1e-7
+        eps=1e-7,
     ):
         """
         :param mode: Metric mode {'binary', 'multiclass', 'multilabel'}
@@ -111,7 +117,9 @@ class JaccardLoss(_Loss):
                 mask = y_true != self.ignore_index
                 y_pred = y_pred * mask.unsqueeze(1)
 
-                y_true = F.one_hot((y_true * mask).to(torch.long), num_classes)  # N,H*W -> N,H*W, C
+                y_true = F.one_hot(
+                    (y_true * mask).to(torch.long), num_classes
+                )  # N,H*W -> N,H*W, C
                 y_true = y_true.permute(0, 2, 1) * mask.unsqueeze(1)  # H, C, H*W
             else:
                 y_true = F.one_hot(y_true, num_classes)  # N,H*W -> N,H*W, C
@@ -126,7 +134,13 @@ class JaccardLoss(_Loss):
                 y_pred = y_pred * mask
                 y_true = y_true * mask
 
-        scores = soft_jaccard_score(y_pred, y_true.type(y_pred.dtype), smooth=self.smooth, eps=self.eps, dims=dims)
+        scores = soft_jaccard_score(
+            y_pred,
+            y_true.type(y_pred.dtype),
+            smooth=self.smooth,
+            eps=self.eps,
+            dims=dims,
+        )
 
         if self.log_loss:
             loss = -torch.log(scores.clamp_min(self.eps))

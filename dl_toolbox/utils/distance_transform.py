@@ -13,15 +13,15 @@ args = parser.parse_args()
 
 with rasterio.open(args.label_path) as f:
     rgb_label = f.read(out_dtype=np.uint8)
-label = dl_inf.rgb_to_labels(rgb_label, dataset='semcity')
-    
+label = dl_inf.rgb_to_labels(rgb_label, dataset="semcity")
 
-merges = [[0],[1, 2, 3, 5, 6, 7, 8], [4]]
+
+merges = [[0], [1, 2, 3, 5, 6, 7, 8], [4]]
 label_merger = MergeLabels(merges)
 
 label = label_merger(label)
 
-fig = plt.figure(figsize=(20,20))
+fig = plt.figure(figsize=(20, 20))
 ax1 = fig.add_subplot(111)
-ax1.imshow(label, cmap='gray')
+ax1.imshow(label, cmap="gray")
 plt.show(block=True)

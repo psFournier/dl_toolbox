@@ -17,7 +17,7 @@ class DoubleConv(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
         )
 
     def forward(self, x):
@@ -30,8 +30,7 @@ class Down(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
+            nn.MaxPool2d(2), DoubleConv(in_channels, out_channels)
         )
 
     def forward(self, x):
@@ -39,7 +38,6 @@ class Down(nn.Module):
 
 
 class Vgg(nn.Module):
-
     def __init__(self, in_channels, out_channels, *args, **kwargs):
         super().__init__()
         self.in_channels = in_channels
@@ -51,8 +49,8 @@ class Vgg(nn.Module):
         self.down3 = Down(64, 128)
         self.down4 = Down(128, 256)
         self.down5 = Down(256, 16)
-        self.fc1 = nn.Linear(16*8*8,512)
-        self.pred = nn.Linear(512,out_channels)
+        self.fc1 = nn.Linear(16 * 8 * 8, 512)
+        self.pred = nn.Linear(512, out_channels)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -62,5 +60,5 @@ class Vgg(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
         x6 = self.down5(x5)
-        fc1 = self.relu(self.fc1(x6.view(-1,16*8*8)))
+        fc1 = self.relu(self.fc1(x6.view(-1, 16 * 8 * 8)))
         return self.pred(fc1)

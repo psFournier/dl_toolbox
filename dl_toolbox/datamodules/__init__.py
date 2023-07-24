@@ -1,10 +1,12 @@
-#from .supervised_dm import SupervisedDm
-#from .semisup_dm import SemisupDm
+# from .supervised_dm import SupervisedDm
+# from .semisup_dm import SemisupDm
 from .digitanie import *
 from .cityscapes import *
-#from .from_folder_dataset import *
+
+# from .from_folder_dataset import *
 from .flair import *
-#from .splitfile_sup import SplitfileSup
-#from .splitfile_semisup import SplitfileSemisup
-#from .splitidx_sup import SplitIdxSup
-#from .splitidx_semisup import SplitIdxSemisup
+
+# from .splitfile_sup import SplitfileSup
+# from .splitfile_semisup import SplitfileSemisup
+# from .splitidx_sup import SplitIdxSup
+# from .splitidx_semisup import SplitIdxSemisup

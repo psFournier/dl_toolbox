@@ -1,18 +1,16 @@
 import numpy as np
 import torch
 
-class NoOp():
 
+class NoOp:
     def __init__(self, p=1):
-
         pass
 
     def __call__(self, img, label=None):
-
         return img, label
 
-class Compose:
 
+class Compose:
     def __init__(self, transforms):
         self.transforms = transforms
 
@@ -23,7 +21,6 @@ class Compose:
 
 
 class OneOf:
-
     def __init__(self, transforms, transforms_ps):
         self.transforms = transforms
         s = sum(transforms_ps)
@@ -36,10 +33,9 @@ class OneOf:
 
 
 def rand_bbox(size, lam):
-
     W = size[2]
     H = size[3]
-    cut_rat = np.sqrt(1. - lam)
+    cut_rat = np.sqrt(1.0 - lam)
     cut_w = np.int(W * cut_rat)
     cut_h = np.int(H * cut_rat)
 
@@ -54,9 +50,8 @@ def rand_bbox(size, lam):
 
     return bbx1, bby1, bbx2, bby2
 
-def stretch_to_minmax(img, mins, maxs):
-    
-    res = (img - mins) / (maxs - mins)
-    
-    return torch.clip(res, 0, 1)
 
+def stretch_to_minmax(img, mins, maxs):
+    res = (img - mins) / (maxs - mins)
+
+    return torch.clip(res, 0, 1)

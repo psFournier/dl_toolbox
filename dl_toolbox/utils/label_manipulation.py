@@ -3,18 +3,16 @@ import torch
 
 
 def merge_labels(labels, merge):
-    
     ret = np.zeros(labels.shape, dtype=labels.dtype)
     for i, val in enumerate(merge):
         for j in val:
             ret[labels == j] = i
-            
+
     return ret
 
+
 class MergeLabels:
-
     def __init__(self, labels, label_names=None):
-
         self.labels = labels
 
     def __call__(self, L):
@@ -32,85 +30,76 @@ class MergeLabels:
 
         return ret
 
+
 class TorchOneHot:
-
     def __init__(self, labels):
-
         self.labels = labels
 
     def __call__(self, L):
-
-        onehot_masks = [
-            (L==val).squeeze() for val in self.labels
-        ]
+        onehot_masks = [(L == val).squeeze() for val in self.labels]
 
         return torch.stack(onehot_masks, axis=1)
 
+
 class OneHot:
-
     def __init__(self, labels):
-
         self.labels = labels
 
     def __call__(self, L):
-
-        onehot_masks = [(L==val).astype(int).squeeze() for val in self.labels]
+        onehot_masks = [(L == val).astype(int).squeeze() for val in self.labels]
 
         return np.stack(onehot_masks, axis=0)
 
+
 def labels_to_rgb(labels, colors):
-    
     rgb = np.zeros(shape=(*labels.shape, 3), dtype=np.uint8)
     for label, color in colors:
         mask = np.array(labels == label)
         rgb[mask] = np.array(color)
-    
-    return rgb 
+
+    return rgb
+
 
 class LabelsToRGB:
     # Inputs shape : B,H,W or H,W
     # Outputs shape : B,H,W,3 or H,W,3
 
     def __init__(self, labels):
-
         self.labels = labels
 
     def __call__(self, labels):
         rgb = np.zeros(shape=(*labels.shape, 3), dtype=np.uint8)
         for label, key in enumerate(self.labels):
             mask = np.array(labels == label)
-            rgb[mask] = np.array(self.labels[key]['color'])
+            rgb[mask] = np.array(self.labels[key]["color"])
 
         return rgb
 
-class NomencToRgb:
-    
-    def __init__(self, nomenc):
 
+class NomencToRgb:
+    def __init__(self, nomenc):
         self.nomenc = nomenc
 
     def __call__(self, labels):
-        
         rgb = np.zeros(shape=(*labels.shape, 3), dtype=np.uint8)
-        
+
         for label, key in enumerate(self.nomenc):
             mask = np.array(labels == label)
             rgb[mask] = np.array(key.color)
 
-        return rgb    
+        return rgb
+
 
 class RGBToLabels:
     # Inputs shape : B,H,W,3 or H,W,3
     # Outputs shape : B,H,W or H,W
     def __init__(self, labels):
-
         self.labels = labels
 
     def __call__(self, rgb):
-
         labels = np.zeros(shape=rgb.shape[:-1], dtype=np.uint8)
         for label, key in enumerate(self.labels):
-            c = self.labels[key]['color']
+            c = self.labels[key]["color"]
             d = rgb[..., 0] == c[0]
             d = np.logical_and(d, (rgb[..., 1] == c[1]))
             d = np.logical_and(d, (rgb[..., 2] == c[2]))

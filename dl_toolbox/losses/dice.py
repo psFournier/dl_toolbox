@@ -13,7 +13,11 @@ MULTILABEL_MODE = "multilabel"
 
 
 def soft_dice_score(
-        output: torch.Tensor, target: torch.Tensor, smooth: float = 0.0, eps: float = 1e-7, dims=None
+    output: torch.Tensor,
+    target: torch.Tensor,
+    smooth: float = 0.0,
+    eps: float = 1e-7,
+    dims=None,
 ) -> torch.Tensor:
     """
 
@@ -48,13 +52,13 @@ class DiceLoss(_Loss):
     """
 
     def __init__(
-            self,
-            mode: str,
-            log_loss=False,
-            from_logits=True,
-            smooth: float = 0.01,
-            ignore_index=None,
-            eps=1e-7
+        self,
+        mode: str,
+        log_loss=False,
+        from_logits=True,
+        smooth: float = 0.01,
+        ignore_index=None,
+        eps=1e-7,
     ):
         """
 
@@ -113,7 +117,9 @@ class DiceLoss(_Loss):
                 mask = y_true != self.ignore_index
                 y_pred = y_pred * mask.unsqueeze(1)
 
-                y_true = F.one_hot((y_true * mask).to(torch.long), num_classes)  # N,H*W -> N,H*W, C
+                y_true = F.one_hot(
+                    (y_true * mask).to(torch.long), num_classes
+                )  # N,H*W -> N,H*W, C
                 y_true = y_true.permute(0, 2, 1) * mask.unsqueeze(1)  # H, C, H*W
             else:
                 y_true = F.one_hot(y_true, num_classes)  # N,H*W -> N,H*W, C
@@ -128,7 +134,9 @@ class DiceLoss(_Loss):
                 y_pred = y_pred * mask
                 y_true = y_true * mask
 
-        scores = soft_dice_score(y_pred, y_true.type_as(y_pred), smooth=self.smooth, eps=self.eps, dims=dims)
+        scores = soft_dice_score(
+            y_pred, y_true.type_as(y_pred), smooth=self.smooth, eps=self.eps, dims=dims
+        )
 
         if self.log_loss:
             loss = -torch.log(scores.clamp_min(self.eps))

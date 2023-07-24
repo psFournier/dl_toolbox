@@ -1,6 +1,7 @@
 from pytorch_lightning.callbacks import TQDMProgressBar
 import sys
 
+
 class MyProgressBar(TQDMProgressBar):
     def init_validation_tqdm(self):
         bar = super().init_validation_tqdm()

@@ -19,20 +19,20 @@ fig, ax = plt.subplots()
 #     i += 1
 
 v = np.random.multivariate_normal(mean=[2, 2], cov=np.diag([1, 1]), size=40)
-ax.scatter(v[:,0], v[:,1], c='blue', label='train set')
+ax.scatter(v[:, 0], v[:, 1], c="blue", label="train set")
 
 for i in range(40):
-    v2 = np.random.multivariate_normal(mean=v[i,:], cov=np.diag([0.05, 0.05]), size=10)
-    ax.scatter(v2[:,0], v2[:,1], c='green')
+    v2 = np.random.multivariate_normal(mean=v[i, :], cov=np.diag([0.05, 0.05]), size=10)
+    ax.scatter(v2[:, 0], v2[:, 1], c="green")
 
-ax.scatter(0, 0, c='green', label='augmented points')
+ax.scatter(0, 0, c="green", label="augmented points")
 v3 = np.random.multivariate_normal(mean=[2, 2], cov=np.diag([1, 1]), size=20)
-ax.scatter(v3[:,0], v3[:,1], c='red', label='test set')
+ax.scatter(v3[:, 0], v3[:, 1], c="red", label="test set")
 
 ax.legend()
-ax.set_ylabel('Saturation')
-ax.set_xlabel('Contraste')
-ax.xaxis.set_label_position('top')
+ax.set_ylabel("Saturation")
+ax.set_xlabel("Contraste")
+ax.xaxis.set_label_position("top")
 plt.xticks([], [])
 plt.yticks([], [])
 plt.show()

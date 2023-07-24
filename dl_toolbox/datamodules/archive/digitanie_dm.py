@@ -17,22 +17,22 @@ from dl_toolbox.torch_datasets.utils import *
 
 
 class SupervisedDm(LightningDataModule):
-
-    def __init__(self,
-                 data_path,
-                 dataset_cls,
-                 splitfile_path,
-                 test_folds,
-                 train_folds,
-                 crop_size,
-                 epoch_len,
-                 sup_batch_size,
-                 workers,
-                 img_aug,
-                 batch_aug,
-                 *args,
-                 **kwargs):
-
+    def __init__(
+        self,
+        data_path,
+        dataset_cls,
+        splitfile_path,
+        test_folds,
+        train_folds,
+        crop_size,
+        epoch_len,
+        sup_batch_size,
+        workers,
+        img_aug,
+        batch_aug,
+        *args,
+        **kwargs
+    ):
         super().__init__()
         self.data_path = data_path
         self.dataset_cls = dataset_cls
@@ -48,31 +48,28 @@ class SupervisedDm(LightningDataModule):
 
     @classmethod
     def add_model_specific_args(cls, parent_parser):
-
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--data_path", type=str)
         parser.add_argument("--dataset_cls", type=str)
         parser.add_argument("--splitfile_path", type=str)
-        parser.add_argument("--test_folds", nargs='+', type=int)
-        parser.add_argument("--train_folds", nargs='+', type=int)
+        parser.add_argument("--test_folds", nargs="+", type=int)
+        parser.add_argument("--train_folds", nargs="+", type=int)
         parser.add_argument("--epoch_len", type=int)
         parser.add_argument("--sup_batch_size", type=int)
         parser.add_argument("--crop_size", type=int)
         parser.add_argument("--workers", type=int)
-        parser.add_argument('--img_aug', type=str)
-        parser.add_argument('--batch_aug', type=str)
+        parser.add_argument("--img_aug", type=str)
+        parser.add_argument("--batch_aug", type=str)
 
         return parser
-   
-    def prepare_data(self, *args, **kwargs):
 
+    def prepare_data(self, *args, **kwargs):
         pass
 
     def setup(self, stage=None):
-        
         train_datasets = []
         validation_datasets = []
-        with open(self.splitfile_path, newline='') as splitfile:
+        with open(self.splitfile_path, newline="") as splitfile:
             self.train_set, self.val_set = build_split_from_csv(
                 splitfile=splitfile,
                 dataset_cls=self.dataset_cls,
@@ -80,17 +77,13 @@ class SupervisedDm(LightningDataModule):
                 test_folds=self.test_folds,
                 img_aug=self.img_aug,
                 data_path=self.data_path,
-                crop_size = self.crop_size,
-                one_hot=True
+                crop_size=self.crop_size,
+                one_hot=True,
             )
 
-
     def train_dataloader(self):
-
         train_sampler = RandomSampler(
-            data_source=self.train_set,
-            replacement=True,
-            num_samples=self.epoch_len
+            data_source=self.train_set, replacement=True, num_samples=self.epoch_len
         )
 
         train_dataloader = DataLoader(
@@ -100,27 +93,26 @@ class SupervisedDm(LightningDataModule):
             sampler=train_sampler,
             num_workers=self.num_workers,
             pin_memory=True,
-            worker_init_fn=worker_init_function
+            worker_init_fn=worker_init_function,
         )
 
         return train_dataloader
 
     def val_dataloader(self):
-
         val_dataloader = DataLoader(
             dataset=self.val_set,
             shuffle=False,
-            collate_fn=CustomCollate(batch_aug='no'),
+            collate_fn=CustomCollate(batch_aug="no"),
             batch_size=self.sup_batch_size,
             num_workers=self.num_workers,
             pin_memory=True,
-            worker_init_fn=worker_init_function
+            worker_init_fn=worker_init_function,
         )
 
         return val_dataloader
-    
 
-#class DigitanieSemisupDm(DigitanieDm):
+
+# class DigitanieSemisupDm(DigitanieDm):
 #
 #    def __init__(
 #        self,
@@ -130,7 +122,7 @@ class SupervisedDm(LightningDataModule):
 #        *args,
 #        **kwargs
 #    ):
-#        
+#
 #        super().__init__(*args, **kwargs)
 #        self.unsup_batch_size = unsup_batch_size
 #        self.unsup_crop_size = unsup_crop_size
@@ -185,8 +177,8 @@ class SupervisedDm(LightningDataModule):
 #                    img_aug=self.img_aug
 #                )
 #            )
-#        
-#        self.unsup_train_set = ConcatDataset(unlabeled_sets) 
+#
+#        self.unsup_train_set = ConcatDataset(unlabeled_sets)
 #
 #    def train_dataloader(self):
 #
@@ -214,32 +206,30 @@ class SupervisedDm(LightningDataModule):
 #
 #        return train_dataloaders
 
-def main():
 
+def main():
     datamodule = SupervisedDm(
         dataset_cls=SemcityBdsdDs,
-        data_path='/d/pfournie/ai4geo/data/SemcityTLS_DL',
-        splitfile_path='/d/pfournie/ai4geo/split_semcity.csv',
-        #data_path='/d/pfournie/ai4geo/data/DIGITANIE',
-        #splitfile_path='/d/pfournie/ai4geo/split_toulouse.csv',
+        data_path="/d/pfournie/ai4geo/data/SemcityTLS_DL",
+        splitfile_path="/d/pfournie/ai4geo/split_semcity.csv",
+        # data_path='/d/pfournie/ai4geo/data/DIGITANIE',
+        # splitfile_path='/d/pfournie/ai4geo/split_toulouse.csv',
         test_folds=(4,),
-        train_folds=(0,1,2,3),
+        train_folds=(0, 1, 2, 3),
         crop_size=128,
         epoch_len=100,
         sup_batch_size=16,
         workers=0,
-        img_aug='d4_color-0',
-        batch_aug='no',
+        img_aug="d4_color-0",
+        batch_aug="no",
     )
 
     datamodule.setup()
     dataloader = datamodule.train_dataloader()
     for batch in dataloader:
+        print(batch["image"].shape)
+        print(batch["mask"].shape)
 
-        print(batch['image'].shape)
-        print(batch['mask'].shape)
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     main()
-

@@ -9,54 +9,54 @@ from .stretch_to_minmax import *
 from .zero_average import *
 
 aug_dict = {
-    'no': NoOp,
-    'd4': D4,
-    'flip': Flip,
-    'hflip': Hflip,
-    'vflip': Vflip,
-    'd1flip': Transpose1,
-    'd2flip': Transpose2,
-    'rot90': Rot90,
-    'rot180': Rot180,
-    'rot270': Rot270,
-    'saturation': Saturation,
-    'contrast': Contrast,
-    'gamma': Gamma,
-    'brightness': Brightness,
-    'color': Color,
-    'cutmix': Cutmix,
-    'mixup': Mixup
+    "no": NoOp,
+    "d4": D4,
+    "flip": Flip,
+    "hflip": Hflip,
+    "vflip": Vflip,
+    "d1flip": Transpose1,
+    "d2flip": Transpose2,
+    "rot90": Rot90,
+    "rot180": Rot180,
+    "rot270": Rot270,
+    "saturation": Saturation,
+    "contrast": Contrast,
+    "gamma": Gamma,
+    "brightness": Brightness,
+    "color": Color,
+    "cutmix": Cutmix,
+    "mixup": Mixup,
 }
 
 anti_aug_dict = {
-    'no': NoOp,
-    'imagenet': NoOp, 
-    'hflip': Hflip,
-    'vflip': Vflip,
-    'd1flip': Transpose1,
-    'd2flip': Transpose2,
-    'rot90': Rot270,
-    'rot180': Rot180,
-    'rot270': Rot90,
-    'saturation': NoOp,
-    'sharpness': NoOp,
-    'contrast': NoOp,
-    'gamma': NoOp,
-    'brightness': NoOp,
+    "no": NoOp,
+    "imagenet": NoOp,
+    "hflip": Hflip,
+    "vflip": Vflip,
+    "d1flip": Transpose1,
+    "d2flip": Transpose2,
+    "rot90": Rot270,
+    "rot180": Rot180,
+    "rot270": Rot90,
+    "saturation": NoOp,
+    "sharpness": NoOp,
+    "contrast": NoOp,
+    "gamma": NoOp,
+    "brightness": NoOp,
 }
 
+
 def get_transforms(name):
-    
     if name:
-        parts = name.split('_')
+        parts = name.split("_")
         aug_list = []
         for part in parts:
-            if part.startswith('color'):
-                bounds = part.split('-')[-1]
-                augment = Color(bound=0.1*int(bounds))
-            elif part.startswith('cutmix2'):
-                alpha = part.split('-')[-1]
-                augment = Cutmix(alpha=0.1*int(alpha))
+            if part.startswith("color"):
+                bounds = part.split("-")[-1]
+                augment = Color(bound=0.1 * int(bounds))
+            elif part.startswith("cutmix2"):
+                alpha = part.split("-")[-1]
+                augment = Cutmix(alpha=0.1 * int(alpha))
             else:
                 augment = aug_dict[part]()
             aug_list.append(augment)

@@ -9,7 +9,7 @@ from augmentations import *
 
 
 def histogramnormalization(
-        im, removecentiles=2, tile=0, stride=0, vmin=1, vmax=-1, verbose=True, pivot=None
+    im, removecentiles=2, tile=0, stride=0, vmin=1, vmax=-1, verbose=True, pivot=None
 ):
     if pivot is None:
         if verbose:
@@ -52,8 +52,11 @@ def histogramnormalization(
         print("normalization succeed")
     return np.uint8(out)
 
+
 # src = rasterio.open('/home/pierre/Documents/ONERA/ai4geo/miniworld_tif/toulouse/train/0_x.tif')
-src = rasterio.open('/d/pfournie/Documents/ai4geo/data/SemcityTLS_DL/BDSD_M_3_4_7_8.tif')
+src = rasterio.open(
+    "/d/pfournie/Documents/ai4geo/data/SemcityTLS_DL/BDSD_M_3_4_7_8.tif"
+)
 img = src.read(out_dtype=np.uint16)
 # print(np.unique(img.reshape(img.shape[0], -1), axis=1, return_counts=True))
 
@@ -94,8 +97,8 @@ ax[0].imshow(out1)
 # ax[2].imshow(np.uint8(out3))
 
 t = Brightness(bounds=(1.15, 1.2), p=1)
-out2, _ = t(img=torch.from_numpy(out1.transpose(2,0,1)))
-out2 = out2.numpy().transpose(1,2,0)
+out2, _ = t(img=torch.from_numpy(out1.transpose(2, 0, 1)))
+out2 = out2.numpy().transpose(1, 2, 0)
 print(out1 == out2)
 ax[1].imshow(out2)
 

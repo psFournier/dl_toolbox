@@ -18,16 +18,14 @@ class SegmentationImagesVisualisation(pl.Callback):
     NB_COL: int = 8
 
     def __init__(self, freq, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         self.freq = freq
-        
-    def display_batch(self, colors, trainer, batch, prefix):
 
-        img = batch['image'].cpu()[:,:3,...]
-        if batch['label'] is not None: 
-            labels = batch['label'].cpu()
-            labels_rgb = labels_to_rgb(labels, colors=colors).transpose((0,3,1,2))
+    def display_batch(self, colors, trainer, batch, prefix):
+        img = batch["image"].cpu()[:, :3, ...]
+        if batch["label"] is not None:
+            labels = batch["label"].cpu()
+            labels_rgb = labels_to_rgb(labels, colors=colors).transpose((0, 3, 1, 2))
             np_labels_rgb = torch.from_numpy(labels_rgb).float()
 
         # Number of grids to log depends on the batch size
@@ -35,61 +33,44 @@ class SegmentationImagesVisualisation(pl.Callback):
         nb_grids = quotient + int(remainder > 0)
 
         for idx in range(nb_grids):
-
             start = self.NB_COL * idx
             if start + self.NB_COL <= img.shape[0]:
                 end = start + self.NB_COL
             else:
                 end = start + remainder
 
-            img_grid = torchvision.utils.make_grid(img[start:end, :, :, :], padding=10, normalize=True)
+            img_grid = torchvision.utils.make_grid(
+                img[start:end, :, :, :], padding=10, normalize=True
+            )
             grids = [img_grid]
-            if batch['label'] is not None:
-                mask_grid = torchvision.utils.make_grid(np_labels_rgb[start:end, :, :, :], padding=10, normalize=True)
+            if batch["label"] is not None:
+                mask_grid = torchvision.utils.make_grid(
+                    np_labels_rgb[start:end, :, :, :], padding=10, normalize=True
+                )
                 grids.append(mask_grid)
 
             final_grid = torch.cat(grids, dim=1)
 
             trainer.logger.experiment.add_image(
-                f'Images/{prefix}_batch0_part_{idx}',
+                f"Images/{prefix}_batch0_part_{idx}",
                 final_grid,
-                global_step=trainer.global_step
+                global_step=trainer.global_step,
             )
-            
+
             break
 
-    def on_train_batch_end(
-        self,
-        trainer,
-        pl_module,
-        outputs,
-        batch,
-        batch_idx
-    ) -> None:
-        
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
         if trainer.current_epoch % self.freq == 0 and batch_idx == 0:
             self.display_batch(
-                trainer.datamodule.class_colors,
-                trainer,
-                batch['sup'],
-                prefix='Train'
+                trainer.datamodule.class_colors, trainer, batch["sup"], prefix="Train"
             )
 
     def on_validation_batch_end(
-        self,
-        trainer: pl.Trainer,
-        pl_module,
-        outputs,
-        batch,
-        batch_idx
+        self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx
     ) -> None:
         """Called when the validation batch ends."""
- 
+
         if trainer.current_epoch % self.freq == 0 and batch_idx == 0:
             self.display_batch(
-                trainer.datamodule.class_colors,
-                trainer,
-                batch,
-                prefix='Val'
+                trainer.datamodule.class_colors, trainer, batch, prefix="Val"
             )
-

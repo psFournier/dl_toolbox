@@ -1,5 +1,9 @@
 from argparse import ArgumentParser
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, StochasticWeightAveraging
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    LearningRateMonitor,
+    StochasticWeightAveraging,
+)
 from pytorch_lightning import Trainer, loggers
 from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 import sys
@@ -9,35 +13,26 @@ from lightning_datamodules import *
 from callbacks import SegmentationImagesVisualisation, CustomSwa, ConfMatLogger
 
 modules = {
-        'sup': Unet,
+    "sup": Unet,
 }
 
 
 datamodules = {
-    'semcity_bdsd': {
-        'sup': SemcityBdsdDm,
-        'mean_teacher': SemcityBdsdDmSemisup
+    "semcity_bdsd": {"sup": SemcityBdsdDm, "mean_teacher": SemcityBdsdDmSemisup},
+    "miniworld_generalisation": {
+        "sup": MiniworldDmV2,
+        "mean_teacher": MiniworldDmV2Semisup,
     },
-    'miniworld_generalisation': {
-        'sup': MiniworldDmV2,
-        'mean_teacher': MiniworldDmV2Semisup
-    },
-    'miniworld_transfert': {
-        'sup': MiniworldDmV3,
-        'mean_teacher': MiniworldDmV3Semisup
-    },
-    'phr_pan': {
-        'sup': PhrPanDm,
-        'mean_teacher': PhrPanDmSemisup
-    }
+    "miniworld_transfert": {"sup": MiniworldDmV3, "mean_teacher": MiniworldDmV3Semisup},
+    "phr_pan": {"sup": PhrPanDm, "mean_teacher": PhrPanDmSemisup},
 }
 
-def main():
 
+def main():
     # Reading parameters
     parser = ArgumentParser()
 
-    parser.add_argument("--datamodule", type=str, default='semcity_bdsd')
+    parser.add_argument("--datamodule", type=str, default="semcity_bdsd")
     parser.add_argument("--module", type=str, default="sup")
     parser.add_argument("--output_dir", type=str, default="./outputs")
     parser.add_argument("--exp_name", type=str)
@@ -68,17 +63,12 @@ def main():
     # subdirectory with the datetime as name. The parameters corresponding to
     # the run can be retrieved in Tensorboard.
     tensorboard = loggers.TensorBoardLogger(
-        save_dir=args.output_dir,
-        name=args.exp_name,
-        default_hp_metric=False
+        save_dir=args.output_dir, name=args.exp_name, default_hp_metric=False
     )
 
     # Callback that saves the weights of the last two epochs
     last_2_epoch_ckpt = ModelCheckpoint(
-        monitor='epoch',
-        mode='max',
-        save_top_k=2,
-        verbose=True
+        monitor="epoch", mode="max", save_top_k=2, verbose=True
     )
 
     # Monitoring time spent in each call. Difficult to understand the data
@@ -101,18 +91,17 @@ def main():
             # ),
             SegmentationImagesVisualisation(),
             ConfMatLogger(),
-            LearningRateMonitor()
+            LearningRateMonitor(),
         ],
         log_every_n_steps=300,
         flush_logs_every_n_steps=1000,
         num_sanity_val_steps=0,
         check_val_every_n_epoch=1,
-        benchmark=True
+        benchmark=True,
     )
 
     trainer.fit(model=pl_module, datamodule=pl_datamodule)
 
 
 if __name__ == "__main__":
-
     main()

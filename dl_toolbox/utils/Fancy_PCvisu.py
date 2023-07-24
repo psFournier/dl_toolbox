@@ -7,8 +7,8 @@ import random
 from albumentations import functional as F
 import numpy as np
 
-class MistakenFancyPCA(ImageOnlyTransform):
 
+class MistakenFancyPCA(ImageOnlyTransform):
     def __init__(self, alpha=0.1, always_apply=False, p=0.5):
         super(MistakenFancyPCA, self).__init__(always_apply=always_apply, p=p)
         self.alpha = alpha
@@ -51,7 +51,7 @@ class MistakenFancyPCA(ImageOnlyTransform):
         # broad cast to speed things up
         # m2[:, 0] = alpha * eig_vals[:]
         # Need alpha to be the same to compare with CorrectFancyPCA
-        m2[:, 0] = np.array(4.) * eig_vals[:]
+        m2[:, 0] = np.array(4.0) * eig_vals[:]
 
         # this is the vector that we're going to add to each pixel in a moment
         add_vect = np.matrix(m1) * np.matrix(m2)
@@ -75,6 +75,7 @@ class MistakenFancyPCA(ImageOnlyTransform):
     def get_transform_init_args_names(self):
         return ("alpha",)
 
+
 class CorrectFancyPCA(ImageOnlyTransform):
     """Augment RGB image using FancyPCA from Krizhevsky's paper
     "ImageNet Classification with Deep Convolutional Neural Networks"
@@ -95,8 +96,14 @@ class CorrectFancyPCA(ImageOnlyTransform):
         https://pixelatedbrian.github.io/2018-04-29-fancy_pca/
     """
 
-    def __init__(self, eigenvectors, eigenvalues, alpha=(0.1, 0.1, 0.1),
-                 always_apply=False, p=0.5):
+    def __init__(
+        self,
+        eigenvectors,
+        eigenvalues,
+        alpha=(0.1, 0.1, 0.1),
+        always_apply=False,
+        p=0.5,
+    ):
         super(CorrectFancyPCA, self).__init__(always_apply=always_apply, p=p)
         self.alpha = alpha
         # eigenvalues and eigenvectors must be the output of np.linalg.eigh(
@@ -105,7 +112,6 @@ class CorrectFancyPCA(ImageOnlyTransform):
         self.eigenvectors = eigenvectors
 
     def apply(self, img, alpha=(0.1, 0.1, 0.1), **params):
-
         if img.dtype != np.uint8:
             raise TypeError("Image must be RGB image in uint8 format.")
 
@@ -120,7 +126,7 @@ class CorrectFancyPCA(ImageOnlyTransform):
         m2 = np.zeros((3, 1))
         # broad cast to speed things up
         # m2[:, 0] = alpha * self.eigenvalues[:]
-        m2[:, 0] = np.array((4., 4., 4.)) * self.eigenvalues[:]
+        m2[:, 0] = np.array((4.0, 4.0, 4.0)) * self.eigenvalues[:]
         # this is the vector that we're going to add to each pixel in a moment
         add_vect = np.matrix(m1) * np.matrix(m2)
         for idx in range(3):  # RGB
@@ -140,6 +146,7 @@ class CorrectFancyPCA(ImageOnlyTransform):
     def get_transform_init_args_names(self):
         return ("alpha",)
 
+
 def visualize(image, mask, original_image=None, original_mask=None):
     fontsize = 18
 
@@ -152,34 +159,39 @@ def visualize(image, mask, original_image=None, original_mask=None):
         f, ax = plt.subplots(2, 2, figsize=(8, 8))
 
         ax[0, 0].imshow(original_image)
-        ax[0, 0].set_title('Incorrect FancyPCA', fontsize=fontsize)
+        ax[0, 0].set_title("Incorrect FancyPCA", fontsize=fontsize)
 
         ax[1, 0].imshow(original_mask)
-        ax[1, 0].set_title('Original mask', fontsize=fontsize)
+        ax[1, 0].set_title("Original mask", fontsize=fontsize)
 
         ax[0, 1].imshow(image)
-        ax[0, 1].set_title('Correct FancyPCA', fontsize=fontsize)
+        ax[0, 1].set_title("Correct FancyPCA", fontsize=fontsize)
 
         ax[1, 1].imshow(mask)
-        ax[1, 1].set_title('Transformed mask', fontsize=fontsize)
+        ax[1, 1].set_title("Transformed mask", fontsize=fontsize)
+
 
 ISPRS_EIGENVALS = np.array([0.00073204, 0.01302568, 0.06742553])
 ISPRS_EIGENVECS = np.array(
-    [[-0.03848249, -0.65840048, -0.75168338],
-     [-0.66870032, 0.57594731, -0.47023885],
-    [ 0.74253551, 0.48455496, -0.4624365]]
+    [
+        [-0.03848249, -0.65840048, -0.75168338],
+        [-0.66870032, 0.57594731, -0.47023885],
+        [0.74253551, 0.48455496, -0.4624365],
+    ]
 )
-aug = CorrectFancyPCA(eigenvalues=ISPRS_EIGENVALS,
-                      eigenvectors=ISPRS_EIGENVECS,
-                      alpha=(2., 2., 2.),
-                      p=1)
+aug = CorrectFancyPCA(
+    eigenvalues=ISPRS_EIGENVALS,
+    eigenvectors=ISPRS_EIGENVECS,
+    alpha=(2.0, 2.0, 2.0),
+    p=1,
+)
 mistaken = MistakenFancyPCA(p=1)
 
 ds = IsprsVLabeled(
-    data_path='/home/pierre/Documents/ONERA/ai4geo/ISPRS_VAIHINGEN',
+    data_path="/home/pierre/Documents/ONERA/ai4geo/ISPRS_VAIHINGEN",
     idxs=list(range(2)),
     crop=128,
-    augmentations=A.NoOp()
+    augmentations=A.NoOp(),
 )
 
 dl = DataLoader(
@@ -188,10 +200,14 @@ dl = DataLoader(
 )
 
 image, mask = next(iter(dl))
-image = image[0,...].numpy()
-mask = mask[0,...].numpy()
+image = image[0, ...].numpy()
+mask = mask[0, ...].numpy()
 augmented = aug(image=image, mask=mask)
 mist = mistaken(image=image, mask=mask)
-visualize(augmented['image'], augmented['mask'], original_image=mist['image'],
-          original_mask=mist['mask'])
+visualize(
+    augmented["image"],
+    augmented["mask"],
+    original_image=mist["image"],
+    original_mask=mist["mask"],
+)
 plt.show()

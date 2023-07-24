@@ -1,10 +1,10 @@
-#import torch
-#import torch.nn.functional as F
-#from torch import Tensor
-#from torch.nn.modules.loss import _Loss
+# import torch
+# import torch.nn.functional as F
+# from torch import Tensor
+# from torch.nn.modules.loss import _Loss
 #
 #
-#class SumOfLosses(_Loss):
+# class SumOfLosses(_Loss):
 #    """
 #    Implementation of Dice loss for image segmentation task.
 #    It supports binary, multiclass and multilabel cases
@@ -17,7 +17,7 @@
 #    ):
 #        super(SumOfLosses, self).__init__()
 #        self.losses = losses
-#        
+#
 #    def forward(self, y_pred: Tensor, y_true: Tensor) -> Tensor:
 #        """
 #

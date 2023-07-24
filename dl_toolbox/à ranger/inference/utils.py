@@ -8,49 +8,35 @@ from rasterio.windows import Window
 from torch import nn
 from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.utils import worker_init_function, get_tiles
-import torchmetrics.functional as  M
-import dl_toolbox.augmentations as aug 
+import torchmetrics.functional as M
+import dl_toolbox.augmentations as aug
 import pandas as pd
 from dl_toolbox.torch_datasets.utils import *
 from functools import partial
 
 anti_t_dict = {
-    'hflip': 'hflip',
-    'vflip': 'vflip',
-    'd1flip': 'd1flip',
-    'd2flip': 'd2flip',
-    'rot90': 'rot270',
-    'rot180': 'rot180',
-    'rot270': 'rot90'
+    "hflip": "hflip",
+    "vflip": "vflip",
+    "d1flip": "d1flip",
+    "d2flip": "d2flip",
+    "rot90": "rot270",
+    "rot180": "rot180",
+    "rot270": "rot90",
 }
 
 
 def probas_to_preds(probas):
-
     return torch.argmax(probas, dim=1)
 
-def get_window(tile):
 
+def get_window(tile):
     col_off, row_off, width, height = tile
-    window = Window(
-        col_off=col_off,
-        row_off=row_off,
-        width=width,
-        height=height
-    )
+    window = Window(col_off=col_off, row_off=row_off, width=width, height=height)
 
     return window
 
-def compute_probas(
-    dataset,
-    module,
-    batch_size,
-    workers,
-    tta,
-    merge,
-    device
-):
-    
+
+def compute_probas(dataset, module, batch_size, workers, tta, merge, device):
     dataloader = DataLoader(
         dataset=dataset,
         shuffle=False,
@@ -58,67 +44,75 @@ def compute_probas(
         batch_size=batch_size,
         num_workers=workers,
         pin_memory=True,
-        worker_init_fn=worker_init_function
+        worker_init_fn=worker_init_function,
     )
 
     num_classes = module.network.out_channels
     pred_sum = torch.zeros(size=(num_classes, dataset.tile.height, dataset.tile.width))
     mask_sum = torch.zeros(size=(dataset.tile.height, dataset.tile.width))
-    
-    if merge:
-        def dist_to_edge(i, j, h, w):
 
-            mi = np.minimum(i+1, h-i)
-            mj = np.minimum(j+1, w-j)
+    if merge:
+
+        def dist_to_edge(i, j, h, w):
+            mi = np.minimum(i + 1, h - i)
+            mj = np.minimum(j + 1, w - j)
             return np.minimum(mi, mj)
 
         crop_mask = np.fromfunction(
-            function=partial(
-                dist_to_edge,
-                h=dataset.crop_size,
-                w=dataset.crop_size
-            ),
+            function=partial(dist_to_edge, h=dataset.crop_size, w=dataset.crop_size),
             shape=(dataset.crop_size, dataset.crop_size),
-            dtype=int
+            dtype=int,
         )
         crop_mask = torch.from_numpy(crop_mask).float()
     else:
         crop_mask = torch.ones(dataset.crop_size, dataset.crop_size)
 
     for i, batch in enumerate(dataloader):
-        
-        print('batch ', i)
-        inputs, labels, windows = batch['image'], batch['mask'], batch['window']
+        print("batch ", i)
+        inputs, labels, windows = batch["image"], batch["mask"], batch["window"]
 
         outputs = batch_forward(inputs, module, device)
         window_list = windows[:]
 
         for t in tta:
-
             outputs_tta = batch_forward(inputs, module, device, t)
             outputs = torch.vstack([outputs, outputs_tta])
             window_list += windows[:]
-            
+
         probas = module._compute_probas(outputs)
         probas_list = [torch.squeeze(e, dim=0) for e in torch.split(probas, 1, dim=0)]
-        
+
         for prob, w in zip(probas_list, window_list):
             pred_sum[
-                :, 
-                w.row_off-dataset.tile.row_off:w.row_off-dataset.tile.row_off+w.height,
-                w.col_off-dataset.tile.col_off:w.col_off-dataset.tile.col_off+w.width
-            ] += prob * crop_mask
+                :,
+                w.row_off
+                - dataset.tile.row_off : w.row_off
+                - dataset.tile.row_off
+                + w.height,
+                w.col_off
+                - dataset.tile.col_off : w.col_off
+                - dataset.tile.col_off
+                + w.width,
+            ] += (
+                prob * crop_mask
+            )
             mask_sum[
-                w.row_off-dataset.tile.row_off:w.row_off-dataset.tile.row_off+w.height,
-                w.col_off-dataset.tile.col_off:w.col_off-dataset.tile.col_off+w.width
+                w.row_off
+                - dataset.tile.row_off : w.row_off
+                - dataset.tile.row_off
+                + w.height,
+                w.col_off
+                - dataset.tile.col_off : w.col_off
+                - dataset.tile.col_off
+                + w.width,
             ] += crop_mask
-                
+
     probas = torch.div(pred_sum, mask_sum)
 
     return probas.detach().cpu()
 
+
 def batch_forward(inputs, module, device, tta=None):
-    
     if tta:
         inputs, _ = aug_dict[tta](p=1)(inputs)
     with torch.no_grad():
@@ -128,45 +122,34 @@ def batch_forward(inputs, module, device, tta=None):
 
     return outputs
 
-def get_window_transform(window, profile):
 
-    bounds = rasterio.windows.bounds(
-        window,
-        transform=profile['transform']
-    )
-    new_transform = rasterio.transform.from_bounds(
-        *bounds,
-        window.width,
-        window.height
-    )
+def get_window_transform(window, profile):
+    bounds = rasterio.windows.bounds(window, transform=profile["transform"])
+    new_transform = rasterio.transform.from_bounds(*bounds, window.width, window.height)
 
     return new_transform
- 
-def write_array(inputs, tile, output_path, profile):
 
+
+def write_array(inputs, tile, output_path, profile):
     window = get_window(tile)
-    transform = get_window_transform(
-        window,
-        profile
-    )
+    transform = get_window_transform(window, profile)
     new_profile = {
-        'driver': 'GTiff',
-        'dtype': 'float32',
-        'nodata': None,
-        'width': window.width,
-        'height': window.height,
-        'count': inputs.shape[0],
-        'crs': profile['crs'],
-        'transform': transform,
-        'tiled': False,
-        'interleave': 'pixel'
+        "driver": "GTiff",
+        "dtype": "float32",
+        "nodata": None,
+        "width": window.width,
+        "height": window.height,
+        "count": inputs.shape[0],
+        "crs": profile["crs"],
+        "transform": transform,
+        "tiled": False,
+        "interleave": "pixel",
     }
-    with rasterio.open(output_path, 'w', **new_profile) as dst:
+    with rasterio.open(output_path, "w", **new_profile) as dst:
         dst.write(inputs)
 
 
 def read_probas(input_path):
-
     with rasterio.open(input_path) as f:
         probas = f.read(out_dtype=np.float32)
 
@@ -176,178 +159,170 @@ def read_probas(input_path):
 def cm2metrics(cm, ignore_index=-1):
     """Compute metrics directly from a confusion matrix.
     Return per-class and average metrics.
-    Per-class metrics: 
+    Per-class metrics:
         F1 score, Recall, Precision, IoU
-    Average metrics: 
-        Overall Accuracy (micro average), Kappa score, 
+    Average metrics:
+        Overall Accuracy (micro average), Kappa score,
         macro averages for F1, Recall, Precision and IoU.
-    """ 
+    """
     labels = np.arange(cm.shape[0])
     TP = np.array([cm[i, i] for i in labels if i != ignore_index])
-    FN = np.array([
-        sum([cm[i, j] for j in labels if j!=i]) for i in labels if i != ignore_index])
-    FP = np.array([
-        sum([cm[i, j] for i in labels if i!=j]) for j in labels if j != ignore_index])
+    FN = np.array(
+        [sum([cm[i, j] for j in labels if j != i]) for i in labels if i != ignore_index]
+    )
+    FP = np.array(
+        [sum([cm[i, j] for i in labels if i != j]) for j in labels if j != ignore_index]
+    )
 
-    e = 1e-5    
+    e = 1e-5
     f1 = (2 * TP + e) / (2 * TP + FP + FN + e)
     recall = (TP + e) / (TP + FN + e)
     precision = (TP + e) / (TP + FP + e)
     iou = (TP + e) / (TP + FN + FP + e)
 
-    metrics_per_class = pd.DataFrame({
-        "F1": f1,
-        "Recall": recall,
-        "Precision": precision,
-        "IoU": iou
-    })
+    metrics_per_class = pd.DataFrame(
+        {"F1": f1, "Recall": recall, "Precision": precision, "IoU": iou}
+    )
 
     # Accuracy
-    obs_acc = sum(TP) / np.sum(cm[np.array([l for l in labels if l != ignore_index]), :])
+    obs_acc = sum(TP) / np.sum(
+        cm[np.array([l for l in labels if l != ignore_index]), :]
+    )
     # KAPPA
     marg_freq = np.sum(cm, axis=0) * np.sum(cm, axis=1) / np.sum(cm)
     exp_acc = sum(marg_freq) / np.sum(cm)
     kappa = (obs_acc - exp_acc) / (1 - exp_acc)
-    #average_metrics = pd.DataFrame({
+    # average_metrics = pd.DataFrame({
     #    "mF1": [mF1],
     #    "mRecall": [mRecall],
     #    "mPrecision": [mPrecision],
     #    "mIoU": [mIou],
     #    "OAccuracy": [obs_acc],
     #    "Kappa": [kappa]
-    #})
-   
-    macro_average_metrics = pd.DataFrame({
-        "macroF1": [np.mean(f1)],
-        "macroRecall": [np.mean(recall)],
-        "macroPrecision": [np.mean(precision)],
-        "macroIoU": [np.mean(iou)],
-        "OAccuracy": [obs_acc],
-        "Kappa": [kappa]
-    })
+    # })
 
-    microF1 = (2*np.sum(TP)) / (2 * np.sum(TP) + np.sum(FP) +np.sum(FN))
+    macro_average_metrics = pd.DataFrame(
+        {
+            "macroF1": [np.mean(f1)],
+            "macroRecall": [np.mean(recall)],
+            "macroPrecision": [np.mean(precision)],
+            "macroIoU": [np.mean(iou)],
+            "OAccuracy": [obs_acc],
+            "Kappa": [kappa],
+        }
+    )
+
+    microF1 = (2 * np.sum(TP)) / (2 * np.sum(TP) + np.sum(FP) + np.sum(FN))
     microRecall = np.sum(TP) / (np.sum(TP) + np.sum(FN))
     microPrecision = np.sum(TP) / (np.sum(TP) + np.sum(FP))
     microIou = np.sum(TP) / (np.sum(TP) + np.sum(FP) + np.sum(FN))
 
-    micro_average_metrics = pd.DataFrame({
-        "microF1": [microF1],
-        "microRecall": [microRecall],
-        "microPrecision": [microPrecision],
-        "microIoU": [microIou]
-    })
+    micro_average_metrics = pd.DataFrame(
+        {
+            "microF1": [microF1],
+            "microRecall": [microRecall],
+            "microPrecision": [microPrecision],
+            "microIoU": [microIou],
+        }
+    )
 
     return metrics_per_class, macro_average_metrics, micro_average_metrics
 
-def compute_metrics(
-    preds,
-    labels,
-    num_classes,
-    ignore_index=None
-):
+
+def compute_metrics(preds, labels, num_classes, ignore_index=None):
     f1 = M.f1_score(
         preds,
         labels,
         average=None,
-        mdmc_average='global',
+        mdmc_average="global",
         ignore_index=ignore_index,
-        num_classes=num_classes
+        num_classes=num_classes,
     )
     recall = M.recall(
         preds,
         labels,
         average=None,
-        mdmc_average='global',
+        mdmc_average="global",
         ignore_index=ignore_index,
-        num_classes=num_classes
+        num_classes=num_classes,
     )
     precision = M.precision(
         preds,
         labels,
         average=None,
-        mdmc_average='global',
+        mdmc_average="global",
         ignore_index=ignore_index,
-        num_classes=num_classes
+        num_classes=num_classes,
     )
     iou = M.jaccard_index(
-        preds,
-        labels,
-        ignore_index=ignore_index,
-        num_classes=num_classes
+        preds, labels, ignore_index=ignore_index, num_classes=num_classes
     )
-    metrics_per_class = pd.DataFrame({
-        "F1": f1,
-        "Recall": recall,
-        "Precision": precision,
-        "IoU": iou
-    })
+    metrics_per_class = pd.DataFrame(
+        {"F1": f1, "Recall": recall, "Precision": precision, "IoU": iou}
+    )
     accuracy = M.accuracy(
         preds,
         labels,
-        average='micro',
-        mdmc_average='global',
+        average="micro",
+        mdmc_average="global",
         num_classes=num_classes,
-        ignore_index=ignore_index
+        ignore_index=ignore_index,
     )
-    kappa = M.cohen_kappa(
-        preds,
-        labels,
-        num_classes=num_classes
-    )
+    kappa = M.cohen_kappa(preds, labels, num_classes=num_classes)
 
-    average_metrics = pd.DataFrame({
-        "mF1": [np.mean(f1)],
-        "mRecall": [np.mean(recall)],
-        "mPrecision": [np.mean(precision)],
-        "mIoU": [np.mean(iou)],
-        "OAccuracy": [obs_acc],
-        "Kappa": [kappa]
-    })
+    average_metrics = pd.DataFrame(
+        {
+            "mF1": [np.mean(f1)],
+            "mRecall": [np.mean(recall)],
+            "mPrecision": [np.mean(precision)],
+            "mIoU": [np.mean(iou)],
+            "OAccuracy": [obs_acc],
+            "Kappa": [kappa],
+        }
+    )
     return metrics_per_class, average_metrics
 
-def compute_cm(
-    preds,
-    labels,
-    num_classes
-):
+
+def compute_cm(preds, labels, num_classes):
     col_off, row_off, width, height = tile
     windows = get_tiles(
-        nols=width, 
-        nrows=height, 
-        size=width, 
+        nols=width,
+        nrows=height,
+        size=width,
         size2=height,
         step=width,
         step2=height,
-        row_offset=row_off, 
-        col_offset=col_off
+        row_offset=row_off,
+        col_offset=col_off,
     )
     cm = np.zeros(shape=(num_classes, num_classes))
-    for window in windows:        
-        window_labels = rasterio.open(label_path).read(window=window, out_dtype=np.uint8)
+    for window in windows:
+        window_labels = rasterio.open(label_path).read(
+            window=window, out_dtype=np.uint8
+        )
         window_labels = raw_labels_to_labels(window_labels, dataset=dataset_type)
         window_preds = preds[
-            window.row_off-row_off:window.row_off-row_off+window.height, 
-            window.col_off-col_off:window.col_off-col_off+window.width
+            window.row_off - row_off : window.row_off - row_off + window.height,
+            window.col_off - col_off : window.col_off - col_off + window.width,
         ]
 
         cm += confusion_matrix(
             window_labels.numpy().flatten(),
             window_preds.numpy().flatten(),
-            labels = np.arange(num_classes)
+            labels=np.arange(num_classes),
         )
 
     return cm
 
 
-#def compute_metrics(
+# def compute_metrics(
 #    preds,
 #    label_path,
 #    dataset_type,
 #    tile,
 #    eval_with_void,
 #    num_classes
-#):
+# ):
 #
 #    ignore_index = None if eval_with_void else 0
 #    metrics = {
@@ -359,20 +334,20 @@ def compute_cm(
 #    }
 #    col_off, row_off, width, height = tile
 #    windows = get_tiles(
-#        nols=width, 
-#        nrows=height, 
-#        size=width, 
+#        nols=width,
+#        nrows=height,
+#        size=width,
 #        size2=height,
 #        step=width,
 #        step2=height,
-#        row_offset=row_off, 
+#        row_offset=row_off,
 #        col_offset=col_off
 #    )
-#    for window in windows:        
+#    for window in windows:
 #        window_labels = rasterio.open(label_path).read(window=window, out_dtype=np.uint8)
 #        window_labels = raw_labels_to_labels(window_labels, dataset=dataset_type)
 #        window_preds = preds[
-#            window.row_off-row_off:window.row_off-row_off+window.height, 
+#            window.row_off-row_off:window.row_off-row_off+window.height,
 #            window.col_off-col_off:window.col_off-col_off+window.width
 #        ]
 #        accuracy = M.accuracy(torch.unsqueeze(window_preds, 0),
@@ -383,7 +358,7 @@ def compute_cm(
 #                              ignore_index=ignore_index,
 #                              average='none',
 #                              num_classes=num_classes)
-# 
+#
 #        f1 = M.f1_score(
 #            torch.unsqueeze(window_preds, 0),
 #            torch.unsqueeze(window_labels, 0),
@@ -406,16 +381,16 @@ def compute_cm(
 #        metrics['iou'].append(iou)
 #        metrics['accuracy'].append(accuracy)
 #        metrics['f1'].append(f1)
-#        metrics['accu_per_class'].append(torch.nan_to_num(accu_per_class)) 
+#        metrics['accu_per_class'].append(torch.nan_to_num(accu_per_class))
 #        metrics['f1_per_class'].append(torch.nan_to_num(f1_per_class))
-#    
+#
 #    ret = {
-#        'accuracy': np.mean(metrics['accuracy']), 
+#        'accuracy': np.mean(metrics['accuracy']),
 #        'f1': np.mean(metrics['f1']),
 #        'iou': np.mean(metrics['iou'])
 #    }
 #    return metrics
- 
+
 
 def visualize_errors(
     preds,
@@ -425,9 +400,8 @@ def visualize_errors(
     tile,
     initial_profile,
     class_id=None,
-    eval_with_void=False
+    eval_with_void=False,
 ):
-    
     window = get_window(tile)
 
     with rasterio.open(label_path) as f:
@@ -452,27 +426,28 @@ def visualize_errors(
             void_bool = np.zeros(shape=(window.height, window.width), dtype=np.uint8)
         correct = label_tile == preds
         print(correct.shape)
-        overlay[correct & ~void_bool] = np.array([0,250,0], dtype=overlay.dtype)
-        overlay[~correct & ~void_bool] = np.array([250,0,0], dtype=overlay.dtype)
+        overlay[correct & ~void_bool] = np.array([0, 250, 0], dtype=overlay.dtype)
+        overlay[~correct & ~void_bool] = np.array([250, 0, 0], dtype=overlay.dtype)
 
-    write_array(overlay.transpose(2,0,1), tile, output_path, initial_profile)
+    write_array(overlay.transpose(2, 0, 1), tile, output_path, initial_profile)
 
-#def save_metrics(self, results, out_dir):
+
+# def save_metrics(self, results, out_dir):
 #    """
 #    Save metrics in a single Excel file, saved in /out_dir/metrics.xlsx.
 #    Also compute the normalized confusion matrices and save them in /out_dir.
 #    """
 #    metrics_out_path = os.path.join(out_dir, "metrics.xlsx")
 #    writer = pd.ExcelWriter(metrics_out_path, engine="xlsxwriter")
-#    
+#
 #    # Log average metrics
 #    average_metrics = [results[city]['average_metrics'] for city in results]
 #    average_metrics = pd.concat(average_metrics)
 #    average_metrics.loc['mean'] = average_metrics.mean()
 #    bold_idxs = [average_metrics.index.get_loc('mean')]
 #    if self.save_std:
-#        average_metrics.loc['std'] = average_metrics.std() 
-#        bold_idxs.append(average_metrics.index.get_loc('std'))      
+#        average_metrics.loc['std'] = average_metrics.std()
+#        bold_idxs.append(average_metrics.index.get_loc('std'))
 #    average_metrics.to_excel(writer, sheet_name="Summary")
 #
 #    workbook  = writer.book
@@ -498,7 +473,7 @@ def visualize_errors(
 #        metric = pd.concat(metric, axis=1)
 #        metric.rename(index=self.code2name)
 #        metric = metric.set_axis(cities, axis=1)
-#        
+#
 #        metric.to_excel(writer, sheet_name=col)
 #
 #    # Log confusion matrices
@@ -507,14 +482,14 @@ def visualize_errors(
 #        cm_df = self.cm2df(cm)
 #        cm_df.to_excel(writer, sheet_name=f"{city}_conf_mat")
 #        self.plot_matrix(
-#            cm=cm, 
+#            cm=cm,
 #            out_path=os.path.join(out_dir, f"{city}_conf_mat.png"),
 #            normalisation='true')
 #
 #    writer.save()
 #
-#def cm2df(cm):
-#    """Convert a confusion matrix into a Pandas DataFrame, labeling the rows and 
+# def cm2df(cm):
+#    """Convert a confusion matrix into a Pandas DataFrame, labeling the rows and
 #    columns using the nomenclature.
 #    """
 #    cm_df = pd.DataFrame(cm)
@@ -527,7 +502,7 @@ def visualize_errors(
 #
 #
 #
-#def plot_matrix(self, cm, out_path, normalisation=None):
+# def plot_matrix(self, cm, out_path, normalisation=None):
 #    """Make a PNG figure of a confusion matrix."""
 #    if normalisation=="true":
 #        cmf=cm/(np.sum(cm, axis=1)[:,None])
@@ -539,11 +514,10 @@ def visualize_errors(
 #    labels = self.code2name.values()
 #    fig, ax = plt.subplots(figsize=(15, 15))
 #    disp = ConfusionMatrixDisplay(
-#        confusion_matrix=cmf, 
+#        confusion_matrix=cmf,
 #        display_labels=labels)
 #    disp.plot(
 #        include_values=labels,
 #        cmap=plt.cm.Blues, ax=ax, xticks_rotation=45,
 #        values_format=None)
 #    plt.savefig(out_path)
-

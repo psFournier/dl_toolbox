@@ -2,14 +2,13 @@ from torchvision.datasets import Cityscapes
 from torchvision.transforms.functional import pil_to_tensor
 from PIL import Image
 
+
 class Cityscapes(Cityscapes):
-    
     # https://pytorch.org/vision/0.15/_modules/torchvision/datasets/cityscapes.html#Cityscapes
-    
+
     def __init__(self, *args, **kwargs):
-        
         super().__init__(*args, **kwargs)
-        
+
     def __getitem__(self, index):
         """
         Args:
@@ -21,7 +20,7 @@ class Cityscapes(Cityscapes):
 
         image = Image.open(self.images[index]).convert("RGB")
         image = pil_to_tensor(image)
-        
+
         targets = []
         for i, t in enumerate(self.target_type):
             if t == "polygon":
@@ -38,8 +37,7 @@ class Cityscapes(Cityscapes):
             image, target = self.transforms(image, target)
 
         return {
-            'image':image,
-            'label':target,
-            'path': self.images[index],
+            "image": image,
+            "label": target,
+            "path": self.images[index],
         }
-    
