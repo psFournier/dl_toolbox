@@ -11,7 +11,7 @@ from rasterio.windows import Window
 from torch.utils.data import Dataset
 
 import dl_toolbox.transforms as transforms
-from dl_toolbox.datasets import Raster
+from dl_toolbox.datasets import TiledTif
 from dl_toolbox.utils import merge_labels
 from .utils import label
 from dl_toolbox.datasets.utils import *
@@ -73,25 +73,19 @@ main13 = [label("other", (0, 0, 0), {13, 14, 15, 16, 17, 18, 19})] + [
     label(lut_classes[i], hex2color(lut_colors[i]), {i}) for i in range(1, 13)
 ]
 
+classes = enum.Enum(
+    "FlairClasses",
+    {
+        "all19": all19,
+        "main13": main13,
+    },
+)
 
-class Flair(Raster):
-    classes = enum.Enum(
-        "FlairClasses",
-        {
-            "all19": all19,
-            "main13": main13,
-        },
-    )
-
+class FlairTiled(TiledTif):
+    classes = classes
 
 class Flair2(Dataset):
-    classes = enum.Enum(
-        "FlairClasses",
-        {
-            "all19": all19,
-            "main13": main13,
-        },
-    )
+    classes = classes
 
     @classmethod
     def read_image(cls, path, window=None, bands=None):

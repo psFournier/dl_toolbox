@@ -10,5 +10,6 @@ from .merged_tiff_preds_writer import MergedTiffPredsWriter
 from .progress_bar import MyProgressBar
 from .swa import CustomSwa
 from .tiff_preds_writer import TiffPredsWriter
+from .merge_preds import MergePreds
 
 # from .merge_tile import MergeTile

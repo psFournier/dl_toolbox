@@ -1,6 +1,6 @@
 from .raster import *
+from .tiled import *
 from .cityscapes import *
-
 # from .raster2cls import *
 # from .semcity import *
 # from .old_digitanie import *
