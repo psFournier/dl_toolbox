@@ -1,9 +1,16 @@
 defaults:
-  - transforms@train_tf: norm_city_crop_d4_color
-  - transforms@val_tf: norm_city
+  - transforms@val_tf: none
+  - transforms@test_tf: none
   - _self_
 
-_target_: dl_toolbox.datamodules.Cityscapes
-data_path: ${paths.data_dir}/Cityscapes/
-batch_size: 8
+_target_: dl_toolbox.datamodules.Flair
+data_path: ${paths.data_dir}/FLAIR_1/
+batch_size: 4
+bands: [1, 2, 3]
+crop_size: 512
 num_workers: 6
+merge: main13
+pin_memory: False
+class_weights: null
+train_tf: 
+    _target_: dl_toolbox.transforms.D4

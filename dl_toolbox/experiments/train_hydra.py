@@ -9,7 +9,7 @@ from dl_toolbox.utils import NomencToRgb
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(version_base="1.3", config_path="../configs", config_name="train.yaml")
+@hydra.main(version_base="1.3", config_path="../../configs", config_name="train.yaml")
 def train(cfg: DictConfig) -> None:
     pl.seed_everything(1234)
     logger.info("\n" + OmegaConf.to_yaml(cfg))
@@ -22,7 +22,7 @@ def train(cfg: DictConfig) -> None:
         # Overwrite arguments at runtime that depends on other modules
         num_classes=datamodule.num_classes,
         in_channels=datamodule.in_channels,
-        class_weights=[1] * datamodule.num_classes,
+        class_weights=datamodule.class_weights,
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
         # _recursive_=False,
     )

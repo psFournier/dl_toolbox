@@ -22,7 +22,7 @@ def main():
     """
 
     datamodule = datamodules.Flair(
-        data_path=Path("/data/FLAIR_1"),
+        data_path="/data/FLAIR_1",
         bands=[1, 2, 3],
         batch_size=4,
         crop_size=512,

@@ -220,7 +220,7 @@ class Flair(LightningDataModule):
         )
     
     def prepare_data(self):
-        domains = [self.data_path / "train" / d for d in self.train_domains]
+        domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
         train_domains, val_domains, test_domains = domains[:30], domains[30:35], domains[35:]
         self.dict_train = _gather_data(
             train_domains, path_metadata=None, use_metadata=False, test_set=False
