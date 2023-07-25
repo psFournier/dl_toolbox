@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 
-from dl_toolbox.utils import TorchOneHot
+from dl_toolbox.losses import DiceLoss
 
 
 class Supervised(pl.LightningModule):
@@ -10,50 +10,31 @@ class Supervised(pl.LightningModule):
         self,
         network,
         optimizer,
-        loss,
+        scheduler,
         class_weights,
-        # ttas,
         in_channels,
         num_classes,
-        mixup,
         *args,
         **kwargs
     ):
         super().__init__()
-        # self.save_hyperparameters()
-
         self.network = network(in_channels=in_channels, classes=num_classes)
         self.optimizer = optimizer
-
+        self.scheduler = scheduler
         self.num_classes = num_classes
-
-        self.loss = loss(weight=torch.Tensor(class_weights))
-        # self.dice_loss = DiceLoss(mode="multilabel", log_loss=False, from_logits=True)
-
-        self.onehot = TorchOneHot(range(self.num_classes))
-        # self.mixup = augmentations.Mixup(alpha=mixup) if mixup > 0. else None
-        # self.ttas = [(augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1)) for t in ttas]
+        self.ce = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
+        self.dice = DiceLoss(
+            mode="multilabel",
+            log_loss=False,
+            from_logits=True,
+            smooth=0.01,
+            ignore_index=None,
+            eps=1e-7,
+        )
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
-
-        # optimizer = SGD(
-        #    self.parameters(),
-        #    lr=self.initial_lr,
-        #    momentum=0.9,
-        #    weight_decay=1e-4
-        # )
-
-        def lr_foo(epoch):
-            if epoch <= 5:
-                # warm up lr
-                lr_scale = epoch / 5
-            else:
-                lr_scale = (1 - float(epoch) / 100) ** 0.9
-            return lr_scale
-
-        scheduler = LambdaLR(optimizer, lr_lambda=lr_foo)
-
+        scheduler = self.scheduler(optimizer=optimizer)
         return [optimizer], [scheduler]
 
     def forward(self, x):
@@ -69,47 +50,26 @@ class Supervised(pl.LightningModule):
         batch = batch["sup"]
         inputs = batch["image"]
         labels = batch["label"]
-        if self.mixup:
-            labels = self.onehot(labels).float()
-            inputs, labels = self.mixup(inputs, labels)
-            # batch['image'] = inputs
         logits = self.network(inputs)
-        loss = self.loss(logits, labels)
-        self.log("Train_sup_loss", loss)
-
+        ce = self.ce(logits, labels)
+        dice = self.dice(logits, labels)
+        loss = ce + dice
+        self.log("loss/train", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
         labels = batch["label"]
         logits = self.forward(inputs)
-        loss = self.loss(logits, labels)
-        self.log("Val_loss", loss)
-
-        return logits
-
-    def test_step(self, batch, batch_idx):
-        inputs = batch["image"]
-        labels = batch["label"]
-        logits = self.forward(inputs)
-
-        # if self.ttas:
-        #    for tta, reverse in self.ttas:
-        #        aux, _ = tta(img=inputs)
-        #        aux_logits = self.forward(aux)
-        #        tta_logits, _ = reverse(img=aux_logits)
-        #        logits = torch.stack([logits, tta_logits])
-        #    logits = logits.mean(dim=0)
-
-        loss = self.loss(logits, labels)
-        self.log("Test_loss", loss)
-
+        ce = self.ce(logits, labels)
+        dice = self.dice(logits, labels)
+        loss = ce + dice
+        self.log("loss/val", loss)
         return logits
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]
         logits = self.forward(inputs)
-
         # if self.ttas:
         #    for tta, reverse in self.ttas:
         #        aux, _ = tta(img=inputs)
@@ -117,5 +77,4 @@ class Supervised(pl.LightningModule):
         #        tta_logits, _ = reverse(img=aux_logits)
         #        logits = torch.stack([logits, tta_logits])
         #    logits = logits.mean(dim=0)
-
         return logits

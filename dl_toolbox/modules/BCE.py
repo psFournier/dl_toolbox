@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 
 from dl_toolbox.losses import DiceLoss
-#from dl_toolbox.utils import TorchOneHot
 
 
 class Multilabel(pl.LightningModule):
@@ -61,7 +60,6 @@ class Multilabel(pl.LightningModule):
         inputs = batch["image"]
         labels = batch["label"]
         onehot_labels = nn.functional.one_hot(labels).float()[:,1:,...]
-        #onehot_labels = self.onehot(labels).float()  # B,C or C-1,H,W
         logits = self.network(inputs)  # B,C or C-1,H,W
         bce = self.bce(logits, onehot_labels)
         dice = self.dice(logits, onehot_labels)
@@ -72,7 +70,6 @@ class Multilabel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
         labels = batch["label"]
-        #onehot_labels = self.onehot(labels).float()  # B,C or C-1,H,W
         onehot_labels = nn.functional.one_hot(labels).float()[:,1:,...]
         logits = self.forward(inputs)
         bce = self.bce(logits, onehot_labels)
@@ -80,6 +77,9 @@ class Multilabel(pl.LightningModule):
         loss = bce + dice
         self.log("loss/val", loss)
         return logits
+    
+    def test_step(self, batch, batch_idx):
+        pass
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]
