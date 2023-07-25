@@ -1,12 +1,6 @@
-import logging
-
 import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
-
-from dl_toolbox.utils import NomencToRgb
-
-logger = logging.getLogger(__name__)
 
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="train.yaml")
@@ -16,10 +10,8 @@ def train(cfg: DictConfig) -> None:
 
     datamodule = hydra.utils.instantiate(cfg.datamodule)
 
-    # Instantiate all modules specified in the configs
     module = hydra.utils.instantiate(
-        cfg.module,  # Object to instantiate
-        # Overwrite arguments at runtime that depends on other modules
+        cfg.module,
         num_classes=datamodule.num_classes,
         in_channels=datamodule.in_channels,
         class_weights=datamodule.class_weights,
@@ -27,22 +19,14 @@ def train(cfg: DictConfig) -> None:
         # _recursive_=False,
     )
 
-    # Let hydra manage direcotry outputs
+    # Let hydra manage directory outputs
     tensorboard = pl.loggers.TensorBoardLogger(
         ".", "", "", log_graph=True, default_hp_metric=False
     )
 
-    callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
-    callbacks["confmat"] = callbacks["confmat"](
-        num_classes=datamodule.num_classes, class_names=datamodule.class_names
-    )
-
-    trainer = hydra.utils.instantiate(cfg.trainer)(
-        logger=tensorboard, callbacks=list(callbacks.values())
-    )
+    trainer = hydra.utils.instantiate(cfg.trainer)(logger=tensorboard)
 
     trainer.fit(module, datamodule=datamodule)
-
 
 if __name__ == "__main__":
     train()

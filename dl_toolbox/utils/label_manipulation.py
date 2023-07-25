@@ -30,27 +30,6 @@ class MergeLabels:
 
         return ret
 
-
-class TorchOneHot:
-    def __init__(self, labels):
-        self.labels = labels
-
-    def __call__(self, L):
-        onehot_masks = [(L == val).squeeze() for val in self.labels]
-
-        return torch.stack(onehot_masks, axis=1)
-
-
-class OneHot:
-    def __init__(self, labels):
-        self.labels = labels
-
-    def __call__(self, L):
-        onehot_masks = [(L == val).astype(int).squeeze() for val in self.labels]
-
-        return np.stack(onehot_masks, axis=0)
-
-
 def labels_to_rgb(labels, colors):
     rgb = np.zeros(shape=(*labels.shape, 3), dtype=np.uint8)
     for label, color in colors:

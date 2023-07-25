@@ -28,8 +28,8 @@ def compute_conf_mat(labels, preds, num_classes, ignore_idx=None):
 class MetricsFromConfmat(pl.Callback):
     def __init__(
         self,
-        num_classes,
-        class_names,
+        #num_classes,
+        #class_names,
         ignore_idx=None,
         plot_iou=False,
         plot_confmat=True,
@@ -37,19 +37,21 @@ class MetricsFromConfmat(pl.Callback):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.num_classes = num_classes
-        self.class_names = class_names
+        #self.num_classes = num_classes
+        #self.class_names = class_names
         self.plot_iou = plot_iou
         self.plot_confmat = plot_confmat
         self.ignore_idx = ignore_idx
 
     def on_validation_epoch_start(self, trainer, pl_module):
-        self.confmat = torch.zeros((self.num_classes, self.num_classes))
+        n = trainer.datamodule.num_classes
+        self.confmat = torch.zeros((n,n))
 
     def on_test_epoch_start(self, trainer, pl_module):
-        self.confmat = torch.zeros((self.num_classes, self.num_classes))
+        n = trainer.datamodule.num_classes
+        self.confmat = torch.zeros((n,n))
 
-    def compute_conf_mat(self, outputs, pl_module, batch):
+    def compute_conf_mat(self, outputs, pl_module, batch, num_classes):
         logits = outputs.cpu()
         probas = pl_module.logits2probas(logits)
         confidences, preds = pl_module.probas2confpreds(probas)
@@ -57,30 +59,32 @@ class MetricsFromConfmat(pl.Callback):
         conf_mat = compute_conf_mat(
             labels.flatten(),
             preds.flatten(),
-            self.num_classes,
+            num_classes,
             ignore_idx=self.ignore_idx,
         )
 
         return conf_mat
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        self.confmat += self.compute_conf_mat(outputs, pl_module, batch)
+        self.confmat += self.compute_conf_mat(outputs, pl_module, batch, trainer.datamodule.num_classes)
 
     def on_test_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
-        self.confmat += self.compute_conf_mat(outputs, pl_module, batch)
+        self.confmat += self.compute_conf_mat(outputs, pl_module, batch, trainer.datamodule.num_classes)
 
     def log_from_confmat(self, trainer, pl_module):
         cm_array = self.confmat.numpy()
         m = np.nan
+        num_classes = trainer.datamodule.num_classes
+        class_names = trainer.datamodule.class_names
 
         with np.errstate(divide="ignore", invalid="ignore"):
             ious = np.diag(cm_array) / (
                 cm_array.sum(0) + cm_array.sum(1) - np.diag(cm_array)
             )
             f1s = 2 * np.diag(cm_array) / (cm_array.sum(0) + cm_array.sum(1))
-            idx = np.array(range(self.num_classes)) != self.ignore_idx
+            idx = np.array(range(num_classes)) != self.ignore_idx
             ious = ious[idx]
             f1s = f1s[idx]
             # precisions = np.diag(cm_array) / cm_array.sum(0)
@@ -94,7 +98,7 @@ class MetricsFromConfmat(pl.Callback):
         if self.plot_iou:
             trainer.logger.experiment.add_figure(
                 "Class IoUs",
-                plot_ious(ious, class_names=self.class_names),
+                plot_ious(ious, class_names=class_names),
                 global_step=trainer.global_step,
             )
 
@@ -102,14 +106,14 @@ class MetricsFromConfmat(pl.Callback):
             trainer.logger.experiment.add_figure(
                 "Precision matrix",
                 plot_confusion_matrix(
-                    self.confmat, class_names=self.class_names, norm="precision"
+                    self.confmat, class_names=class_names, norm="precision"
                 ),
                 global_step=trainer.global_step,
             )
             trainer.logger.experiment.add_figure(
                 "Recall matrix",
                 plot_confusion_matrix(
-                    self.confmat, class_names=self.class_names, norm="recall"
+                    self.confmat, class_names=class_names, norm="recall"
                 ),
                 global_step=trainer.global_step,
             )
