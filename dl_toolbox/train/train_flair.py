@@ -28,6 +28,7 @@ def main():
         crop_size=512,
         train_tf=transforms.Compose([transforms.D4()]),
         val_tf=transforms.NoOp(),
+        test_tf=transforms.NoOp(),
         merge="main13",
         num_workers=6,
         pin_memory=False,

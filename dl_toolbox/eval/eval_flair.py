@@ -1,87 +1,61 @@
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
-
-import dl_toolbox.callbacks as callbacks
-import dl_toolbox.lightning_datamodules as datamodules
-import dl_toolbox.lightning_modules as modules
-from dl_toolbox.lightning_modules import *
-from dl_toolbox.lightning_datamodules import *
 import os
 from datetime import datetime
+from functools import partial
 from pathlib import Path, PurePath
 from random import shuffle
 
+from pytorch_lightning import Trainer
+from segmentation_models_pytorch import Unet
+
+import dl_toolbox.transforms as transforms
+
+from dl_toolbox.callbacks import MetricsFromConfmat
+from dl_toolbox.datamodules import Flair
+from dl_toolbox.modules import Multilabel
+
 
 def main():
-    """
-    TODO
-    """
-    # data_path = Path('/data/toy_dataset_flair-one')
-    data_path = Path("/scratchf/CHALLENGE_IGN")
-    test_domains = [
-        data_path / "test" / domain for domain in os.listdir(data_path / "test")
-    ]
-
-    datamodule = datamodules.Flair(
-        # data_path,
-        batch_size=8,
-        crop_size=320,
-        epoch_len=1,
-        labels="13",
-        workers=16,
-        use_metadata=False,
-        train_domains=None,
-        val_domains=None,
-        test_domains=test_domains,
-        img_aug="no",
+    datamodule = Flair(
+        data_path=Path("/data/FLAIR_1"),
+        bands=[1, 2, 3],
+        batch_size=4,
+        crop_size=512,
+        train_tf=transforms.Compose([transforms.D4()]),
+        val_tf=transforms.NoOp(),
+        test_tf=transforms.NoOp(),
+        merge="main13",
+        num_workers=6,
+        pin_memory=False,
+        class_weights=None,
     )
 
-    module = modules.CE(
-        ignore_index=-1,
-        # no_pred_zero=True,
-        # mixup=0.4,
-        # network='Vgg',
-        network="SmpUnet",
-        encoder="efficientnet-b1",
-        pretrained=False,
-        bn=True,
-        weights=[],
-        in_channels=5,
-        out_channels=13,
-        initial_lr=0.001,
-        final_lr=0.0005,
-        plot_calib=False,
-        class_names=datamodule.class_names,
-        # alphas=(0., 1.),
-        # ramp=(0, 40000),
-        # pseudo_threshold=0.9,
-        # consist_aug='color-3',
-        # emas=(0.9, 0.999)
+    module = Multilabel(
+        network=partial(Unet, encoder_name="efficientnet-b0"),
+        optimizer=None,
+        scheduler=None,
+        class_weights=[1.]*13,
+        in_channels=3,
+        num_classes=13,
     )
-
-    output_dir = "/d/pfournie/outputs/flair/TBlogs_wce_d4/27Jan23-23h12m16"
+    
     trainer = Trainer(
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
+        default_root_dir="/data/outputs/flair",
+        limit_val_batches=1.,
+        limit_test_batches=1.,
+        limit_predict_batches=1.,
         callbacks=[
-            callbacks.PredictionWriter(
-                # output_dir=os.path.join('/data/outputs/flair', "predictions"+"_ce_d4"),
-                output_dir=os.path.join(output_dir, "preds"),
-                write_interval="batch",
-            )
+            MetricsFromConfmat(
+                num_classes=datamodule.num_classes,
+                class_names=datamodule.class_names,
+                ignore_idx=0,
+            ),
         ],
-        logger=None,
-        enable_progress_bar=True,
     )
-
-    ckpt_path = os.path.join(output_dir, "checkpoints/epoch=208-step=261249.ckpt")
-    trainer.predict(
-        model=module,
-        datamodule=datamodule,
-        ckpt_path=ckpt_path,
-        return_predictions=False,
-    )
-
+    
+    ckpt_path = Path('/data/outputs/flair/lightning_logs/23Jul23-11h11m48/checkpoints/epoch_epoch=018.ckpt')
+    trainer.validate(model=module, datamodule=datamodule, ckpt_path=ckpt_path)
 
 if __name__ == "__main__":
     main()

@@ -9,9 +9,9 @@ from pathlib import Path
 import numpy as np
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import ConcatDataset, DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler
 
-import dl_toolbox.datasets as datasets
+from dl_toolbox.datasets import Flair2
 from dl_toolbox.utils import CustomCollate
 
 
@@ -130,7 +130,7 @@ def _gather_data(
 
 
 class Flair(LightningDataModule):
-    baseline_val_domains = [
+    train_domains = [
         "D004_2021",
         "D014_2020",
         "D029_2021",
@@ -139,8 +139,6 @@ class Flair(LightningDataModule):
         "D077_2021",
         "D067_2021",
         "D066_2021",
-    ]
-    baseline_train_domains = [
         "D033_2021",
         "D055_2018",
         "D072_2019",
@@ -174,6 +172,18 @@ class Flair(LightningDataModule):
         "D060_2021",
         "D030_2021",
     ]
+    #test_domains = [
+    #    "D012_2019",
+    #    "D022_2021",
+    #    "D026_2020",
+    #    "D064_2021",
+    #    "D068_2021",
+    #    "D071_2020",
+    #    "D075_2021",
+    #    "D076_2019",
+    #    "D083_2020",
+    #    "D085_2019"
+    #]
 
     def __init__(
         self,
@@ -183,88 +193,80 @@ class Flair(LightningDataModule):
         crop_size,
         train_tf,
         val_tf,
+        test_tf,
         batch_size,
         num_workers,
         pin_memory,
-        class_weights=None
-        # train_domains,
-        # val_domains,
-        # test_domains,
-        # unsup_train_idxs=None,
-        # *args,
-        # **kwargs
+        class_weights=None,
     ):
         super().__init__()
+        self.data_path = data_path
+        self.merge = merge
+        self.train_tf = train_tf
+        self.val_tf = val_tf
+        self.test_tf = test_tf
         self.batch_size = batch_size
         self.crop_size = crop_size
         self.num_workers = num_workers
         self.bands = bands
-
-        domains = [
-            data_path / "train" / domain
-            for domain in self.baseline_val_domains + self.baseline_train_domains
-        ]
-        # shuffle(domains)
-        idx_split = int(len(domains) * 0.95)
-        train_domains, val_domains = domains[:idx_split], domains[idx_split:]
-
-        dict_train = _gather_data(
-            train_domains, path_metadata=None, use_metadata=False, test_set=False
-        )
-        dict_val = _gather_data(
-            val_domains, path_metadata=None, use_metadata=False, test_set=False
-        )
-
-        self.train_set = datasets.Flair2(
-            dict_train["IMG"],
-            dict_train["MSK"],
-            bands,
-            merge,
-            crop_size,
-            shuffle=False,
-            transforms=train_tf,
-        )
-        # self.train_set = ConcatDataset([
-        #    datasets.Flair(
-        #        img,
-        #        msk,
-        #        bands,
-        #        merge,
-        #        crop_size,
-        #        shuffle=False,
-        #        transforms=train_tf,
-        #    ) for img, msk in zip(dict_train['IMG'], dict_train['MSK'])
-        # ])
-
-        self.val_set = datasets.Flair2(
-            dict_val["IMG"],
-            dict_val["MSK"],
-            bands,
-            merge,
-            crop_size,
-            shuffle=False,
-            transforms=val_tf,
-        )
-        # self.val_set = ConcatDataset([
-        #    datasets.Flair(
-        #        img,
-        #        msk,
-        #        bands,
-        #        merge,
-        #        crop_size,
-        #        shuffle=False,
-        #        transforms=val_tf,
-        #    ) for img, msk in zip(dict_val['IMG'], dict_val['MSK'])
-        # ])
-
+        
         self.in_channels = len(self.bands)
-        self.classes = datasets.Flair.classes[merge].value
+        self.classes = Flair2.classes[merge].value
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
         self.class_weights = (
             [1.0] * self.num_classes if class_weights is None else class_weights
         )
+    
+    def prepare_data(self):
+        domains = [self.data_path / "train" / d for d in self.train_domains]
+        train_domains, val_domains, test_domains = domains[:30], domains[30:35], domains[35:]
+        self.dict_train = _gather_data(
+            train_domains, path_metadata=None, use_metadata=False, test_set=False
+        )
+        self.dict_val = _gather_data(
+            val_domains, path_metadata=None, use_metadata=False, test_set=False
+        )
+        self.dict_test = _gather_data(
+            test_domains, path_metadata=None, use_metadata=False, test_set=True
+        )
+        
+    def setup(self, stage):
+        if stage in ("fit", "validate"):
+            self.train_set = Flair2(
+                self.dict_train["IMG"],
+                self.dict_train["MSK"],
+                self.bands,
+                self.merge,
+                self.crop_size,
+                shuffle=True,
+                transforms=self.train_tf,
+            )
+
+            self.val_set = Flair2(
+                self.dict_val["IMG"],
+                self.dict_val["MSK"],
+                self.bands,
+                self.merge,
+                self.crop_size,
+                shuffle=False,
+                transforms=self.val_tf,
+            )
+        if stage in ("test", "predict"):
+            dataset = Flair2(
+                self.dict_test["IMG"],
+                self.dict_test["MSK"],
+                self.bands,
+                self.merge,
+                self.crop_size,
+                shuffle=False,
+                transforms=self.test_tf,
+            )
+            if stage == "test":
+                self.test_set = dataset
+            else:
+                self.pred_set = dataset
 
     def train_dataloader(self):
         train_dataloaders = {}
@@ -285,98 +287,26 @@ class Flair(LightningDataModule):
             collate_fn=CustomCollate(),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            drop_last=True,
-        )
-
-    # def predict_dataloader(self):
-    #
-    #    predict_dataloader = DataLoader(
-    #        dataset=self.test_set,
-    #        shuffle=False,
-    #        batch_size=8,
-    #        collate_fn=CustomCollate(),
-    #        num_workers=self.num_workers
-    #    )
-    #
-    #    return predict_dataloader
-
-
-class OCS_DataModule(LightningDataModule):
-    def __init__(
-        self,
-        dict_train=None,
-        dict_val=None,
-        dict_test=None,
-        num_workers=1,
-        batch_size=2,
-        drop_last=True,
-        num_classes=13,
-        num_channels=5,
-        use_metadata=True,
-        use_augmentations=True,
-    ):
-        super().__init__()
-        self.dict_train = dict_train
-        self.dict_val = dict_val
-        self.dict_test = dict_test
-        self.batch_size = batch_size
-        self.num_classes, self.num_channels = num_classes, num_channels
-        self.num_workers = num_workers
-        self.train_dataset = None
-        self.val_dataset = None
-        self.pred_dataset = None
-        self.drop_last = drop_last
-        self.use_metadata = use_metadata
-        self.use_augmentations = use_augmentations
-
-    def prepare_data(self):
-        pass
-
-    def setup(self, stage=None):
-        if stage == "fit" or stage == "validate":
-            self.train_dataset = Fit_Dataset(
-                dict_files=self.dict_train,
-                num_classes=self.num_classes,
-                use_metadata=self.use_metadata,
-                use_augmentations=self.use_augmentations,
-            )
-
-            self.val_dataset = Fit_Dataset(
-                dict_files=self.dict_val,
-                num_classes=self.num_classes,
-                use_metadata=self.use_metadata,
-            )
-
-        elif stage == "predict":
-            self.pred_dataset = Predict_Dataset(
-                dict_files=self.dict_test,
-                num_classes=self.num_classes,
-                use_metadata=self.use_metadata,
-            )
-
-    def train_dataloader(self):
-        return DataLoader(
-            dataset=self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.num_workers,
-            drop_last=self.drop_last,
-        )
-
-    def val_dataloader(self):
-        return DataLoader(
-            dataset=self.val_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-            drop_last=self.drop_last,
+            drop_last=False,
         )
 
     def predict_dataloader(self):
         return DataLoader(
-            dataset=self.pred_dataset,
-            batch_size=1,
+            dataset=self.pred_set,
             shuffle=False,
+            batch_size=self.batch_size,
+            collate_fn=CustomCollate(),
             num_workers=self.num_workers,
-            drop_last=self.drop_last,
+            drop_last=False
         )
+    
+    def test_dataloader(self):
+        return DataLoader(
+            dataset=self.test_set,
+            shuffle=False,
+            batch_size=self.batch_size,
+            collate_fn=CustomCollate(),
+            num_workers=self.num_workers,
+            drop_last=False
+        )
+    

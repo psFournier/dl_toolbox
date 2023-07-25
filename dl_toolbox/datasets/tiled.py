@@ -1,9 +1,10 @@
 import os
 
+import imagesize
+
 import matplotlib.colors as colors
 import numpy as np
 import rasterio
-import imagesize
 import torch
 
 from rasterio.windows import Window
@@ -49,7 +50,7 @@ class TiledTif(Dataset):
         self.crop_size = crop_size
         self.crop_step = crop_step
         self.transforms = transforms
-        col_off, row_off, width, height = window.flatten()
+        col_off, row_off, width, height = window
         self.crops = list(get_tiles(
                 nols=width,
                 nrows=height,
@@ -72,5 +73,5 @@ class TiledTif(Dataset):
         return {
             "image": image,
             "label": label,
-            "crop": window
+            "crop": crop
         }
