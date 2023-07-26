@@ -23,14 +23,6 @@ class Supervised(pl.LightningModule):
         self.scheduler = scheduler
         self.num_classes = num_classes
         self.ce = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
-        self.dice = DiceLoss(
-            mode="multiclass",
-            log_loss=False,
-            from_logits=True,
-            smooth=0.01,
-            ignore_index=None,
-            eps=1e-7,
-        )
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -45,15 +37,16 @@ class Supervised(pl.LightningModule):
 
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
+    
+    def loss(self, logits, labels):
+        return self.ce(logits, labels)
 
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
         inputs = batch["image"]
         labels = batch["label"]
         logits = self.network(inputs)
-        ce = self.ce(logits, labels)
-        dice = self.dice(logits, labels)
-        loss = ce + dice
+        loss = self.loss(logits, labels)
         self.log("loss/train", loss)
         return loss
 
@@ -61,9 +54,7 @@ class Supervised(pl.LightningModule):
         inputs = batch["image"]
         labels = batch["label"]
         logits = self.forward(inputs)
-        ce = self.ce(logits, labels)
-        dice = self.dice(logits, labels)
-        loss = ce + dice
+        loss = self.loss(logits, labels)
         self.log("loss/val", loss)
         return logits
 
@@ -78,3 +69,21 @@ class Supervised(pl.LightningModule):
         #        logits = torch.stack([logits, tta_logits])
         #    logits = logits.mean(dim=0)
         return logits
+
+class SupervisedDice(Supervised):
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dice = DiceLoss(
+            mode="multiclass",
+            log_loss=False,
+            from_logits=True,
+            smooth=0.01,
+            ignore_index=None,
+            eps=1e-7,
+        )
+
+    def loss(self, logits, labels):
+        ce = self.ce(logits, labels)
+        dice = self.dice(logits, labels)
+        return ce + dice

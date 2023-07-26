@@ -5,11 +5,3 @@ defaults:
   - network: smpunet
 
 _target_: dl_toolbox.modules.Supervised
-
-  
-
-
-
-
-
-

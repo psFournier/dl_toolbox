@@ -18,8 +18,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-        self.network1 = network1(in_channels=in_channels, classes=num_classes)
-        self.network2 = network2(in_channels=in_channels, classes=num_classes)
+        self.network1 = network1(in_channels=in_channels, num_classes=num_classes)
+        self.network2 = network2(in_channels=in_channels, num_classes=num_classes)
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
