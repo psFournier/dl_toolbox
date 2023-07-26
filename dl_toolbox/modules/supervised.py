@@ -18,13 +18,13 @@ class Supervised(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-        self.network = network(in_channels=in_channels, classes=num_classes)
+        self.network = network(in_channels, num_classes)
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
         self.ce = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
         self.dice = DiceLoss(
-            mode="multilabel",
+            mode="multiclass",
             log_loss=False,
             from_logits=True,
             smooth=0.01,

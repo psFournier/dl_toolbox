@@ -177,6 +177,7 @@ class DatamoduleFlair1(LightningDataModule):
         self,
         data_path,
         merge,
+        prop,
         bands,
         crop_size,
         train_tf,
@@ -190,13 +191,16 @@ class DatamoduleFlair1(LightningDataModule):
         super().__init__()
         self.data_path = data_path
         self.merge = merge
+        self.prop = prop
+        assert 0 < prop < 35
+        self.bands = bands
         self.train_tf = train_tf
         self.val_tf = val_tf
         self.test_tf = test_tf
         self.batch_size = batch_size
         self.crop_size = crop_size
         self.num_workers = num_workers
-        self.bands = bands
+        self.pin_memory = pin_memory
         
         self.in_channels = len(self.bands)
         self.classes = DatasetFlair2.classes[merge].value
@@ -209,7 +213,7 @@ class DatamoduleFlair1(LightningDataModule):
     
     def prepare_data(self):
         domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
-        train_domains, val_domains, test_domains = domains[:30], domains[30:35], domains[35:]
+        train_domains, val_domains, test_domains = domains[:self.prop], domains[35:], domains[self.prop:35]
         def get_data_dict(domains):
             img, msk, mtd = _gather_data(
                 domains, path_metadata=None, use_metadata=False, test_set=False
@@ -262,6 +266,7 @@ class DatamoduleFlair1(LightningDataModule):
             collate_fn=CustomCollate(),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            pin_memory=self.pin_memory
         )
                        
     def train_dataloader(self):
@@ -294,13 +299,11 @@ class DatamoduleFlair2(DatamoduleFlair1):
     
     def __init__(
         self,
-        prop,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        assert prop < 90
-        self.prop = prop
+        assert 0 < self.prop < 90
         
     def prepare_data(self):
         domains = [Path(self.data_path) / "train" / d for d in self.train_domains]

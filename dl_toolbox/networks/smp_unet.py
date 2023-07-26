@@ -1,26 +1,16 @@
-from argparse import ArgumentParser
-
-import segmentation_models_pytorch as smp
+from segmentation_models_pytorch import Unet
 
 
-class SmpUnet(smp.Unet):
+class SmpUnet(Unet):
     def __init__(
         self,
-        encoder,
         in_channels,
-        out_channels,
-        pretrained=False,
-        bn=True,
+        num_classes,
         *args,
         **kwargs
     ):
         super().__init__(
-            encoder_name=encoder,
-            encoder_weights="imagenet" if pretrained else None,
             in_channels=in_channels,
-            classes=out_channels,
-            decoder_use_batchnorm=bn,
+            classes=num_classes,
+            *args, **kwargs
         )
-        self.out_channels = out_channels
-        self.in_channels = in_channels
-        self.out_dim = (1, 1)

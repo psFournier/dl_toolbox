@@ -1,0 +1,16 @@
+defaults:
+  - transforms@val_tf: none
+  - transforms@test_tf: none
+  - _self_
+
+_target_: dl_toolbox.datamodules.DatamoduleResisc1
+data_path: ${paths.data_dir}/NWPU-RESISC45/
+prop: 30
+#unlabeled_prop: 70
+batch_size: 32
+num_workers: 6
+merge: all45
+pin_memory: False
+class_weights: null
+train_tf: 
+    _target_: dl_toolbox.transforms.D4

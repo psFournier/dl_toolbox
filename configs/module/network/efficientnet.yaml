@@ -1,0 +1,2 @@
+_target_: dl_toolbox.networks.EfficientNet_b0
+_partial_: True

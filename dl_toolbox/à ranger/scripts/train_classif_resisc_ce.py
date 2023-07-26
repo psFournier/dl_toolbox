@@ -115,7 +115,6 @@ val_dataloader = DataLoader(
 
 
 from torch import nn
-from torchvision.ops.misc import Conv2dNormActivation
 
 network = models.efficientnet_b0(
     num_classes=out_channels if pretrained is None else 1000, weights=pretrained

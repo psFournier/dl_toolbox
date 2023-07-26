@@ -2,9 +2,8 @@
 # from .semisup_dm import SemisupDm
 from .digitanie import *
 from .cityscapes import *
-
-# from .from_folder_dataset import *
 from .flair import *
+from .resisc import *
 
 # from .splitfile_sup import SplitfileSup
 # from .splitfile_semisup import SplitfileSemisup

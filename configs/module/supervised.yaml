@@ -1,13 +1,10 @@
 defaults:
   - _self_
-  - loss: ce
   - optimizer: sgd
+  - scheduler: step
   - network: smpunet
 
-_target_: dl_toolbox.modules.supervised.Supervised
-
-mixup: 0.
-
+_target_: dl_toolbox.modules.Supervised
 
   
 
