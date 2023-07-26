@@ -5,6 +5,7 @@ import random
 import re
 from os.path import join
 from pathlib import Path
+from functools import partial
 
 import numpy as np
 from pytorch_lightning import LightningDataModule
@@ -253,57 +254,53 @@ class DatamoduleFlair1(LightningDataModule):
                 self.test_set = dataset
             else:
                 self.pred_set = dataset
-
+                
+    def get_loader(self, dataset):
+        return partial(
+            DataLoader,
+            dataset=dataset,
+            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+        )
+                       
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = DataLoader(
-            dataset=self.train_set,
-            batch_size=self.batch_size,
-            collate_fn=CustomCollate(),
+        train_dataloaders["sup"] = self.get_loader(self.train_set)(
             shuffle=True,
-            num_workers=self.num_workers,
             drop_last=True,
         )
         return CombinedLoader(train_dataloaders, mode="min_size")
-
+    
     def val_dataloader(self):
-        return DataLoader(
-            dataset=self.val_set,
+        return self.get_loader(self.val_set)(
             shuffle=False,
-            collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
             drop_last=False,
         )
 
     def predict_dataloader(self):
-        return DataLoader(
-            dataset=self.pred_set,
+        return self.get_loader(self.pred_set)(
             shuffle=False,
-            batch_size=self.batch_size,
-            collate_fn=CustomCollate(),
-            num_workers=self.num_workers,
-            drop_last=False
+            drop_last=False,
         )
     
     def test_dataloader(self):
-        return DataLoader(
-            dataset=self.test_set,
+        return self.get_loader(self.test_set)(
             shuffle=False,
-            batch_size=self.batch_size,
-            collate_fn=CustomCollate(),
-            num_workers=self.num_workers,
-            drop_last=False
+            drop_last=False,
         )
 
 class DatamoduleFlair2(DatamoduleFlair1):
     
     def __init__(
         self,
+        prop,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
+        assert prop < 90
+        self.prop = prop
         
     def prepare_data(self):
         domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
@@ -314,22 +311,70 @@ class DatamoduleFlair2(DatamoduleFlair1):
         self.dict_val = {"IMG": [], "MSK": [], "MTD": []}
         self.dict_test = {"IMG": [], "MSK": [], "MTD": []}
         for i, (img, msk) in enumerate(zip(all_img, all_msk)):
-            if i%10<8:
+            if i%100 < self.prop:
                 self.dict_train["IMG"].append(img)
                 self.dict_train["MSK"].append(msk)
-            elif i%10==8:
+            elif i%100 >= 90:
                 self.dict_val["IMG"].append(img)
                 self.dict_val["MSK"].append(msk)
             else:
                 self.dict_test["IMG"].append(img)
                 self.dict_test["MSK"].append(msk)
                 
-class DatamoduleFlair2semi(DatamoduleFlair2):
+class DatamoduleFlair2Semisup(DatamoduleFlair2):
     
     def __init__(
         self,
+        unlabeled_prop,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-    
+        self.unlabeled_prop = unlabeled_prop
+        
+    def prepare_data(self):
+        domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
+        all_img, all_msk, all_mtd = _gather_data(
+            domains, path_metadata=None, use_metadata=False, test_set=False
+        )
+        self.dict_train = {"IMG": [], "MSK": [], "MTD": []}
+        self.dict_train_unlabeled = {"IMG": [], "MTD": []}
+        self.dict_val = {"IMG": [], "MSK": [], "MTD": []}
+        self.dict_test = {"IMG": [], "MSK": [], "MTD": []}
+        for i, (img, msk) in enumerate(zip(all_img, all_msk)):
+            if self.prop <= i%100 <= self.prop + self.unlabeled_prop:
+                self.dict_train_unlabeled["IMG"].append(img)
+            if i%100 < self.prop:
+                self.dict_train["IMG"].append(img)
+                self.dict_train["MSK"].append(msk)
+            elif i%100 >= 90:
+                self.dict_val["IMG"].append(img)
+                self.dict_val["MSK"].append(msk)
+            else:
+                self.dict_test["IMG"].append(img)
+                self.dict_test["MSK"].append(msk)
+
+    def setup(self, stage):
+        super().setup(stage)
+        if stage in ("fit"):
+            self.unlabeled_set = DatasetFlair2(
+                self.dict_train_unlabeled["IMG"],
+                [],
+                self.bands,
+                self.merge,
+                self.crop_size,
+                shuffle=True,
+                transforms=self.train_tf,
+            )
+        
+    def train_dataloader(self):
+        train_dataloaders = {}
+        train_dataloaders["sup"] = self.get_loader(self.train_set)(
+            shuffle=True,
+            drop_last=True,
+        )
+        train_dataloaders["unsup"] = self.get_loader(self.unlabeled_set)(
+            shuffle=True,
+            drop_last=True
+        )
+        return CombinedLoader(train_dataloaders, mode="min_size")

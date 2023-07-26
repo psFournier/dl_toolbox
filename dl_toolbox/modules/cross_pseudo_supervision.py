@@ -89,9 +89,9 @@ class CrossPseudoSupervision(pl.LightningModule):
         labels = batch["label"]
         logits1 = self.network1(inputs)
         ce = self.ce(logits1, labels)
-        self.log("ce/val", loss)
+        self.log("ce/val", ce)
         
-         _, pl_1 = torch.max(logits1, dim=1)
+        _, pl_1 = torch.max(logits1, dim=1)
         pl_acc = pl_1.eq(labels).float().mean()
         self.log("pseudolabel accuracy/val", pl_acc)
         return logits1

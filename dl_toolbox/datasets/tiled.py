@@ -11,24 +11,9 @@ from rasterio.windows import Window
 from torch.utils.data import Dataset
 
 import dl_toolbox.transforms as transforms
-from dl_toolbox.utils import merge_labels
-from dl_toolbox.datasets.utils import *
 from dl_toolbox.utils import get_tiles
+from .utils import read_image, read_label
 
-
-def read_image(path, window=None, bands=None):
-    with rasterio.open(path, "r") as file:
-        image = file.read(window=window, out_dtype=np.float32, indexes=bands)
-    return torch.from_numpy(image)
-
-def read_label(path, window=None, classes=None):
-    with rasterio.open(path, "r") as file:
-        label = file.read(window=window, out_dtype=np.uint8)
-    if classes is not None:
-        label = merge_labels(
-            label.squeeze(), [list(l.values) for l in classes]
-        )
-    return torch.from_numpy(label)
 
 class TiledTif(Dataset):
 

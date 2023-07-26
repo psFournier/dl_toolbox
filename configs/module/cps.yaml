@@ -5,7 +5,7 @@ defaults:
   - network@network2: smpunet
   - scheduler: step
 
-_target_: dl_toolbox.modules.BCE.Multilabel
+_target_: dl_toolbox.modules.CrossPseudoSupervision
 alpha_ramp:
     _target_: dl_toolbox.utils.SigmoidRamp
     start: 0

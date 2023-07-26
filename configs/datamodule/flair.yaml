@@ -3,11 +3,13 @@ defaults:
   - transforms@test_tf: none
   - _self_
 
-_target_: dl_toolbox.datamodules.DatamoduleFlair2
+_target_: dl_toolbox.datamodules.DatamoduleFlair2Semisup
 data_path: ${paths.data_dir}/FLAIR_1/
+prop: 30
+unlabeled_prop: 70
 batch_size: 4
 bands: [1, 2, 3]
-crop_size: 512
+crop_size: 224
 num_workers: 6
 merge: main13
 pin_memory: False

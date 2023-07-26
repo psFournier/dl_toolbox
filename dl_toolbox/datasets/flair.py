@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 import dl_toolbox.transforms as transforms
 from dl_toolbox.datasets import TiledTif
 from dl_toolbox.utils import merge_labels
-from .utils import label
+from .utils import label, read_image, read_label
 from dl_toolbox.datasets.utils import *
 import imagesize
 
@@ -87,32 +87,13 @@ class DatasetFlairTiled(TiledTif):
 class DatasetFlair2(Dataset):
     classes = classes
 
-    @classmethod
-    def read_image(cls, path, window=None, bands=None):
-        with rasterio.open(path, "r") as file:
-            image = file.read(window=window, out_dtype=np.float32, indexes=bands)
-
-        return torch.from_numpy(image)
-
-    @classmethod
-    def read_label(cls, path, window=None, merge=None):
-        with rasterio.open(path, "r") as file:
-            label = file.read(window=window, out_dtype=np.uint8)
-
-        if merge is not None:
-            label = merge_labels(
-                label.squeeze(), [list(l.values) for l in cls.classes[merge].value]
-            )
-
-        return torch.from_numpy(label)
-
     def __init__(
         self, imgs, msks, bands, merge, crop_size, shuffle, transforms, crop_step=None
     ):
         self.imgs = imgs
         self.msks = msks
         self.bands = bands
-        self.merge = merge
+        self.class_list = self.classes[merge].value
         self.crop_size = crop_size
         self.shuffle = shuffle
         self.transforms = transforms
@@ -127,15 +108,11 @@ class DatasetFlair2(Dataset):
             self.crop_size,
             self.crop_size,
         )
-
-        image = self.read_image(self.imgs[idx], window, self.bands)
-
+        image = read_image(self.imgs[idx], window, self.bands)
         label = None
         if self.msks:
-            label = self.read_label(self.msks[idx], window, self.merge)
-
+            label = read_label(self.msks[idx], window, self.class_list)
         image, label = self.transforms(img=image, label=label)
-
         return {
             "image": image,
             "label": label,
