@@ -213,7 +213,7 @@ class DatamoduleFlair1(LightningDataModule):
             img, msk, mtd = _gather_data(
                 domains, path_metadata=None, use_metadata=False, test_set=False
             )
-            return {"IMG":img, "MSK":msk, "MTD":mtd}
+            return {"IMG":img, "MSK":msk}
         self.dict_train = get_data_dict(train_domains)
         self.dict_val = get_data_dict(val_domains)
         self.dict_test = get_data_dict(test_domains)
@@ -310,23 +310,19 @@ class DatamoduleFlair2(DatamoduleFlair1):
         all_img, all_msk, all_mtd = _gather_data(
             domains, path_metadata=None, use_metadata=False, test_set=False
         )
-        
         self.dict_train = {"IMG": [], "MSK": [], "MTD": []}
         self.dict_val = {"IMG": [], "MSK": [], "MTD": []}
         self.dict_test = {"IMG": [], "MSK": [], "MTD": []}
-        for i, (img, msk, mtd) in zip(all_img, all_msk, all_mtd):
+        for i, (img, msk) in enumerate(zip(all_img, all_msk)):
             if i%10<8:
                 self.dict_train["IMG"].append(img)
                 self.dict_train["MSK"].append(msk)
-                self.dict_train["MTD"].append(mtd)
             elif i%10==8:
                 self.dict_val["IMG"].append(img)
                 self.dict_val["MSK"].append(msk)
-                self.dict_val["MTD"].append(mtd)
             else:
                 self.dict_test["IMG"].append(img)
                 self.dict_test["MSK"].append(msk)
-                self.dict_test["MTD"].append(mtd)
                 
 class DatamoduleFlair2semi(DatamoduleFlair2):
     
