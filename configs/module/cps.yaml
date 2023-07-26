@@ -1,0 +1,23 @@
+defaults:
+  - _self_
+  - optimizer: sgd
+  - network@network1: smpunet
+  - network@network2: smpunet
+  - scheduler: step
+
+_target_: dl_toolbox.modules.BCE.Multilabel
+alpha_ramp:
+    _target_: dl_toolbox.utils.SigmoidRamp
+    start: 0
+    end: 10
+    start_val: 0.
+    end_val: 1.
+
+
+  
+
+
+
+
+
+

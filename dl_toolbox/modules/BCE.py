@@ -54,12 +54,16 @@ class Multilabel(pl.LightningModule):
         preds = torch.where(cond, aux_preds + 1, 0)
         confs = torch.where(cond, aux_confs, 1 - aux_confs)
         return confs, preds
+    
+    def one_hot(self, labels):
+        one_hot = nn.functional.one_hot(labels, self.num_classes)
+        return one_hot.permute(0,3,1,2)[:,1:,...].float()
 
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
         inputs = batch["image"]
-        labels = batch["label"]
-        onehot_labels = nn.functional.one_hot(labels).float()[:,1:,...]
+        labels = batch["label"].long()
+        onehot_labels = self.one_hot(labels)
         logits = self.network(inputs)  # B,C or C-1,H,W
         bce = self.bce(logits, onehot_labels)
         dice = self.dice(logits, onehot_labels)
@@ -69,8 +73,8 @@ class Multilabel(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
-        labels = batch["label"]
-        onehot_labels = nn.functional.one_hot(labels).float()[:,1:,...]
+        labels = batch["label"].long()
+        onehot_labels = self.one_hot(labels)
         logits = self.forward(inputs)
         bce = self.bce(logits, onehot_labels)
         dice = self.dice(logits, onehot_labels)

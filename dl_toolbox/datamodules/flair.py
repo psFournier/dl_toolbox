@@ -11,9 +11,61 @@ from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader, RandomSampler
 
-from dl_toolbox.datasets import Flair2
+from dl_toolbox.datasets import DatasetFlair2
 from dl_toolbox.utils import CustomCollate
 
+
+#### encode metadata
+def coordenc_opt(coords, enc_size=32) -> np.array:
+    d = int(enc_size / 2)
+    d_i = np.arange(0, d / 2)
+    freq = 1 / (10e7 ** (2 * d_i / d))
+
+    x, y = coords[0] / 10e7, coords[1] / 10e7
+    enc = np.zeros(d * 2)
+    enc[0:d:2] = np.sin(x * freq)
+    enc[1:d:2] = np.cos(x * freq)
+    enc[d::2] = np.sin(y * freq)
+    enc[d + 1 :: 2] = np.cos(y * freq)
+    return list(enc)
+
+def norm_alti(alti: int) -> float:
+    min_alti = 0
+    max_alti = 3164.9099121094
+    return [(alti - min_alti) / (max_alti - min_alti)]
+
+def format_cam(cam: str) -> np.array:
+    return [[1, 0] if "UCE" in cam else [0, 1]][0]
+
+def cyclical_enc_datetime(date: str, time: str) -> list:
+    def norm(num: float) -> float:
+        return (num - (-1)) / (1 - (-1))
+
+    year, month, day = date.split("-")
+    if year == "2018":
+        enc_y = [1, 0, 0, 0]
+    elif year == "2019":
+        enc_y = [0, 1, 0, 0]
+    elif year == "2020":
+        enc_y = [0, 0, 1, 0]
+    elif year == "2021":
+        enc_y = [0, 0, 0, 1]
+    sin_month = np.sin(2 * np.pi * (int(month) - 1 / 12))  ## months of year
+    cos_month = np.cos(2 * np.pi * (int(month) - 1 / 12))
+    sin_day = np.sin(2 * np.pi * (int(day) / 31))  ## max days
+    cos_day = np.cos(2 * np.pi * (int(day) / 31))
+    h, m = time.split("h")
+    sec_day = int(h) * 3600 + int(m) * 60
+    sin_time = np.sin(2 * np.pi * (sec_day / 86400))  ## total sec in day
+    cos_time = np.cos(2 * np.pi * (sec_day / 86400))
+    return enc_y + [
+        norm(sin_month),
+        norm(cos_month),
+        norm(sin_day),
+        norm(cos_day),
+        norm(sin_time),
+        norm(cos_time),
+    ]
 
 def _gather_data(
     path_folders, path_metadata: str, use_metadata: bool, test_set: bool
@@ -23,59 +75,7 @@ def _gather_data(
         for path in Path(path).rglob(filter):
             yield path.resolve().as_posix()
 
-    #### encode metadata
-    def coordenc_opt(coords, enc_size=32) -> np.array:
-        d = int(enc_size / 2)
-        d_i = np.arange(0, d / 2)
-        freq = 1 / (10e7 ** (2 * d_i / d))
-
-        x, y = coords[0] / 10e7, coords[1] / 10e7
-        enc = np.zeros(d * 2)
-        enc[0:d:2] = np.sin(x * freq)
-        enc[1:d:2] = np.cos(x * freq)
-        enc[d::2] = np.sin(y * freq)
-        enc[d + 1 :: 2] = np.cos(y * freq)
-        return list(enc)
-
-    def norm_alti(alti: int) -> float:
-        min_alti = 0
-        max_alti = 3164.9099121094
-        return [(alti - min_alti) / (max_alti - min_alti)]
-
-    def format_cam(cam: str) -> np.array:
-        return [[1, 0] if "UCE" in cam else [0, 1]][0]
-
-    def cyclical_enc_datetime(date: str, time: str) -> list:
-        def norm(num: float) -> float:
-            return (num - (-1)) / (1 - (-1))
-
-        year, month, day = date.split("-")
-        if year == "2018":
-            enc_y = [1, 0, 0, 0]
-        elif year == "2019":
-            enc_y = [0, 1, 0, 0]
-        elif year == "2020":
-            enc_y = [0, 0, 1, 0]
-        elif year == "2021":
-            enc_y = [0, 0, 0, 1]
-        sin_month = np.sin(2 * np.pi * (int(month) - 1 / 12))  ## months of year
-        cos_month = np.cos(2 * np.pi * (int(month) - 1 / 12))
-        sin_day = np.sin(2 * np.pi * (int(day) / 31))  ## max days
-        cos_day = np.cos(2 * np.pi * (int(day) / 31))
-        h, m = time.split("h")
-        sec_day = int(h) * 3600 + int(m) * 60
-        sin_time = np.sin(2 * np.pi * (sec_day / 86400))  ## total sec in day
-        cos_time = np.cos(2 * np.pi * (sec_day / 86400))
-        return enc_y + [
-            norm(sin_month),
-            norm(cos_month),
-            norm(sin_day),
-            norm(cos_day),
-            norm(sin_time),
-            norm(cos_time),
-        ]
-
-    data = {"IMG": [], "MSK": [], "MTD": []}
+    img, msk, mtd = [], [], []
     if path_folders:
         for domain in path_folders:
             # list_img = sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-2][1:]))
@@ -83,14 +83,14 @@ def _gather_data(
                 list(get_data_paths(domain, "IMG*.tif")),
                 key=lambda x: int(x.split("_")[-1][:-4]),
             )
-            data["IMG"] += list_img
+            img += list_img
             if test_set == False:
                 # list_msk = sorted(list(get_data_paths(domain, 'MSK*.tif')), key=lambda x: int(x.split('_')[-2][1:]))
                 list_msk = sorted(
                     list(get_data_paths(domain, "MSK*.tif")),
                     key=lambda x: int(x.split("_")[-1][:-4]),
                 )
-                data["MSK"] += list_msk
+                msk += list_msk
             # print(f'domain {domain}: {[(img, msk) for img, msk in zip(list_img, list_msk)]}')
             # break
 
@@ -111,25 +111,12 @@ def _gather_data(
                     metadata_dict[curr_img]["date"], metadata_dict[curr_img]["time"]
                 )
                 mtd_enc = enc_coords + enc_alti + enc_camera + enc_temporal
-                data["MTD"].append(mtd_enc)
+                mtd.append(mtd_enc)
 
-        if test_set == False:
-            if len(data["IMG"]) != len(data["MSK"]):
-                print(
-                    "[WARNING !!] UNMATCHING NUMBER OF IMAGES AND MASKS ! Please check load_data function for debugging."
-                )
-            if (
-                data["IMG"][0][-10:-4] != data["MSK"][0][-10:-4]
-                or data["IMG"][-1][-10:-4] != data["MSK"][-1][-10:-4]
-            ):
-                print(
-                    "[WARNING !!] UNSORTED IMAGES AND MASKS FOUND ! Please check load_data function for debugging."
-                )
-
-    return data
+    return img, msk, mtd
 
 
-class Flair(LightningDataModule):
+class DatamoduleFlair1(LightningDataModule):
     train_domains = [
         "D004_2021",
         "D014_2020",
@@ -211,7 +198,7 @@ class Flair(LightningDataModule):
         self.bands = bands
         
         self.in_channels = len(self.bands)
-        self.classes = Flair2.classes[merge].value
+        self.classes = DatasetFlair2.classes[merge].value
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
@@ -222,19 +209,18 @@ class Flair(LightningDataModule):
     def prepare_data(self):
         domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
         train_domains, val_domains, test_domains = domains[:30], domains[30:35], domains[35:]
-        self.dict_train = _gather_data(
-            train_domains, path_metadata=None, use_metadata=False, test_set=False
-        )
-        self.dict_val = _gather_data(
-            val_domains, path_metadata=None, use_metadata=False, test_set=False
-        )
-        self.dict_test = _gather_data(
-            test_domains, path_metadata=None, use_metadata=False, test_set=True
-        )
-        
+        def get_data_dict(domains):
+            img, msk, mtd = _gather_data(
+                domains, path_metadata=None, use_metadata=False, test_set=False
+            )
+            return {"IMG":img, "MSK":msk, "MTD":mtd}
+        self.dict_train = get_data_dict(train_domains)
+        self.dict_val = get_data_dict(val_domains)
+        self.dict_test = get_data_dict(test_domains)
+
     def setup(self, stage):
         if stage in ("fit", "validate"):
-            self.train_set = Flair2(
+            self.train_set = DatasetFlair2(
                 self.dict_train["IMG"],
                 self.dict_train["MSK"],
                 self.bands,
@@ -244,7 +230,7 @@ class Flair(LightningDataModule):
                 transforms=self.train_tf,
             )
 
-            self.val_set = Flair2(
+            self.val_set = DatasetFlair2(
                 self.dict_val["IMG"],
                 self.dict_val["MSK"],
                 self.bands,
@@ -254,7 +240,7 @@ class Flair(LightningDataModule):
                 transforms=self.val_tf,
             )
         if stage in ("test", "predict"):
-            dataset = Flair2(
+            dataset = DatasetFlair2(
                 self.dict_test["IMG"],
                 self.dict_test["MSK"],
                 self.bands,
@@ -309,4 +295,45 @@ class Flair(LightningDataModule):
             num_workers=self.num_workers,
             drop_last=False
         )
+
+class DatamoduleFlair2(DatamoduleFlair1):
+    
+    def __init__(
+        self,
+        *args,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        
+    def prepare_data(self):
+        domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
+        all_img, all_msk, all_mtd = _gather_data(
+            domains, path_metadata=None, use_metadata=False, test_set=False
+        )
+        
+        self.dict_train = {"IMG": [], "MSK": [], "MTD": []}
+        self.dict_val = {"IMG": [], "MSK": [], "MTD": []}
+        self.dict_test = {"IMG": [], "MSK": [], "MTD": []}
+        for i, (img, msk, mtd) in zip(all_img, all_msk, all_mtd):
+            if i%10<8:
+                self.dict_train["IMG"].append(img)
+                self.dict_train["MSK"].append(msk)
+                self.dict_train["MTD"].append(mtd)
+            elif i%10==8:
+                self.dict_val["IMG"].append(img)
+                self.dict_val["MSK"].append(msk)
+                self.dict_val["MTD"].append(mtd)
+            else:
+                self.dict_test["IMG"].append(img)
+                self.dict_test["MSK"].append(msk)
+                self.dict_test["MTD"].append(mtd)
+                
+class DatamoduleFlair2semi(DatamoduleFlair2):
+    
+    def __init__(
+        self,
+        *args,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
     

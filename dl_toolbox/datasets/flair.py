@@ -81,10 +81,10 @@ classes = enum.Enum(
     },
 )
 
-class FlairTiled(TiledTif):
+class DatasetFlairTiled(TiledTif):
     classes = classes
 
-class Flair2(Dataset):
+class DatasetFlair2(Dataset):
     classes = classes
 
     @classmethod
