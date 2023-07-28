@@ -15,15 +15,12 @@ defaults:
 
 seed: 12345
 
-paths:
-  data_dir: '${TMPDIR}'
+datamodule:
+  prop: 80
   
 module:
   network:
     weights: IMAGENET1K_V1
-  
-datamodule:
-  prop: 80
-  
+
 paths:
-  output_dir: ${paths.data_dir}/outputs/${hydra:runtime.choices.datamodule}/${hydra:runtime.choices.experiment}/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}
+  output_dir: /work/AI4GEO/users/fournip/outputs/${hydra:runtime.choices.datamodule}/${hydra:runtime.choices.experiment}/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}
