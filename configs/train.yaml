@@ -3,6 +3,7 @@
 # specify here default configuration
 # order of defaults determines the order in which configs override each other
 defaults:
+  - _self_
   - datamodule: split_from_csv
   - module: multilabel
   - callbacks:
@@ -14,5 +15,3 @@ defaults:
   - trainer: gpu
   - hydra: default
   - experiment: null
-  - _self_
-

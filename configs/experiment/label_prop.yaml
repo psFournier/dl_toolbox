@@ -4,9 +4,11 @@
 # python train.py experiment=example
 
 defaults:
-  - override /datamodule: resisc.yaml
-  - override /module: supervised.yaml
-  - override /paths: trex.yaml
+  - override /datamodule: resisc
+  - override /module: supervised
+  - override /module/network: efficientnet
+  - override /paths: trex
+  - override /trainer: gpu
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -17,11 +19,11 @@ paths:
   data_dir: '${TMPDIR}'
   
 module:
-  network: efficientnet
-  
-module:
   network:
     weights: IMAGENET1K_V1
   
 datamodule:
   prop: 80
+  
+paths:
+  output_dir: ${paths.data_dir}/outputs/${hydra:runtime.choices.datamodule}/${hydra:runtime.choices.experiment}/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}

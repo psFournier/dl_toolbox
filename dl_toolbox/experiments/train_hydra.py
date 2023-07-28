@@ -10,7 +10,7 @@ torch.set_float32_matmul_precision('high')
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="train.yaml")
 def train(cfg: DictConfig) -> None:
-    pl.seed_everything(1234)
+    pl.seed_everything(cfg.seed)
     logger.info("\n" + OmegaConf.to_yaml(cfg))
     datamodule = hydra.utils.instantiate(cfg.datamodule)
     module = hydra.utils.instantiate(
