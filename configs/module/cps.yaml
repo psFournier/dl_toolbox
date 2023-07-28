@@ -9,8 +9,8 @@ _target_: dl_toolbox.modules.CrossPseudoSupervision
 alpha_ramp:
     _target_: dl_toolbox.utils.SigmoidRamp
     start: 0
-    end: 10
-    start_val: 0.
+    end: 1
+    start_val: 1.
     end_val: 1.
 
 

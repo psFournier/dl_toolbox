@@ -4,7 +4,7 @@ defaults:
   - transforms@test_tf: none
   - _self_
 
-_target_: dl_toolbox.datamodules.DatamoduleResisc1
+_target_: dl_toolbox.datamodules.DatamoduleResisc1Semisup
 data_path: ${paths.data_dir}/NWPU-RESISC45/
 prop: 80
 #unlabeled_prop: 70

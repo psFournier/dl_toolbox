@@ -37,25 +37,22 @@ class Supervised(pl.LightningModule):
 
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
-    
-    def loss(self, logits, labels):
-        return self.ce(logits, labels)
 
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
         inputs = batch["image"]
         labels = batch["label"]
         logits = self.network(inputs)
-        loss = self.loss(logits, labels)
-        self.log("loss/train", loss)
-        return loss
+        ce = self.ce(logits, labels)
+        self.log(f"cross_entropy/train", ce)
+        return ce
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
         labels = batch["label"]
         logits = self.forward(inputs)
-        loss = self.loss(logits, labels)
-        self.log("loss/val", loss)
+        ce = self.ce(logits, labels)
+        self.log(f"cross_entropy/val", ce)
         return logits
 
     def predict_step(self, batch, batch_idx):
@@ -83,7 +80,23 @@ class SupervisedDice(Supervised):
             eps=1e-7,
         )
 
-    def loss(self, logits, labels):
+    def training_step(self, batch, batch_idx):
+        batch = batch["sup"]
+        inputs = batch["image"]
+        labels = batch["label"]
+        logits = self.network(inputs)
         ce = self.ce(logits, labels)
+        self.log(f"cross_entropy/train", ce)
         dice = self.dice(logits, labels)
-        return ce + dice
+        self.log(f"dice/train", dice)
+        return ce+dice
+
+    def validation_step(self, batch, batch_idx):
+        inputs = batch["image"]
+        labels = batch["label"]
+        logits = self.forward(inputs)
+        ce = self.ce(logits, labels)
+        self.log(f"cross_entropy/val", ce)
+        dice = self.dice(logits, labels)
+        self.log(f"dice/val", dice)
+        return logits
