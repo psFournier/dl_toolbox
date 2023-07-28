@@ -3,9 +3,10 @@ import logging
 import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
-
+import torch
 
 logger = logging.getLogger(__name__)
+torch.set_float32_matmul_precision('high')
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="train.yaml")
 def train(cfg: DictConfig) -> None:

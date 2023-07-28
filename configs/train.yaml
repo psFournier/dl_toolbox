@@ -9,10 +9,10 @@ defaults:
       - confmat
       - image_visu
       - model_checkpoint
-      - rich_progress_bar
       - model_summary
   - paths: qdtis056z
   - trainer: gpu
   - hydra: default
+  - experiment: null
   - _self_
 

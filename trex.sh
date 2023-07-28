@@ -6,7 +6,7 @@
 #SBATCH --nodes=1                        # number of nodes
 #SBATCH --ntasks-per-node=6                   # number of cores
 #SBATCH --gres=gpu:1                # number of gpgpus
-#SBATCH --time=12:00:00                # Wall Time
+#SBATCH --time=01:00:00                # Wall Time
 #SBATCH --mem-per-cpu=8G            # memory per core
 #SBATCH --partition=gpu_a100        # material partition 
 #SBATCH --account=ai4geo       # account (launch myaccounts to list your accounts) 
@@ -15,9 +15,7 @@
 
 # to go to the submit directory 
 cd ${SLURM_SUBMIT_DIR}
-bash "${HOME}"/dl_toolbox/copy_digi_to_node.sh
+bash "${HOME}"/dl_toolbox/copy_resisc_to_node.sh
 nvidia-smi >  output_$SLURM_JOBID.log
-HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/train.py paths=trex trainer=gpu >> output_$SLURM_JOBID.log
-
-
-
+#HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/experiments/train_hydra.py paths=trex paths.data_dir="${TMPDIR}" datamodule=resisc module=supervised module/network=efficientnet trainer=gpu datamodule.prop=80 module.network.weights=IMAGENET1K_V1 >> output_$SLURM_JOBID.log
+HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/experiments/train_hydra.py experiment=prop >> output_$SLURM_JOBID.log
