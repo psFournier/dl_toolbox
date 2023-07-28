@@ -1,4 +1,5 @@
 defaults:
+  - transforms@train_tf: d4_color
   - transforms@val_tf: none
   - transforms@test_tf: none
   - _self_
@@ -12,5 +13,3 @@ num_workers: 6
 merge: all45
 pin_memory: False
 class_weights: null
-train_tf: 
-    _target_: dl_toolbox.transforms.D4

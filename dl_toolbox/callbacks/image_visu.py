@@ -24,10 +24,12 @@ class SegmentationImagesVisualisation(pl.Callback):
 
     def display_batch(self, colors, trainer, batch, prefix):
         img = batch["image"].cpu()[:, :3, ...]
-        if batch["label"] is not None:
+        label = batch["label"].cpu()
+        label_is_img = (label is not None and label.ndim==3)
+        if label_is_img:
             labels = batch["label"].cpu()
             labels_rgb = labels_to_rgb(labels, colors=colors).transpose((0, 3, 1, 2))
-            np_labels_rgb = torch.from_numpy(labels_rgb).float()
+            labels_rgb = torch.from_numpy(labels_rgb).float()
 
         # Number of grids to log depends on the batch size
         quotient, remainder = divmod(img.shape[0], self.NB_COL)
@@ -44,9 +46,9 @@ class SegmentationImagesVisualisation(pl.Callback):
                 img[start:end, :, :, :], padding=10, normalize=True
             )
             grids = [img_grid]
-            if batch["label"] is not None:
+            if label_is_img:
                 mask_grid = torchvision.utils.make_grid(
-                    np_labels_rgb[start:end, :, :, :], padding=10, normalize=True
+                    labels_rgb[start:end, :, :, :], padding=10, normalize=True
                 )
                 grids.append(mask_grid)
 
