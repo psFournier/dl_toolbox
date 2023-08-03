@@ -4,10 +4,10 @@
 # python train.py experiment=example
 
 defaults:
-  - override /datamodule: resisc
-  - override /module: supervised
-  - override /module/network: efficientnet
   - override /paths: trex
+  - override /datamodule: flair
+  - override /module: supervised
+  - override /module/network: smpunet
   - override /trainer: gpu
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -16,11 +16,15 @@ defaults:
 seed: 12345
 
 datamodule:
-  prop: 80
+  prop: 90
+  batch_size: 16
+  num_workers: 16
   
 module:
   network:
-    weights: IMAGENET1K_V1
+    encoder_name: efficientnet-b0
+    encoder_weights: null
 
 paths:
-  output_dir: /work/AI4GEO/users/fournip/outputs/${hydra:runtime.choices.datamodule}/${hydra:runtime.choices.experiment}/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}
+  data_dir: /work/AI4GEO/users/fournip
+  output_dir: /work/AI4GEO/users/fournip/outputs/flair/label_prop/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}

@@ -192,7 +192,7 @@ class DatamoduleFlair1(LightningDataModule):
         self.data_path = data_path
         self.merge = merge
         self.prop = prop
-        assert 0 < prop < 35
+        #assert 0 < prop < 35
         self.bands = bands
         self.train_tf = train_tf
         self.val_tf = val_tf
@@ -303,7 +303,7 @@ class DatamoduleFlair2(DatamoduleFlair1):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        assert 0 < self.prop < 90
+        #assert 0 < self.prop < 90
         
     def prepare_data(self):
         domains = [Path(self.data_path) / "train" / d for d in self.train_domains]

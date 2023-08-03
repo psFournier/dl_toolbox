@@ -5,10 +5,10 @@ class SmpUnet(Unet):
     def __init__(
         self,
         num_classes,
-        *args,
         **kwargs
     ):
+        print(kwargs)
         super().__init__(
             classes=num_classes,
-            *args, **kwargs
+            **kwargs
         )

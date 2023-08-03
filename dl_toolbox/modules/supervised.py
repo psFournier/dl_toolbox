@@ -1,8 +1,11 @@
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+import torchmetrics as M
+import matplotlib.pyplot as plt
 
 from dl_toolbox.losses import DiceLoss
+from dl_toolbox.utils import plot_confusion_matrix
 
 
 class Supervised(pl.LightningModule):
@@ -18,11 +21,13 @@ class Supervised(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-        self.network = network(in_channels, num_classes)
+        self.network = network(in_channels=in_channels, num_classes=num_classes)
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
         self.ce = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
+        self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
+        self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -46,6 +51,10 @@ class Supervised(pl.LightningModule):
         ce = self.ce(logits, labels)
         self.log(f"cross_entropy/train", ce)
         return ce
+    
+    def on_validation_epoch_start(self):
+        self.val_accuracy.reset()
+        self.val_cm.reset()
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
@@ -53,7 +62,18 @@ class Supervised(pl.LightningModule):
         logits = self.forward(inputs)
         ce = self.ce(logits, labels)
         self.log(f"cross_entropy/val", ce)
-        return logits
+        _, preds = self.probas2confpreds(self.logits2probas(logits))
+        self.val_accuracy.update(preds, labels)
+        self.val_cm.update(preds, labels)
+        
+    def on_validation_epoch_end(self):
+        self.log("accuracy/val", self.val_accuracy.compute())
+        confmat = self.val_cm.compute().detach().cpu()
+        class_names = self.trainer.datamodule.class_names
+        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
+        logger = self.trainer.logger
+        if logger:
+            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]
@@ -99,4 +119,6 @@ class SupervisedDice(Supervised):
         self.log(f"cross_entropy/val", ce)
         dice = self.dice(logits, labels)
         self.log(f"dice/val", dice)
-        return logits
+        _, preds = self.probas2confpreds(self.logits2probas(logits))
+        self.val_accuracy.update(preds, labels)
+        self.val_cm.update(preds, labels)

@@ -93,7 +93,6 @@ class CrossPseudoSupervision(pl.LightningModule):
         
         pl_acc = pl_1.eq(labels).float().mean()
         self.log("pseudolabel accuracy/val", pl_acc)
-        return logits1
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]

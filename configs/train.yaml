@@ -7,7 +7,6 @@ defaults:
   - datamodule: split_from_csv
   - module: multilabel
   - callbacks:
-      - confmat
       - image_visu
       - model_checkpoint
       - model_summary

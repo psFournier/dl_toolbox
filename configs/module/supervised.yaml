@@ -4,4 +4,4 @@ defaults:
   - scheduler: step
   - network: smpunet
 
-_target_: dl_toolbox.modules.Supervised
+_target_: dl_toolbox.modules.SupervisedDice

@@ -73,11 +73,21 @@ main13 = [label("other", (0, 0, 0), {13, 14, 15, 16, 17, 18, 19})] + [
     label(lut_classes[i], hex2color(lut_colors[i]), {i}) for i in range(1, 13)
 ]
 
+hierarchical6 = [
+    label("other", (0,0,0), {19}),
+    label("anthropized", hex2color(lut_colors[2]), {1,2,3,13,18}),
+    label("natural", hex2color(lut_colors[4]), {4,5,14}),
+    label("woody vegetation", hex2color(lut_colors[7]), {6,7,8,15,16,17}),
+    label("agricultural", hex2color(lut_colors[11]), {9,11,12}),
+    label("herbaceous", hex2color(lut_colors[10]), {10}),
+]
+
 classes = enum.Enum(
     "FlairClasses",
     {
         "all19": all19,
         "main13": main13,
+        "hierarchical6": hierarchical6
     },
 )
 
@@ -108,7 +118,7 @@ class DatasetFlair2(Dataset):
             self.crop_size,
             self.crop_size,
         )
-        image = read_image(self.imgs[idx], window, self.bands)
+        image = read_image(self.imgs[idx], window, self.bands) / 255.
         label = None
         if self.msks:
             label = read_label(self.msks[idx], window, self.class_list)
