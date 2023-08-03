@@ -15,7 +15,7 @@
 
 # to go to the submit directory 
 cd ${SLURM_SUBMIT_DIR}
-bash "${HOME}"/dl_toolbox/copy_flair_to_node.sh
+#bash "${HOME}"/dl_toolbox/copy_flair_to_node.sh
 nvidia-smi >  output_$SLURM_JOBID.log
 #HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/experiments/train_hydra.py paths=trex paths.data_dir="${TMPDIR}" datamodule=resisc module=supervised module/network=efficientnet trainer=gpu datamodule.prop=80 module.network.weights=IMAGENET1K_V1 >> output_$SLURM_JOBID.log
-HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/experiments/train_hydra.py experiment=label_prop paths.data_dir="${TMPDIR}" >> output_$SLURM_JOBID.log
+HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/experiments/train_hydra.py --multirun experiment=label_prop >> output_$SLURM_JOBID.log
