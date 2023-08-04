@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=test_gpu2022     # job's name
+#SBATCH --job-name=flair2_cps_alpha     # job's name
 # --output = name of the output file  --error= name of error file (%j = jobID )
 #SBATCH --output=outputfile-%j.out
 #SBATCH --error=errorfile-%j.err
@@ -18,4 +18,4 @@ cd ${SLURM_SUBMIT_DIR}
 #bash "${HOME}"/dl_toolbox/copy_flair_to_node.sh
 nvidia-smi >  output_$SLURM_JOBID.log
 #HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/experiments/train_hydra.py paths=trex paths.data_dir="${TMPDIR}" datamodule=resisc module=supervised module/network=efficientnet trainer=gpu datamodule.prop=80 module.network.weights=IMAGENET1K_V1 >> output_$SLURM_JOBID.log
-HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/experiments/train_hydra.py --multirun experiment=label_prop >> output_$SLURM_JOBID.log
+HYDRA_FULL_ERROR=1 /work/AI4GEO/users/fournip/trex/bin/python "${HOME}"/dl_toolbox/dl_toolbox/experiments/train_hydra.py --multirun experiment=${SLURM_JOB_NAME} >> output_$SLURM_JOBID.log

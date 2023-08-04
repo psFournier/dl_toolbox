@@ -1,0 +1,37 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+#  - override /hydra/launcher: submitit_slurm
+  - override /paths: trex
+  - override /datamodule: flair
+  - override /module: cps
+  - override /module/network@module.network1: smpunet
+  - override /module/network@module.network2: smpunet
+  - override /trainer: gpu
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+seed: 12345
+
+datamodule:
+  _target_: dl_toolbox.datamodules.DatamoduleFlair2Semisup
+  batch_size: 8
+  num_workers: 16
+  unlabeled_prop: 100
+  prop: 5
+
+paths:
+  data_dir: /work/AI4GEO/users/fournip
+  output_dir: /work/AI4GEO/users/fournip/outputs/flair2/cps_alpha/${module.alpha_ramp.end_val}/${now:%Y-%m-%d_%H%M%S}
+  
+trainer:
+  max_time: "00:07:45:00"
+  
+hydra:
+  sweeper:
+    params:
+      module.alpha_ramp.end_val: 2,5,10

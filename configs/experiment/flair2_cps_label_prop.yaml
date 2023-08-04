@@ -7,8 +7,9 @@ defaults:
 #  - override /hydra/launcher: submitit_slurm
   - override /paths: trex
   - override /datamodule: flair
-  - override /module: supervised
-  - override /module/network: smpunet
+  - override /module: cps
+  - override /module/network@module.network1: smpunet
+  - override /module/network@module.network2: smpunet
   - override /trainer: gpu
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -17,8 +18,10 @@ defaults:
 seed: 12345
 
 datamodule:
-  batch_size: 16
+  _target_: dl_toolbox.datamodules.DatamoduleFlair2Semisup
+  batch_size: 8
   num_workers: 16
+  unlabeled_prop: 100
   
 module:
   network:
@@ -27,12 +30,12 @@ module:
 
 paths:
   data_dir: /work/AI4GEO/users/fournip
-  output_dir: /work/AI4GEO/users/fournip/outputs/flair/label_prop/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}
+  output_dir: /work/AI4GEO/users/fournip/outputs/flair2/cps_labeled_prop/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}
   
 trainer:
-  max_time: "00:11:00:00"
+  max_time: "00:07:45:00"
   
 hydra:
   sweeper:
     params:
-      datamodule.prop: 5,80
+      datamodule.prop: 1,5,80

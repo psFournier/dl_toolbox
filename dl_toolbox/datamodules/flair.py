@@ -213,7 +213,15 @@ class DatamoduleFlair1(LightningDataModule):
     
     def prepare_data(self):
         domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
-        train_domains, val_domains, test_domains = domains[:self.prop], domains[35:], domains[self.prop:35]
+        random.shuffle(domains)
+        train_domains, val_domains, test_domains = [], [], []
+        for i, domain in enumerate(domains):
+            if i%100 < int(self.prop * 40 / 100):
+                train_domains.append(domain)
+            elif i%100 >= int(90 * 40 / 100):
+                val_domains.append(domain)
+            else:
+                test_domains.append(domain)
         def get_data_dict(domains):
             img, msk, mtd = _gather_data(
                 domains, path_metadata=None, use_metadata=False, test_set=False

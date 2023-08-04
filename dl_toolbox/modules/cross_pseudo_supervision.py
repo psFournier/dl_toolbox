@@ -1,6 +1,11 @@
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+import torchmetrics as M
+import matplotlib.pyplot as plt
+
+from dl_toolbox.losses import DiceLoss
+from dl_toolbox.utils import plot_confusion_matrix
 
 
 class CrossPseudoSupervision(pl.LightningModule):
@@ -24,7 +29,17 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.scheduler = scheduler
         self.num_classes = num_classes
         self.ce = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
+        self.dice = DiceLoss(
+            mode="multiclass",
+            log_loss=False,
+            from_logits=True,
+            smooth=0.01,
+            ignore_index=None,
+            eps=1e-7,
+        )
         self.alpha_ramp = alpha_ramp
+        self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
+        self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -53,6 +68,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         
         ce = (self.ce(logits1, labels) + self.ce(logits2, labels)) / 2
         self.log(f"cross_entropy/train", ce)
+        dice = (self.dice(logits1, labels)+self.dice(logits2, labels))/2
+        self.log(f"dice/train", dice)
 
         with torch.no_grad():
             _, sup_pl_2 = torch.max(logits2, dim=1)
@@ -78,21 +95,38 @@ class CrossPseudoSupervision(pl.LightningModule):
             cps_loss_unlabeled = (unsup_pl_1_loss + unsup_pl_2_loss) / 2
         self.log("cps_loss_unlabeled/train", cps_loss_unlabeled)
     
-        return ce + self.alpha * (cps_loss_labeled + cps_loss_unlabeled)
-
+        return ce + dice + self.alpha * (cps_loss_labeled + cps_loss_unlabeled)
+    
+    def on_validation_epoch_start(self):
+        self.val_accuracy.reset()
+        self.val_cm.reset()
+        
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
         labels = batch["label"]
         logits1 = self.network1(inputs)
         logits2 = self.network2(inputs)
-        
-        self.log(f"cross_entropy/val", self.ce(logits1, labels))
-        
+        logits = (logits1 + logits2) / 2
+        ce = (self.ce(logits1, labels) + self.ce(logits2, labels)) / 2
+        self.log(f"cross_entropy/val", ce)
+        dice = (self.dice(logits1, labels)+self.dice(logits2, labels))/2
+        self.log(f"dice/val", dice)
         _, pl_1 = torch.max(logits1, dim=1)
         self.log("cps_loss_labeled/val", self.ce(logits2, pl_1))
-        
         pl_acc = pl_1.eq(labels).float().mean()
         self.log("pseudolabel accuracy/val", pl_acc)
+        _, preds = self.probas2confpreds(self.logits2probas(logits))
+        self.val_accuracy.update(preds, labels)
+        self.val_cm.update(preds, labels)
+        
+    def on_validation_epoch_end(self):
+        self.log("accuracy/val", self.val_accuracy.compute())
+        confmat = self.val_cm.compute().detach().cpu()
+        class_names = self.trainer.datamodule.class_names
+        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
+        logger = self.trainer.logger
+        if logger:
+            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]

@@ -4,7 +4,8 @@ _partial_: True
 default_root_dir: ${paths.output_dir}
 
 min_epochs: 1 # prevents early stopping
-max_epochs: 100
+max_steps: 200000
+max_epochs: 1000
 limit_train_batches: 1.
 limit_val_batches: 1.
 
