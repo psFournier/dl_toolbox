@@ -10,8 +10,10 @@ alpha_ramp:
     _target_: dl_toolbox.utils.SigmoidRamp
     start: 0
     end: 1
-    start_val: 1.
+    start_val: 0.
     end_val: 1.
+ce_weight: 1
+dice_weight: 0
 
 
   

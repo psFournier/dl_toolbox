@@ -6,7 +6,7 @@
 defaults:
   - override /hydra/launcher: my_submitit_slurm
   - override /paths: trex
-  - override /datamodule: flair
+  - override /datamodule: flair2
   - override /module: supervised
   - override /module/network: smpunet
   - override /trainer: gpu
@@ -19,6 +19,7 @@ seed: 12345
 datamodule:
   batch_size: 16
   num_workers: 16
+  prop: 5
   
 module:
   network:
@@ -27,19 +28,18 @@ module:
 
 paths:
   data_dir: /work/AI4GEO/users/fournip
-  output_dir: /work/AI4GEO/users/fournip/outputs/flair2/label_prop/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}
+  output_dir: /work/AI4GEO/users/fournip/outputs/flair2/supervised/module_diceweight/${now:%Y-%m-%d_%H%M%S}
+  
+callbacks:
+  model_checkpoint:
+    dirpath: ${paths.output_dir}/${module.dice_weight}/checkpoints
   
 trainer:
   max_time: "00:11:00:00"
   
 hydra:
-#  launcher:
-#    gres: gpu:1
-#    gpus_per_task: 1
-#    cpus_per_gpu: 16
-#    partition: gpu_a100
-#    account: ai4geo
-#    qos: gpu_all
   sweeper:
     params:
-      datamodule.prop: 1,5
+      module.dice_weight: 0,1,10
+  sweep:
+    subdir: ${module.dice_weight}

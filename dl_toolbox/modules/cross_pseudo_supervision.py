@@ -15,6 +15,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         network2,
         optimizer,
         scheduler,
+        ce_weight,
+        dice_weight,
         alpha_ramp,
         class_weights,
         in_channels,
@@ -29,6 +31,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.scheduler = scheduler
         self.num_classes = num_classes
         self.ce = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
+        self.ce_weight = ce_weight
         self.dice = DiceLoss(
             mode="multiclass",
             log_loss=False,
@@ -37,6 +40,7 @@ class CrossPseudoSupervision(pl.LightningModule):
             ignore_index=None,
             eps=1e-7,
         )
+        self.dice_weight = dice_weight
         self.alpha_ramp = alpha_ramp
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
@@ -95,7 +99,7 @@ class CrossPseudoSupervision(pl.LightningModule):
             cps_loss_unlabeled = (unsup_pl_1_loss + unsup_pl_2_loss) / 2
         self.log("cps_loss_unlabeled/train", cps_loss_unlabeled)
     
-        return ce + dice + self.alpha * (cps_loss_labeled + cps_loss_unlabeled)
+        return self.ce_weight * ce + self.dice_weight * dice + self.alpha * (cps_loss_labeled + cps_loss_unlabeled)
     
     def on_validation_epoch_start(self):
         self.val_accuracy.reset()
