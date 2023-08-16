@@ -15,6 +15,8 @@ class Supervised(pl.LightningModule):
         optimizer,
         scheduler,
         class_weights,
+        ce_weight,
+        dice_weight,
         in_channels,
         num_classes,
         *args,
@@ -26,6 +28,16 @@ class Supervised(pl.LightningModule):
         self.scheduler = scheduler
         self.num_classes = num_classes
         self.ce = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
+        self.ce_weight = ce_weight
+        self.dice = DiceLoss(
+            mode="multiclass",
+            log_loss=False,
+            from_logits=True,
+            smooth=0.01,
+            ignore_index=None,
+            eps=1e-7,
+        )
+        self.dice_weight = dice_weight
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
 
@@ -42,7 +54,7 @@ class Supervised(pl.LightningModule):
 
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
-
+    
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
         inputs = batch["image"]
@@ -50,18 +62,22 @@ class Supervised(pl.LightningModule):
         logits = self.network(inputs)
         ce = self.ce(logits, labels)
         self.log(f"cross_entropy/train", ce)
-        return ce
+        dice = self.dice(logits, labels)
+        self.log(f"dice/train", dice)
+        return self.ce_weight * ce + self.dice_weight * dice
     
     def on_validation_epoch_start(self):
         self.val_accuracy.reset()
         self.val_cm.reset()
-
+        
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
         labels = batch["label"]
         logits = self.forward(inputs)
         ce = self.ce(logits, labels)
         self.log(f"cross_entropy/val", ce)
+        dice = self.dice(logits, labels)
+        self.log(f"dice/val", dice)
         _, preds = self.probas2confpreds(self.logits2probas(logits))
         self.val_accuracy.update(preds, labels)
         self.val_cm.update(preds, labels)
@@ -86,39 +102,3 @@ class Supervised(pl.LightningModule):
         #        logits = torch.stack([logits, tta_logits])
         #    logits = logits.mean(dim=0)
         return logits
-
-class SupervisedDice(Supervised):
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.dice = DiceLoss(
-            mode="multiclass",
-            log_loss=False,
-            from_logits=True,
-            smooth=0.01,
-            ignore_index=None,
-            eps=1e-7,
-        )
-
-    def training_step(self, batch, batch_idx):
-        batch = batch["sup"]
-        inputs = batch["image"]
-        labels = batch["label"]
-        logits = self.network(inputs)
-        ce = self.ce(logits, labels)
-        self.log(f"cross_entropy/train", ce)
-        dice = self.dice(logits, labels)
-        self.log(f"dice/train", dice)
-        return ce+dice
-
-    def validation_step(self, batch, batch_idx):
-        inputs = batch["image"]
-        labels = batch["label"]
-        logits = self.forward(inputs)
-        ce = self.ce(logits, labels)
-        self.log(f"cross_entropy/val", ce)
-        dice = self.dice(logits, labels)
-        self.log(f"dice/val", dice)
-        _, preds = self.probas2confpreds(self.logits2probas(logits))
-        self.val_accuracy.update(preds, labels)
-        self.val_cm.update(preds, labels)

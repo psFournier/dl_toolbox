@@ -4,4 +4,6 @@ defaults:
   - scheduler: step
   - network: smpunet
 
-_target_: dl_toolbox.modules.SupervisedDice
+_target_: dl_toolbox.modules.Supervised
+ce_weight: 1
+dice_weight: 0

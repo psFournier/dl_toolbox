@@ -1,0 +1,44 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /hydra/launcher: my_submitit_slurm
+  - override /paths: trex
+  - override /datamodule: flair2
+  - override /module: supervised
+  - override /module/network: smpunet
+  - override /trainer: gpu
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+seed: 12345
+
+datamodule:
+  batch_size: 16
+  num_workers: 16
+  
+module:
+  network:
+    encoder_name: efficientnet-b0
+    encoder_weights: null
+
+paths:
+  data_dir: /work/AI4GEO/users/fournip
+  output_dir: /work/AI4GEO/users/fournip/outputs/flair2/supervised/datamodule_prop/${now:%Y-%m-%d_%H%M%S}
+  
+callbacks:
+  model_checkpoint:
+    dirpath: ${paths.output_dir}/${datamodule.prop}/checkpoints
+  
+trainer:
+  max_time: "00:11:00:00"
+  
+hydra:
+  sweeper:
+    params:
+      datamodule.prop: 1,5,80
+  sweep:
+    subdir: ${datamodule.prop}
