@@ -3,6 +3,7 @@ from .crop import RandomCrop2
 from .cutmix import Cutmix, Cutmix2
 from .d4 import D4, Flip, Hflip, Rot180, Rot270, Rot90, Transpose1, Transpose2, Vflip
 from .mixup import Mixup, Mixup2
+from .resize import Resize
 from .utils import Compose, NoOp, OneOf, rand_bbox
 from .imagenet import *
 from .stretch_to_minmax import *
@@ -19,6 +20,7 @@ aug_dict = {
     "rot90": Rot90,
     "rot180": Rot180,
     "rot270": Rot270,
+    "resize": Resize,
     "saturation": Saturation,
     "contrast": Contrast,
     "gamma": Gamma,

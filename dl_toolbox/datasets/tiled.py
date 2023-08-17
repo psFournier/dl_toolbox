@@ -49,7 +49,8 @@ class TiledTif(Dataset):
         return len(self.crops)
 
     def __getitem__(self, idx):
-        window = Window(*self.crops[idx])
+        crop = self.crops[idx]
+        window = Window(*crop)
         image = read_image(self.img_path, window, self.bands)            
         label = None
         if self.label_path:

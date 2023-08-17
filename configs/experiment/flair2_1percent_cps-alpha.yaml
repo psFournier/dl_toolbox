@@ -4,9 +4,9 @@
 # python train.py experiment=example
 
 defaults:
-#  - override /hydra/launcher: submitit_slurm
+  - override /hydra/launcher: my_submitit_slurm
   - override /paths: trex
-  - override /datamodule: flair
+  - override /datamodule: flair2
   - override /module: cps
   - override /module/network@module.network1: smpunet
   - override /module/network@module.network2: smpunet
@@ -21,21 +21,31 @@ datamodule:
   _target_: dl_toolbox.datamodules.DatamoduleFlair2Semisup
   batch_size: 8
   num_workers: 16
+  prop: 1
   unlabeled_prop: 100
-  
+
 module:
   network:
     encoder_name: efficientnet-b0
     encoder_weights: null
+  alpha_ramp:
+    start: 10000
 
 paths:
   data_dir: /work/AI4GEO/users/fournip
-  output_dir: /work/AI4GEO/users/fournip/outputs/flair2/cps_labeled_prop/${datamodule.prop}/${now:%Y-%m-%d_%H%M%S}
+  output_dir: /work/AI4GEO/users/fournip/outputs/flair2_1percent/cps/constant_alpha_startval/${now:%Y-%m-%d_%H%M%S}
+  
+callbacks:
+  model_checkpoint:
+    dirpath: ${paths.output_dir}/${module.alpha_ramp.start_val}/checkpoints
   
 trainer:
-  max_time: "00:07:45:00"
+  max_time: "00:05:00:00"
   
 hydra:
   sweeper:
     params:
-      datamodule.prop: 1,5,80
+      module.alpha_ramp.start_val: 0,0.1,1,10
+  sweep:
+    subdir: ${module.alpha_ramp.start_val}
+  
