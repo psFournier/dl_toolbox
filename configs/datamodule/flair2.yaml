@@ -4,8 +4,9 @@ defaults:
   - transforms@test_tf: none
   - _self_
 
+name: flair2
 _target_: dl_toolbox.datamodules.DatamoduleFlair2
-data_path: ${paths.data_dir}/FLAIR_1
+data_path: ???
 prop: 30
 batch_size: 32
 bands: [1, 2, 3]

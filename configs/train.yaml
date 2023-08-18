@@ -10,7 +10,8 @@ defaults:
       - image_visu
       - model_checkpoint
       - model_summary
-  - paths: qdtis056z
+  #- paths: qdtis056z
   - trainer: gpu
   - hydra: default
-  - experiment: null
+  
+output_dir: ???

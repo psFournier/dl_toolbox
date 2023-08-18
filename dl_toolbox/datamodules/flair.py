@@ -187,6 +187,8 @@ class DatamoduleFlair1(LightningDataModule):
         num_workers,
         pin_memory,
         class_weights=None,
+        *args,
+        **kwargs
     ):
         super().__init__()
         self.data_path = data_path
@@ -212,7 +214,7 @@ class DatamoduleFlair1(LightningDataModule):
         )
     
     def prepare_data(self):
-        domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
+        domains = [Path(self.data_path) / "FLAIR_1" / "train" / d for d in self.train_domains]
         random.shuffle(domains)
         train_domains, val_domains, test_domains = [], [], []
         for i, domain in enumerate(domains):
@@ -314,7 +316,7 @@ class DatamoduleFlair2(DatamoduleFlair1):
         #assert 0 < self.prop < 90
         
     def prepare_data(self):
-        domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
+        domains = [Path(self.data_path) / "FLAIR_1" / "train" / d for d in self.train_domains]
         all_img, all_msk, all_mtd = _gather_data(
             domains, path_metadata=None, use_metadata=False, test_set=False
         )
@@ -344,7 +346,7 @@ class DatamoduleFlair2Semisup(DatamoduleFlair2):
         self.unlabeled_prop = unlabeled_prop
         
     def prepare_data(self):
-        domains = [Path(self.data_path) / "train" / d for d in self.train_domains]
+        domains = [Path(self.data_path) / "FLAIR_1" / "train" / d for d in self.train_domains]
         all_img, all_msk, all_mtd = _gather_data(
             domains, path_metadata=None, use_metadata=False, test_set=False
         )

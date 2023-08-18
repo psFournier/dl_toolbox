@@ -10,7 +10,9 @@ job:
 
 # output directory, generated dynamically on each run
 run:
-  dir: ${paths.output_dir}
+  dir: ${output_dir}/datamodule:${datamodule.name}/${now:%Y-%m-%d_%H%M%S}
 sweep:
-  dir: ${paths.output_dir}
+  dir: ${output_dir}/datamodule:${datamodule.name}/${now:%Y-%m-%d_%H%M%S}
   subdir: ${hydra.job.num}
+  
+

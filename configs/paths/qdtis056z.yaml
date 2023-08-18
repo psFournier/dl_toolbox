@@ -1,8 +1,3 @@
-# path to root directory
-# this requires PROJECT_ROOT environment variable to exist
-# you can replace it with "." if you want the root to be the current working directory
-root_dir: /d/pfournie/dl_toolbox
-
 # path to data directory
 data_dir: /data
 
@@ -11,8 +6,6 @@ data_dir: /data
 # use it to store all files generated during the run, like ckpts and metrics
 output_dir: ${paths.data_dir}/outputs/${hydra:runtime.choices.datamodule}/${hydra:runtime.choices.experiment}/${now:%Y-%m-%d_%H%M%S}
 
-# path to logging directory
-log_dir: ${paths.output_dir}/logs/
 
 # path to working directory
 work_dir: ${hydra:runtime.cwd}

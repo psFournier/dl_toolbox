@@ -4,12 +4,14 @@
 # python train.py experiment=example
 
 defaults:
-  - override /hydra/launcher: my_submitit_slurm
-  - override /paths: trex
+#  - override /hydra/launcher: my_submitit_slurm
+#  - override /paths: trex
   - override /datamodule: flair2
   - override /module: supervised
   - override /module/network: smpunet
   - override /trainer: gpu
+  
+name: flair2_supervised-dice
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -17,29 +19,31 @@ defaults:
 seed: 12345
 
 datamodule:
-  batch_size: 16
-  num_workers: 16
+  batch_size: 2
+  num_workers: 1
   prop: 5
   
 module:
   network:
     encoder_name: efficientnet-b0
     encoder_weights: null
-
-paths:
-  data_dir: /work/AI4GEO/users/fournip
-  output_dir: /work/AI4GEO/users/fournip/outputs/flair2/supervised/module_diceweight/${now:%Y-%m-%d_%H%M%S}
-  
-callbacks:
-  model_checkpoint:
-    dirpath: ${paths.output_dir}/${module.dice_weight}/checkpoints
   
 trainer:
-  max_time: "00:11:00:00"
+  max_time: "00:00:00:10"
+  limit_train_batches: 4
+  limit_val_batches: 4
   
 hydra:
+  run:
+    dir: ${output_dir}/datamodule:${datamodule.name}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
       module.dice_weight: 0,1,10
   sweep:
-    subdir: ${module.dice_weight}
+    dir: ${output_dir}/datamodule:${datamodule.name}/${name}
+    subdir: ${module.dice_weight}/${now:%Y-%m-%d_%H%M%S}
+    
+callbacks:
+  model_checkpoint:
+    #dirpath: ${hydra:run.dir}/checkpoints
+    dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
