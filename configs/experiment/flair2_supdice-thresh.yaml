@@ -11,7 +11,7 @@ defaults:
   - override /module/network: smpunet
   - override /trainer: gpu
   
-name: flair2_supervised-dice
+name: ohem_thresh
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -26,10 +26,11 @@ datamodule:
 module:
   network:
     encoder_name: efficientnet-b0
-    encoder_weights: null
+    encoder_weights: imagenet
+  dice_weight: 1
   
 trainer:
-  max_time: "00:01:00:10"
+  max_time: "00:12:00:10"
   limit_train_batches: 1.
   limit_val_batches: 1.
   
@@ -38,10 +39,10 @@ hydra:
     dir: ${paths.output_dir}/datamodule:${datamodule.name}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      module.dice_weight: 0,1
+      module.ohem_thresh: 0.1,0.3,0.5,0.7,0.9,1.
   sweep:
     dir: ${paths.output_dir}/datamodule:${datamodule.name}/${name}
-    subdir: ${module.dice_weight}/${now:%Y-%m-%d_%H%M%S}
+    subdir: ${module.ohem_thresh}/${now:%Y-%m-%d_%H%M%S}
     
 callbacks:
   model_checkpoint:

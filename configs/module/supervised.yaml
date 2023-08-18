@@ -7,3 +7,4 @@ defaults:
 _target_: dl_toolbox.modules.Supervised
 ce_weight: 1
 dice_weight: 0
+ohem_thresh: 0.7

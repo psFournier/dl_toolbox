@@ -19,6 +19,8 @@ class Supervised(pl.LightningModule):
         dice_weight,
         in_channels,
         num_classes,
+        ohem_thresh,
+        ohem_min_kept,
         *args,
         **kwargs
     ):
@@ -30,8 +32,8 @@ class Supervised(pl.LightningModule):
         self.ce = ProbOhemCrossEntropy2d(
             ignore_index=0,
             weight=torch.Tensor(class_weights),
-            thresh=0.7,
-            min_kept=500000
+            thresh=ohem_thresh,
+            min_kept=ohem_min_kept
         )
         self.ce_weight = ce_weight
         self.dice = DiceLoss(
