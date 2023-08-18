@@ -1,7 +1,7 @@
 defaults:
-  - transforms@train_tf: d4_color
-  - transforms@val_tf: none
-  - transforms@test_tf: none
+  - /transforms@train_tf: d4_color
+  - /transforms@val_tf: none
+  - /transforms@test_tf: none
   - _self_
 
 name: flair2
