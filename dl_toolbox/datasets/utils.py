@@ -24,7 +24,7 @@ def read_label(path, window=None, classes=None):
     if classes is not None:
         label = merge_labels(
             label.squeeze(), [list(l.values) for l in classes]
-        )
+        )[np.newaxis, :]
     return torch.from_numpy(label).long()
 
 class FixedCropFromWindow:

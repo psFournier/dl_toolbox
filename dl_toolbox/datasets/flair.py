@@ -98,13 +98,13 @@ class DatasetFlair2(Dataset):
     classes = classes
 
     def __init__(
-        self, imgs, msks, bands, merge, crop_size, shuffle, transforms, crop_step=None
+        self, imgs, msks, bands, merge, shuffle, transforms, crop_step=None
     ):
         self.imgs = imgs
         self.msks = msks
         self.bands = bands
         self.class_list = self.classes[merge].value
-        self.crop_size = crop_size
+        #self.crop_size = crop_size
         self.shuffle = shuffle
         self.transforms = transforms
 
@@ -112,20 +112,20 @@ class DatasetFlair2(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        window = Window(
-            random.randint(0, 512 - self.crop_size),
-            random.randint(0, 512 - self.crop_size),
-            self.crop_size,
-            self.crop_size,
-        )
-        image = read_image(self.imgs[idx], window, self.bands) / 255.
+        #window = Window(
+        #    random.randint(0, 512 - self.crop_size),
+        #    random.randint(0, 512 - self.crop_size),
+        #    self.crop_size,
+        #    self.crop_size,
+        #)
+        image = read_image(self.imgs[idx], bands=self.bands) / 255.
         label = None
         if self.msks:
-            label = read_label(self.msks[idx], window, self.class_list)
+            label = read_label(self.msks[idx], classes=self.class_list)
         image, label = self.transforms(img=image, label=label)
         return {
             "image": image,
-            "label": label,
+            "label": label.squeeze(),
         }
 
 

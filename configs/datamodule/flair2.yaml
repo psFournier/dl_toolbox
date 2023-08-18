@@ -1,5 +1,5 @@
 defaults:
-  - /transforms@train_tf: d4_color
+  - /transforms@train_tf: train
   - /transforms@val_tf: none
   - /transforms@test_tf: none
   - _self_
@@ -10,7 +10,7 @@ data_path: ${paths.data}
 prop: 30
 batch_size: 32
 bands: [1, 2, 3]
-crop_size: 512
+#crop_size: 512
 num_workers: 6
 merge: hierarchical6
 pin_memory: False

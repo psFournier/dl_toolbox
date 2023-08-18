@@ -179,7 +179,7 @@ class DatamoduleFlair1(LightningDataModule):
         merge,
         prop,
         bands,
-        crop_size,
+        #crop_size,
         train_tf,
         val_tf,
         test_tf,
@@ -200,7 +200,7 @@ class DatamoduleFlair1(LightningDataModule):
         self.val_tf = val_tf
         self.test_tf = test_tf
         self.batch_size = batch_size
-        self.crop_size = crop_size
+        #self.crop_size = crop_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         
@@ -240,7 +240,7 @@ class DatamoduleFlair1(LightningDataModule):
                 self.dict_train["MSK"],
                 self.bands,
                 self.merge,
-                self.crop_size,
+                #self.crop_size,
                 shuffle=True,
                 transforms=self.train_tf,
             )
@@ -250,7 +250,7 @@ class DatamoduleFlair1(LightningDataModule):
                 self.dict_val["MSK"],
                 self.bands,
                 self.merge,
-                self.crop_size,
+                #self.crop_size,
                 shuffle=False,
                 transforms=self.val_tf,
             )
@@ -260,7 +260,7 @@ class DatamoduleFlair1(LightningDataModule):
                 self.dict_test["MSK"],
                 self.bands,
                 self.merge,
-                self.crop_size,
+                #self.crop_size,
                 shuffle=False,
                 transforms=self.test_tf,
             )
@@ -375,7 +375,7 @@ class DatamoduleFlair2Semisup(DatamoduleFlair2):
                 [],
                 self.bands,
                 self.merge,
-                self.crop_size,
+                #self.crop_size,
                 shuffle=True,
                 transforms=self.train_tf,
             )
