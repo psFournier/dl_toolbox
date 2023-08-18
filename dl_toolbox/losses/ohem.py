@@ -10,14 +10,12 @@ class ProbOhemCrossEntropy2d(_Loss):
         reduction='mean',
         thresh=0.6,
         min_kept=256,
-        down_ratio=1,
         weight=None
     ):
         super(ProbOhemCrossEntropy2d, self).__init__()
         self.ignore_index = ignore_index
         self.thresh = float(thresh)
         self.min_kept = int(min_kept)
-        self.down_ratio = down_ratio
         self.criterion = torch.nn.CrossEntropyLoss(
             reduction=reduction,
             ignore_index=ignore_index,

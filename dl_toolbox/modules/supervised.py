@@ -29,7 +29,9 @@ class Supervised(pl.LightningModule):
         self.num_classes = num_classes
         self.ce = ProbOhemCrossEntropy2d(
             ignore_index=0,
-            weight=torch.Tensor(class_weights)
+            weight=torch.Tensor(class_weights),
+            thresh=0.7,
+            min_kept=500000
         )
         self.ce_weight = ce_weight
         self.dice = DiceLoss(
