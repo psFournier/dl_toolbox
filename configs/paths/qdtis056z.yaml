@@ -1,11 +1,3 @@
 # path to data directory
-data_dir: /data
-
-# path to output directory, created dynamically by hydra
-# path generation pattern is specified in `configs/hydra/default.yaml`
-# use it to store all files generated during the run, like ckpts and metrics
-output_dir: ${paths.data_dir}/outputs/${hydra:runtime.choices.datamodule}/${hydra:runtime.choices.experiment}/${now:%Y-%m-%d_%H%M%S}
-
-
-# path to working directory
-work_dir: ${hydra:runtime.cwd}
+data: /data
+output_dir: /data/outputs

@@ -5,7 +5,7 @@
 
 defaults:
 #  - override /hydra/launcher: my_submitit_slurm
-#  - override /paths: trex
+  - override /paths: qdtis056z
   - override /datamodule: flair2
   - override /module: supervised
   - override /module/network: smpunet
@@ -35,12 +35,12 @@ trainer:
   
 hydra:
   run:
-    dir: ${output_dir}/datamodule:${datamodule.name}/${name}/${now:%Y-%m-%d_%H%M%S}
+    dir: ${paths.output_dir}/datamodule:${datamodule.name}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
       module.dice_weight: 0,1,10
   sweep:
-    dir: ${output_dir}/datamodule:${datamodule.name}/${name}
+    dir: ${paths.output_dir}/datamodule:${datamodule.name}/${name}
     subdir: ${module.dice_weight}/${now:%Y-%m-%d_%H%M%S}
     
 callbacks:

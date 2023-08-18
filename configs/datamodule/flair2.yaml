@@ -6,7 +6,7 @@ defaults:
 
 name: flair2
 _target_: dl_toolbox.datamodules.DatamoduleFlair2
-data_path: ???
+data_path: ${paths.data}
 prop: 30
 batch_size: 32
 bands: [1, 2, 3]
