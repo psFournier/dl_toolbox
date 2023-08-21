@@ -8,7 +8,7 @@ name: resisc_semisup
 _target_: dl_toolbox.datamodules.DatamoduleResisc1Semisup
 data_path: ${paths.data}
 prop: 80
-unlabeled_prop: 100
+unlabeled_prop: [0,100]
 batch_size: 16
 num_workers: 6
 merge: all45

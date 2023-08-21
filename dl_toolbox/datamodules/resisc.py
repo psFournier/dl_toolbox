@@ -132,7 +132,8 @@ class DatamoduleResisc1Semisup(DatamoduleResisc1):
         self.train_idx, self.val_idx, self.test_idx = [], [], []
         self.unlabeled_idx = []
         for i in range(num_item):
-            if i%100 <= self.unlabeled_prop: self.unlabeled_idx.append(i)
+            if self.unlabeled_prop[0] <= i%100 <= self.unlabeled_prop[1]:
+                self.unlabeled_idx.append(i)
             #if self.prop <= i%100 <= self.prop + self.unlabeled_prop: self.unlabeled_idx.append(i)
             if i%100 < self.prop: self.train_idx.append(i)
             elif i%100 >= 90: self.val_idx.append(i)
@@ -156,4 +157,4 @@ class DatamoduleResisc1Semisup(DatamoduleResisc1):
             shuffle=True,
             drop_last=True
         )
-        return CombinedLoader(train_dataloaders, mode="min_size")
+        return CombinedLoader(train_dataloaders, mode="max_size")

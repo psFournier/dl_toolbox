@@ -20,10 +20,18 @@ name: cps_alpha
 seed: 12345
 
 datamodule:
-  batch_size: 16
-  num_workers: 16
+  batch_size: 32
+  num_workers: 12
   prop: 3
-  
+  unlabeled_prop: [90, 99]
+  train_tf:
+    _target_: dl_toolbox.transforms.Compose
+    transforms: 
+        - _target_: dl_toolbox.transforms.D4
+        - _target_: dl_toolbox.transforms.ImagenetNormalize
+  val_tf:
+    _target_: dl_toolbox.transforms.ImagenetNormalize
+
 module:
   network1:
     weights: IMAGENET1K_V1
@@ -43,7 +51,7 @@ hydra:
     dir: ${paths.output_dir}/datamodule:${datamodule.name}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      module.alpha_ramp.start_val: 0,0.1,1,10
+      module.alpha_ramp.start_val: 0,0.1,0.5,1,2,5
   sweep:
     dir: ${paths.output_dir}/datamodule:${datamodule.name}/${name}
     subdir: ${module.alpha_ramp.start_val}/${now:%Y-%m-%d_%H%M%S}
