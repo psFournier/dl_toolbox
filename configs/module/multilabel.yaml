@@ -3,14 +3,9 @@ defaults:
   - optimizer: sgd
   - network: smpunet
   - scheduler: step
+  - loss@bce_loss: bce
+  - loss@dice_loss: dice
 
 _target_: dl_toolbox.modules.BCE.Multilabel
-
-
-  
-
-
-
-
-
-
+ce_weight: 1
+dice_weight: 0

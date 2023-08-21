@@ -1,8 +1,10 @@
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+import torchmetrics as M
+import matplotlib.pyplot as plt
 
-from dl_toolbox.losses import DiceLoss
+from dl_toolbox.utils import plot_confusion_matrix
 
 
 class Multilabel(pl.LightningModule):
@@ -11,27 +13,31 @@ class Multilabel(pl.LightningModule):
         network,
         optimizer,
         scheduler,
+        bce_loss,
+        dice_loss,
         class_weights,
+        ce_weight,
+        dice_weight,
         in_channels,
         num_classes,
         *args,
         **kwargs
     ):
         super().__init__()
-        self.network = network(in_channels=in_channels, classes=num_classes - 1)
+        self.network = network(
+            in_channels=in_channels,
+            classes=num_classes - 1
+        )
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
         pos_weight = torch.Tensor(class_weights[1:]).view(1, num_classes - 1, 1, 1)
-        self.bce = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-        self.dice = DiceLoss(
-            mode="multilabel",
-            log_loss=False,
-            from_logits=True,
-            smooth=0.01,
-            ignore_index=None,
-            eps=1e-7,
-        )
+        self.bce = bce(pos_weight=pos_weight)
+        self.dice = dice_loss(mode="multilabel")
+        self.ce_weight = ce_weight
+        self.dice_weight = dice_weight
+        self.val_accuracy = M.Accuracy(task='multilabel', num_classes=num_classes)
+        self.val_cm = M.ConfusionMatrix(task="multilabel", num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -66,10 +72,14 @@ class Multilabel(pl.LightningModule):
         onehot_labels = self.one_hot(labels)
         logits = self.network(inputs)  # B,C or C-1,H,W
         bce = self.bce(logits, onehot_labels)
+        self.log(f"cross_entropy/train", bce)
         dice = self.dice(logits, onehot_labels)
-        loss = bce + dice
-        self.log("loss/train", loss)
-        return loss
+        self.log(f"dice/train", dice)
+        return self.ce_weight * bce + self.dice_weight * dice
+    
+    def on_validation_epoch_start(self):
+        self.val_accuracy.reset()
+        self.val_cm.reset()
 
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
@@ -77,10 +87,21 @@ class Multilabel(pl.LightningModule):
         onehot_labels = self.one_hot(labels)
         logits = self.forward(inputs)
         bce = self.bce(logits, onehot_labels)
+        self.log(f"cross_entropy/val", bce)
         dice = self.dice(logits, onehot_labels)
-        loss = bce + dice
-        self.log("loss/val", loss)
-        return logits
+        self.log(f"dice/val", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits))
+        self.val_accuracy.update(preds, labels)
+        self.val_cm.update(preds, labels)
+    
+    def on_validation_epoch_end(self):
+        self.log("accuracy/val", self.val_accuracy.compute())
+        confmat = self.val_cm.compute().detach().cpu()
+        class_names = self.trainer.datamodule.class_names
+        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
+        logger = self.trainer.logger
+        if logger:
+            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
     
     def test_step(self, batch, batch_idx):
         pass

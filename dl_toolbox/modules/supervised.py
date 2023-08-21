@@ -4,7 +4,6 @@ import torch.nn as nn
 import torchmetrics as M
 import matplotlib.pyplot as plt
 
-from dl_toolbox.losses import DiceLoss, ProbOhemCrossEntropy2d
 from dl_toolbox.utils import plot_confusion_matrix
 
 
@@ -14,6 +13,8 @@ class Supervised(pl.LightningModule):
         network,
         optimizer,
         scheduler,
+        ce_loss,
+        dice_loss,
         class_weights,
         ce_weight,
         dice_weight,
