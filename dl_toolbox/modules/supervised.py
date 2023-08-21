@@ -19,8 +19,6 @@ class Supervised(pl.LightningModule):
         dice_weight,
         in_channels,
         num_classes,
-        ohem_thresh,
-        ohem_min_kept,
         *args,
         **kwargs
     ):
@@ -29,21 +27,9 @@ class Supervised(pl.LightningModule):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
-        self.ce = ProbOhemCrossEntropy2d(
-            ignore_index=0,
-            weight=torch.Tensor(class_weights),
-            thresh=ohem_thresh,
-            min_kept=ohem_min_kept
-        )
+        self.ce = ce_loss(weight=torch.Tensor(class_weights))
+        self.dice = dice_loss(mode="multiclass")
         self.ce_weight = ce_weight
-        self.dice = DiceLoss(
-            mode="multiclass",
-            log_loss=False,
-            from_logits=True,
-            smooth=0.01,
-            ignore_index=0,
-            eps=1e-7,
-        )
         self.dice_weight = dice_weight
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)

@@ -1,11 +1,11 @@
 defaults:
-  - transforms@train_tf: d4_color
-  - transforms@val_tf: none
-  - transforms@test_tf: none
+  - /transforms@train_tf: d4_color
+  - /transforms@val_tf: none
+  - /transforms@test_tf: none
   - _self_
 
 _target_: dl_toolbox.datamodules.DatamoduleResisc1
-data_path: ${paths.data_dir}/NWPU-RESISC45/
+data_path: ${paths.data}
 prop: 80
 batch_size: 16
 num_workers: 6

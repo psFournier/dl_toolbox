@@ -18,7 +18,6 @@ def train(cfg: DictConfig) -> None:
         num_classes=datamodule.num_classes,
         in_channels=datamodule.in_channels,
         class_weights=datamodule.class_weights,
-        ohem_min_kept=datamodule.batch_size*50000
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
         # _recursive_=False,
     )

@@ -1,11 +1,12 @@
 defaults:
-  - transforms@train_tf: d4_color
-  - transforms@val_tf: none
-  - transforms@test_tf: none
+  - /transforms@train_tf: d4_color
+  - /transforms@val_tf: none
+  - /transforms@test_tf: none
   - _self_
 
+name: resisc_semisup
 _target_: dl_toolbox.datamodules.DatamoduleResisc1Semisup
-data_path: ${paths.data_dir}/NWPU-RESISC45/
+data_path: ${paths.data}
 prop: 80
 unlabeled_prop: 100
 batch_size: 16

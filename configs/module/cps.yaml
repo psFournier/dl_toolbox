@@ -4,6 +4,8 @@ defaults:
   - network@network1: smpunet
   - network@network2: smpunet
   - scheduler: step
+  - loss@ce_loss: ce
+  - loss@dice_loss: dice
 
 _target_: dl_toolbox.modules.CrossPseudoSupervision
 alpha_ramp:
@@ -14,12 +16,3 @@ alpha_ramp:
     end_val: 1.
 ce_weight: 1
 dice_weight: 0
-
-
-  
-
-
-
-
-
-

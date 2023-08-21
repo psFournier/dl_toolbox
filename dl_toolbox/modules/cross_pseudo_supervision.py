@@ -4,7 +4,7 @@ import torch.nn as nn
 import torchmetrics as M
 import matplotlib.pyplot as plt
 
-from dl_toolbox.losses import DiceLoss
+from dl_toolbox.losses import DiceLoss, ProbOhemCrossEntropy2d
 from dl_toolbox.utils import plot_confusion_matrix
 
 
@@ -15,6 +15,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         network2,
         optimizer,
         scheduler,
+        ce_loss,
+        dice_loss,
         ce_weight,
         dice_weight,
         alpha_ramp,
@@ -30,16 +32,9 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
-        self.ce = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
+        self.ce = ce_loss(weight=torch.Tensor(class_weights))
+        self.dice = dice_loss(mode="multiclass")
         self.ce_weight = ce_weight
-        self.dice = DiceLoss(
-            mode="multiclass",
-            log_loss=False,
-            from_logits=True,
-            smooth=0.01,
-            ignore_index=None,
-            eps=1e-7,
-        )
         self.dice_weight = dice_weight
         self.alpha_ramp = alpha_ramp
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)

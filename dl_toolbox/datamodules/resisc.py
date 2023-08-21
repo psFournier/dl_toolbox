@@ -28,9 +28,11 @@ class DatamoduleResisc1(LightningDataModule):
         num_workers,
         pin_memory,
         class_weights=None,
+        *args,
+        **kwargs
     ):
         super().__init__()
-        self.data_path = data_path
+        self.data_path = Path(data_path) / 'NWPU-RESISC45'
         self.merge = merge
         self.prop = prop
         assert 0 < prop < 90
