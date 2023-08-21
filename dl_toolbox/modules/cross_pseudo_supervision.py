@@ -64,35 +64,26 @@ class CrossPseudoSupervision(pl.LightningModule):
         labels = batch["label"]
         logits1 = self.network1(inputs)
         logits2 = self.network2(inputs)
-        
-        ce = (self.ce(logits1, labels) + self.ce(logits2, labels)) / 2
+        ce = self.ce(logits1, labels) + self.ce(logits2, labels)
         self.log(f"cross_entropy/train", ce)
-        dice = (self.dice(logits1, labels)+self.dice(logits2, labels))/2
+        dice = self.dice(logits1, labels)+self.dice(logits2, labels)
         self.log(f"dice/train", dice)
-
+            
+        unsup_inputs = unsup_batch["image"]
+        unsup_logits_1 = self.network1(unsup_inputs)
+        unsup_logits_2 = self.network2(unsup_inputs)
         with torch.no_grad():
             _, sup_pl_2 = torch.max(logits2, dim=1)
-        with torch.no_grad():
+            _, unsup_pl_2 = torch.max(unsup_logits_2, dim=1)
             _, sup_pl_1 = torch.max(logits1, dim=1)
-        cps_loss_labeled = (self.ce(logits1, sup_pl_2) + self.ce(logits2, sup_pl_1)) / 2
+            _, unsup_pl_1 = torch.max(unsup_logits_1, dim=1)
+        cps_loss_unlabeled = self.ce(unsup_logits_1, unsup_pl_2) + self.ce(unsup_logits_2, unsup_pl_1)
+        self.log("cps_loss_unlabeled/train", cps_loss_unlabeled)
+        cps_loss_labeled = self.ce(logits1, sup_pl_2) + self.ce(logits2, sup_pl_1)
         self.log("cps_loss_labeled/train", cps_loss_labeled)
         
         pl_acc = sup_pl_1.eq(labels).float().mean()
         self.log("pseudolabel accuracy/train", pl_acc)
-
-        cps_loss_unlabeled = 0.0
-        if self.alpha > 0.0:
-            unsup_inputs = unsup_batch["image"]
-            unsup_logits_1 = self.network1(unsup_inputs)
-            unsup_logits_2 = self.network2(unsup_inputs)
-            with torch.no_grad():
-                _, unsup_pl_2 = torch.max(unsup_logits_2, dim=1)
-            unsup_pl_2_loss = self.ce(unsup_logits_1, unsup_pl_2)
-            with torch.no_grad():
-                _, unsup_pl_1 = torch.max(unsup_logits_1, dim=1)
-            unsup_pl_1_loss = self.ce(unsup_logits_2, unsup_pl_1)
-            cps_loss_unlabeled = (unsup_pl_1_loss + unsup_pl_2_loss) / 2
-        self.log("cps_loss_unlabeled/train", cps_loss_unlabeled)
     
         return self.ce_weight * ce + self.dice_weight * dice + self.alpha * (cps_loss_labeled + cps_loss_unlabeled)
     
