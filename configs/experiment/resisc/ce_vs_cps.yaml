@@ -20,8 +20,8 @@ name: cps_alpha
 seed: 12345
 
 datamodule:
-  batch_size: 16
-  num_workers: 16
+  batch_size: 32
+  num_workers: 32
   prop: 3
   unlabeled_prop: [90, 99]
   train_tf:
@@ -42,7 +42,7 @@ module:
     start: 10000 # ensures alpha remains constant
   
 trainer:
-  max_time: "00:02:00:10"
+  max_time: "00:02:00:40"
   limit_train_batches: 1.
   limit_val_batches: 1.
   

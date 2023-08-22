@@ -390,4 +390,4 @@ class DatamoduleFlair2Semisup(DatamoduleFlair2):
             shuffle=True,
             drop_last=True
         )
-        return CombinedLoader(train_dataloaders, mode="min_size")
+        return CombinedLoader(train_dataloaders, mode="max_size_cycle")
