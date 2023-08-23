@@ -191,19 +191,16 @@ class DatamoduleFlair1(LightningDataModule):
         **kwargs
     ):
         super().__init__()
-        self.data_path = data_path
+        self.data_path = Path(data_path)
         self.merge = merge
         self.prop = prop
-        #assert 0 < prop < 35
         self.bands = bands
         self.train_tf = train_tf
         self.val_tf = val_tf
         self.test_tf = test_tf
         self.batch_size = batch_size
-        #self.crop_size = crop_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
-        
         self.in_channels = len(self.bands)
         self.classes = DatasetFlair2.classes[merge].value
         self.num_classes = len(self.classes)
@@ -214,7 +211,7 @@ class DatamoduleFlair1(LightningDataModule):
         )
     
     def prepare_data(self):
-        domains = [Path(self.data_path) / "FLAIR_1" / "train" / d for d in self.train_domains]
+        domains = [self.data_path / "FLAIR_1" / "train" / d for d in self.train_domains]
         random.shuffle(domains)
         train_domains, val_domains, test_domains = [], [], []
         for i, domain in enumerate(domains):
@@ -240,8 +237,6 @@ class DatamoduleFlair1(LightningDataModule):
                 self.dict_train["MSK"],
                 self.bands,
                 self.merge,
-                #self.crop_size,
-                shuffle=True,
                 transforms=self.train_tf,
             )
 
@@ -250,8 +245,6 @@ class DatamoduleFlair1(LightningDataModule):
                 self.dict_val["MSK"],
                 self.bands,
                 self.merge,
-                #self.crop_size,
-                shuffle=False,
                 transforms=self.val_tf,
             )
         if stage in ("test", "predict"):
@@ -260,8 +253,6 @@ class DatamoduleFlair1(LightningDataModule):
                 self.dict_test["MSK"],
                 self.bands,
                 self.merge,
-                #self.crop_size,
-                shuffle=False,
                 transforms=self.test_tf,
             )
             if stage == "test":
@@ -316,7 +307,7 @@ class DatamoduleFlair2(DatamoduleFlair1):
         #assert 0 < self.prop < 90
         
     def prepare_data(self):
-        domains = [Path(self.data_path) / "FLAIR_1" / "train" / d for d in self.train_domains]
+        domains = [self.data_path / "FLAIR_1" / "train" / d for d in self.train_domains]
         all_img, all_msk, all_mtd = _gather_data(
             domains, path_metadata=None, use_metadata=False, test_set=False
         )
@@ -346,7 +337,7 @@ class DatamoduleFlair2Semisup(DatamoduleFlair2):
         self.unlabeled_prop = unlabeled_prop
         
     def prepare_data(self):
-        domains = [Path(self.data_path) / "FLAIR_1" / "train" / d for d in self.train_domains]
+        domains = [self.data_path / "FLAIR_1" / "train" / d for d in self.train_domains]
         all_img, all_msk, all_mtd = _gather_data(
             domains, path_metadata=None, use_metadata=False, test_set=False
         )
@@ -376,7 +367,6 @@ class DatamoduleFlair2Semisup(DatamoduleFlair2):
                 self.bands,
                 self.merge,
                 #self.crop_size,
-                shuffle=True,
                 transforms=self.train_tf,
             )
         

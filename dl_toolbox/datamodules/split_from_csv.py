@@ -60,150 +60,72 @@ def splits_from_csv(datasrc, datapath, csvpath):
 
 
 class Digitanie(LightningDataModule):
-    
-    cities = [
-        'toulouse',
-        'arcachon',
-        'biarritz',
-        'brisbane',
-        'buenos-aires', 
-        'can-tho',
-        'helsinki',
-        'lagos',
-        'le-caire',
-        'maros',
-        'montpellier',
-        'munich',
-        'strasbourg',
-        'nantes',
-        'new-york',
-        'paris',
-        'port-elisabeth',
-        'rio-janeiro',
-        'san-francisco',
-        'shanghai',
-        'tianjin'
-    ]
-
     def __init__(
         self,
-        data_path,
+        datasource,
         merge,
-        prop,
         bands,
+        crop_size,
+        data_path,
+        csv_path,
+        csv_name,
         train_tf,
         val_tf,
-        test_tf,
         batch_size,
         num_workers,
         pin_memory,
-        class_weights=None,
-        *args,
-        **kwargs
     ):
         super().__init__()
-        self.data_path = Path(data_path)
-        self.merge = merge
-        self.prop = prop
-        self.bands = bands
-        self.train_tf = train_tf
-        self.val_tf = val_tf
-        self.test_tf = test_tf
+
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.pin_memory = pin_memory
+        self.crop_size = crop_size
+        self.merge = merge
+        self.bands = bands
+
+        self.classes = datasources.Digitanie9.classes[self.merge].value
+
+        self.train_srcs, self.val_srcs, _ = splits_from_csv(
+            datasource, Path(data_path), Path(csv_path) / csv_name
+        )
+
+        self.train_tf = train_tf
+        self.val_tf = val_tf
+
         self.in_channels = len(self.bands)
-        self.classes = DatasetFlair2.classes[merge].value
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
-        self.class_weights = (
-            [1.0] * self.num_classes if class_weights is None else class_weights
-        )
-        
-    def prepare_data(self):
-        self.train = {'img':[], 'win':[], 'msk':[]}
-        self.val = {'img':[], 'win':[], 'msk':[]}
-        for city in self.cities:
-            city_path = Path(self.data_path/'DIGITANIE_v3'/city.upper())
-            old_toa = city_path/f'{city.upper()}.tif'
-            imgs = city_path.glob('*[0-9].tif')
-            imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
-            year = str(imgs[0]).split('_')[1]
-            msks = Path(city_path/COS9).glob('*_mask.tif')]
-            msks = sorted(msks, key=lambda x: int(x.stem.split('_')[1]))
-            int16_toa = Path(.glob(f'*[0-9].tif')
-            
-            msk_paths = sorted(
-                [path.relative_to(digitanie) for path in Path(digitanie/city/'COS9').glob('*.tif')],
-                key=lambda x: int(x.stem.split('_')[1][0])
-            )
-        domains = [Path(self.data_path) / "FLAIR_1" / "train" / d for d in self.train_domains]
-        random.shuffle(domains)
-        train_domains, val_domains, test_domains = [], [], []
-        for i, domain in enumerate(domains):
-            if i%100 < int(self.prop * 40 / 100):
-                train_domains.append(domain)
-            elif i%100 >= int(90 * 40 / 100):
-                val_domains.append(domain)
-            else:
-                test_domains.append(domain)
-        def get_data_dict(domains):
-            img, msk, mtd = _gather_data(
-                domains, path_metadata=None, use_metadata=False, test_set=False
-            )
-            return {"IMG":img, "MSK":msk}
-        self.dict_train = get_data_dict(train_domains)
-        self.dict_val = get_data_dict(val_domains)
-        self.dict_test = get_data_dict(test_domains)
 
     def setup(self, stage):
-        if stage in ("fit", "validate"):
-            self.train_set = Digitanie9Dataset1(
-                self.train_imgs,
-                self.train_windows,
-                self.train_msks,
-                self.bands,
-                self.merge,
-                transforms=self.train_tf,
-            )
+        self.train_set = ConcatDataset(
+            [
+                Raster(
+                    src,
+                    merge=self.merge,
+                    bands=self.bands,
+                    crop_size=self.crop_size,
+                    shuffle=True,
+                    transforms=self.train_tf,
+                )
+                for src in self.train_srcs
+            ]
+        )
 
-            self.val_set = Digitanie9Dataset1(
-                self.val_imgs,
-                self.val_windows,
-                self.val_msks,
-                self.bands,
-                self.merge,
-                transforms=self.val_tf,
-            )
-        #self.train_set = ConcatDataset(
-        #    [
-        #        Raster(
-        #            src,
-        #            merge=self.merge,
-        #            bands=self.bands,
-        #            crop_size=self.crop_size,
-        #            shuffle=True,
-        #            transforms=self.train_tf,
-        #        )
-        #        for src in self.train_srcs
-        #    ]
-        #)
-#
-        #self.val_set = ConcatDataset(
-        #    [
-        #        Raster(
-        #            src,
-        #            merge=self.merge,
-        #            bands=self.bands,
-        #            crop_size=self.crop_size,
-        #            shuffle=False,
-        #            transforms=self.val_tf,
-        #            crop_step=self.crop_size,
-        #        )
-        #        for src in self.val_srcs
-        #    ]
-        #)
+        self.val_set = ConcatDataset(
+            [
+                Raster(
+                    src,
+                    merge=self.merge,
+                    bands=self.bands,
+                    crop_size=self.crop_size,
+                    shuffle=False,
+                    transforms=self.val_tf,
+                    crop_step=self.crop_size,
+                )
+                for src in self.val_srcs
+            ]
+        )
 
     def train_dataloader(self):
         train_dataloaders = {}

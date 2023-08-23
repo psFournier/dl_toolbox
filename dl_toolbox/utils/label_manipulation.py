@@ -1,34 +1,16 @@
 import numpy as np
 import torch
+from collections import namedtuple
 
+
+label = namedtuple("label", ["name", "color", "values"])
 
 def merge_labels(labels, merge):
     ret = np.zeros(labels.shape, dtype=labels.dtype)
     for i, val in enumerate(merge):
         for j in val:
             ret[labels == j] = i
-
     return ret
-
-
-class MergeLabels:
-    def __init__(self, labels, label_names=None):
-        self.labels = labels
-
-    def __call__(self, L):
-        """
-        If self.labels is [[0,1,2],[3,4,5]], then all pixels in classes [0,1,2]
-        will be set to label 0 and all pixels in classes [3,4,5] will be set to
-        label 1.
-        :param L:
-        :return:
-        """
-        ret = np.zeros(L.shape, dtype=L.dtype)
-        for i, lab in enumerate(self.labels):
-            for j in lab:
-                ret[L == j] = i
-
-        return ret
 
 def labels_to_rgb(labels, colors):
     rgb = np.zeros(shape=(*labels.shape, 3), dtype=np.uint8)

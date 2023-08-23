@@ -97,31 +97,29 @@ class DatasetFlairTiled(TiledTif):
 class DatasetFlair2(Dataset):
     classes = classes
 
-    def __init__(
-        self, imgs, msks, bands, merge, shuffle, transforms, crop_step=None
-    ):
+    def __init__(self, imgs, msks, bands, merge, transforms):
         self.imgs = imgs
         self.msks = msks
         self.bands = bands
         self.class_list = self.classes[merge].value
-        #self.crop_size = crop_size
-        self.shuffle = shuffle
         self.transforms = transforms
 
     def __len__(self):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        #window = Window(
-        #    random.randint(0, 512 - self.crop_size),
-        #    random.randint(0, 512 - self.crop_size),
-        #    self.crop_size,
-        #    self.crop_size,
-        #)
-        image = read_image(self.imgs[idx], bands=self.bands) / 255.
+        with rasterio.open(self.imgs[idx], "r") as file:
+            image = file.read(out_dtype=np.float32, indexes=self.bands)
+        image = torch.from_numpy(image) / 255.
         label = None
         if self.msks:
-            label = read_label(self.msks[idx], classes=self.class_list)
+            with rasterio.open(self.msks[idx], "r") as file:
+                label = file.read(out_dtype=np.uint8)
+            label = merge_labels(
+                label, 
+                [list(l.values) for l in self.class_list]
+            )
+            label = torch.from_numpy(label).long()
         image, label = self.transforms(img=image, label=label)
         return {
             "image": image,
