@@ -1,0 +1,64 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /paths: trex
+  - override /datamodule: flair2
+  - override /module: cps
+  - override /module/network@module.network1: smpunet
+  - override /module/network@module.network2: smpunet
+  - override /trainer: gpu
+
+name: flair2_3_97/cps
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+seed: 12345
+
+datamodule:
+  _target_: dl_toolbox.datamodules.DatamoduleFlair2Semisup
+  batch_size: 8
+  num_workers: 16
+  prop: 3
+  unlabeled_prop: 100
+  train_tf:
+    _target_: dl_toolbox.transforms.Compose
+    transforms: 
+        - _target_: dl_toolbox.transforms.D4
+        - _target_: dl_toolbox.transforms.ImagenetNormalize
+  val_tf:
+    _target_: dl_toolbox.transforms.ImagenetNormalize
+
+module:
+  network1:
+    encoder_name: efficientnet-b0
+    encoder_weights: imagenet
+  network2:
+    encoder_name: efficientnet-b0
+    encoder_weights: imagenet
+  alpha_ramp:
+    start: 10000
+  
+trainer:
+  max_time: "00:02:00:40"
+  limit_train_batches: 1.
+  limit_val_batches: 1.
+  
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweeper:
+    params:
+      module.alpha_ramp.start_val: 0,0.1,0.5,1,2,5
+  sweep:
+    dir: ${paths.output_dir}/${name}
+    subdir: ${module.alpha_ramp.start_val}/${now:%Y-%m-%d_%H%M%S}
+    
+callbacks:
+  model_checkpoint:
+    #dirpath: ${hydra:run.dir}/checkpoints
+    dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
+  

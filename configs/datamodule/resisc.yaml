@@ -4,6 +4,7 @@ defaults:
   - /transforms@test_tf: none
   - _self_
 
+name: resisc
 _target_: dl_toolbox.datamodules.DatamoduleResisc1
 data_path: ${paths.data}
 prop: 80

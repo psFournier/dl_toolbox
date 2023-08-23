@@ -1,0 +1,55 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+#  - override /hydra/launcher: my_submitit_slurm
+  - override /paths: qdtis056z
+  - override /datamodule: resisc_semisup
+  - override /module: cps
+  - override /module/network@module.network1: efficientnet
+  - override /module/network@module.network2: efficientnet
+  - override /trainer: gpu
+  
+name: resisc_3_80/cps_noimgnet
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+seed: 12345
+
+datamodule:
+  batch_size: 32
+  num_workers: 16
+  prop: 3
+  unlabeled_prop: [20, 99]
+
+module:
+  network1:
+    weights: null
+  network2:
+    weights: null
+  dice_weight: 0
+  alpha_ramp:
+    start: 10000 # ensures alpha remains constant
+  
+trainer:
+  max_time: "00:02:00:40"
+  limit_train_batches: 1.
+  limit_val_batches: 1.
+  
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweeper:
+    params:
+      module.alpha_ramp.start_val: 0,0.1,0.5,1,2,5
+  sweep:
+    dir: ${paths.output_dir}/${name}
+    subdir: ${module.alpha_ramp.start_val}/${now:%Y-%m-%d_%H%M%S}
+    
+callbacks:
+  model_checkpoint:
+    #dirpath: ${hydra:run.dir}/checkpoints
+    dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints

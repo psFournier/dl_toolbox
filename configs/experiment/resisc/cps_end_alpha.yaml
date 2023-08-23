@@ -12,7 +12,7 @@ defaults:
   - override /module/network@module.network2: efficientnet
   - override /trainer: gpu
   
-name: cps_alpha
+name: resisc_label3_unlabel80/cps_noimagenet
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -21,40 +21,40 @@ seed: 12345
 
 datamodule:
   batch_size: 32
-  num_workers: 32
+  num_workers: 16
   prop: 3
-  unlabeled_prop: [90, 99]
+  unlabeled_prop: [20, 99]
   train_tf:
     _target_: dl_toolbox.transforms.Compose
     transforms: 
         - _target_: dl_toolbox.transforms.D4
-        - _target_: dl_toolbox.transforms.ImagenetNormalize
-  val_tf:
-    _target_: dl_toolbox.transforms.ImagenetNormalize
+        #- _target_: dl_toolbox.transforms.ImagenetNormalize
 
 module:
   network1:
-    weights: IMAGENET1K_V1
+    weights: null
   network2:
-    weights: IMAGENET1K_V1
+    weights: null
   dice_weight: 0
   alpha_ramp:
-    start: 10000 # ensures alpha remains constant
+    start: 5 
+    start_val: 0.1
+    end: 50
   
 trainer:
-  max_time: "00:02:00:40"
+  max_time: "00:04:00:40"
   limit_train_batches: 1.
   limit_val_batches: 1.
   
 hydra:
   run:
-    dir: ${paths.output_dir}/datamodule:${datamodule.name}/${name}/${now:%Y-%m-%d_%H%M%S}
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      module.alpha_ramp.start_val: 0,0.1,0.5,1,2,5
+      module.alpha_ramp.end_val: 0.1,1,5,10
   sweep:
-    dir: ${paths.output_dir}/datamodule:${datamodule.name}/${name}
-    subdir: ${module.alpha_ramp.start_val}/${now:%Y-%m-%d_%H%M%S}
+    dir: ${paths.output_dir}/${name}
+    subdir: alpha_endval:${module.alpha_ramp.end_val}/${now:%Y-%m-%d_%H%M%S}
     
 callbacks:
   model_checkpoint:
