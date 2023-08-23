@@ -125,7 +125,7 @@ class DatasetFlair2(Dataset):
         image, label = self.transforms(img=image, label=label)
         return {
             "image": image,
-            "label": None if not label else label.squeeze()
+            "label": None if label is None else label.squeeze()
         }
 
 
