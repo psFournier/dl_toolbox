@@ -1,12 +1,12 @@
 from .raster import *
-from .tiled import *
+from .tiled_raster import *
 from .cityscapes import *
 # from .raster2cls import *
-# from .semcity import *
+from .semcity import *
 # from .old_digitanie import *
 # from .semcity_bdsd_ds import *
 from .resisc import *
-# from .airs import *
+from .airs import *
 # from .miniworld import *
 from .flair import *
 

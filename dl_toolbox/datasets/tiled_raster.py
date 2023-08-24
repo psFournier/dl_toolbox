@@ -1,8 +1,4 @@
 import os
-
-import imagesize
-
-import matplotlib.colors as colors
 import numpy as np
 import rasterio
 import torch
@@ -11,29 +7,29 @@ from rasterio.windows import Window
 from torch.utils.data import Dataset
 
 import dl_toolbox.transforms as transforms
-from dl_toolbox.utils import get_tiles
-from .utils import read_image, read_label
+from dl_toolbox.utils import merge_labels, get_tiles
 
 
-class TiledTif(Dataset):
+class TiledRasterDataset(Dataset):
+    
+    classes = None
 
     def __init__(
         self,
-        img_path,
-        label_path,
-        window,
+        img,
+        msk,
         bands,
         merge,
+        transforms,
         crop_size,
-        crop_step,
-        transforms
+        window,
+        crop_step
     ):
-        self.img_path = img_path
-        self.label_path = label_path
+        self.img = img
+        self.msk = msk
         self.bands = bands
         self.class_list = self.classes[merge].value
-        self.crop_size = crop_size
-        self.crop_step = crop_step
+        self.merges = [list(l.values) for l in self.class_list]
         self.transforms = transforms
         col_off, row_off, width, height = window
         self.crops = list(get_tiles(
@@ -42,7 +38,8 @@ class TiledTif(Dataset):
                 width=crop_size,
                 step_w=crop_step,
                 row_offset=row_off,
-                col_offset=col_off
+                col_offset=col_off,
+                cover_all=True
         ))
 
     def __len__(self):
@@ -51,10 +48,15 @@ class TiledTif(Dataset):
     def __getitem__(self, idx):
         crop = self.crops[idx]
         window = Window(*crop)
-        image = read_image(self.img_path, window, self.bands)            
+        with rasterio.open(self.img, "r") as file:
+            image = file.read(window=window, out_dtype=np.float32, indexes=self.bands)
+        image = torch.from_numpy(image)            
         label = None
-        if self.label_path:
-            label = read_label(self.label_path, window, self.class_list)
+        if self.msk:
+            with rasterio.open(self.msk, "r") as file:
+                label = file.read(window=window, out_dtype=np.uint8)
+            label = merge_labels(label, self.merges)
+            label = torch.from_numpy(label).long()
         image, label = self.transforms(img=image, label=label)
         return {
             "image": image,

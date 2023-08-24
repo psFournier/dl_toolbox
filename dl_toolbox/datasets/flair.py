@@ -11,11 +11,8 @@ from rasterio.windows import Window
 from torch.utils.data import Dataset
 
 import dl_toolbox.transforms as transforms
-from dl_toolbox.datasets import TiledTif
-from dl_toolbox.utils import merge_labels
-from .utils import label, read_image, read_label
-from dl_toolbox.datasets.utils import *
-import imagesize
+from dl_toolbox.datasets import TiledRasterDataset
+from dl_toolbox.utils import merge_labels, label
 
 
 lut_colors = {
@@ -91,7 +88,7 @@ classes = enum.Enum(
     },
 )
 
-class DatasetFlairTiled(TiledTif):
+class DatasetFlairTiled(TiledRasterDataset):
     classes = classes
 
 class DatasetFlair2(Dataset):

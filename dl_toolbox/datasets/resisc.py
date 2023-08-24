@@ -10,7 +10,7 @@ from torchvision.datasets.folder import DatasetFolder
 
 import dl_toolbox.transforms as transforms
 
-from .utils import label, read_image, read_label
+from dl_toolbox.utils import label
 
 
 cls_names = [

@@ -10,16 +10,13 @@ import dl_toolbox.datasets as datasets
 class Cityscapes(LightningDataModule):
     def __init__(self, data_path, batch_size, num_workers, train_tf, val_tf):
         super().__init__()
-
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.data_path = data_path
-        # self.dims = (3, 1024, 2048)
         self.quality_mode = "fine"
         self.target_type = "semantic"
         self.train_tf = train_tf
         self.val_tf = val_tf
-
         self.classes = datasets.Cityscapes.classes
 
     @property
