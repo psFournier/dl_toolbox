@@ -10,6 +10,7 @@ from .airs import *
 # from .miniworld import *
 from .flair import *
 from .rellis3d import *
+from .semantic_drone import *
 
 # from .alumhi import *
 ##from .inria import *

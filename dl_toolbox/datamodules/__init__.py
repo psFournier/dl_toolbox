@@ -4,6 +4,9 @@ from .digitanie import *
 from .cityscapes import *
 from .flair import *
 from .resisc import *
+from .semcity import *
+from .airs import *
+from .rellis3d import *
 
 # from .splitfile_sup import SplitfileSup
 # from .splitfile_semisup import SplitfileSemisup
