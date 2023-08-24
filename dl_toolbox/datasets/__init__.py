@@ -1,4 +1,4 @@
-from .raster import *
+#from .raster import *
 from .tiled_raster import *
 from .cityscapes import *
 # from .raster2cls import *
@@ -9,6 +9,7 @@ from .resisc import *
 from .airs import *
 # from .miniworld import *
 from .flair import *
+from .rellis3d import *
 
 # from .alumhi import *
 ##from .inria import *

@@ -99,6 +99,7 @@ class DatasetFlair2(Dataset):
         self.msks = msks
         self.bands = bands
         self.class_list = self.classes[merge].value
+        self.merges = [list(l.values) for l in self.class_list]
         self.transforms = transforms
 
     def __len__(self):
@@ -112,10 +113,7 @@ class DatasetFlair2(Dataset):
         if self.msks:
             with rasterio.open(self.msks[idx], "r") as file:
                 label = file.read(out_dtype=np.uint8)
-            label = merge_labels(
-                label, 
-                [list(l.values) for l in self.class_list]
-            )
+            label = merge_labels(label, self.merges) 
             label = torch.from_numpy(label).long()
         image, label = self.transforms(img=image, label=label)
         return {

@@ -78,6 +78,7 @@ def pil_to_torch_loader(path: str):
 
 
 class DatasetResisc(DatasetFolder):
+    
     classes = classes
     
     def __init__(self, data_path, transforms, merge):
