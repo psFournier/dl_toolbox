@@ -1,23 +1,38 @@
 from PIL import Image
 import numpy as np
 import torch
+import enum
+from torch.utils.data import Dataset
 from torchvision.datasets import Cityscapes
 from torchvision.transforms.functional import pil_to_tensor
 from dl_toolbox.utils import label, merge_labels
 
+void_cls = {c.id for c in Cityscapes.classes if c.train_id in {255, -1}}
+all19 = [label("void", (0, 0, 0), void_cls)] + [
+    label(c.name, c.color, {c.id}) for c in Cityscapes.classes if c.train_id not in {255, -1}
+]
 
-class Cityscapes(Cityscapes):
+classes = enum.Enum(
+    "CityscapesClasses",
+    {
+        "all19": all19,
+    },
+)
+
+class CityscapesDataset(Dataset):
     # https://pytorch.org/vision/0.15/_modules/torchvision/datasets/cityscapes.html#Cityscapes
+    
+    classes = classes
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.class_list = [label(
-            "void", 
-            (0, 0, 0), 
-            {c.id for c in self.classes if c.train_id in {255, -1}}
-        )]
-        self.class_list += [label(c.name, c.color, {c.id}) for c in self.classes if c.train_id not in {255, -1}]
+    def __init__(self, imgs, msks, merge, transforms):
+        self.imgs = imgs
+        self.msks = msks
+        self.class_list = self.classes[merge].value
         self.merges = [list(l.values) for l in self.class_list]
+        self.transforms = transforms
+        
+    def __len__(self):
+        return len(self.imgs)
 
     def __getitem__(self, index):
         """
@@ -28,12 +43,13 @@ class Cityscapes(Cityscapes):
             than one item. Otherwise, target is a json object if target_type="polygon", else the image segmentation.
         """
 
-        image = Image.open(self.images[index]).convert("RGB")
+        image = Image.open(self.imgs[index]).convert("RGB")
         image = pil_to_tensor(image) / 255.
-        target = Image.open(self.targets[index][0])
-        target = np.array(target)
-        label = merge_labels(target, self.merges)
-        label = torch.from_numpy(label).long()      
+        if self.msks:
+            target = Image.open(self.msks[index])
+            target = np.array(target)
+            label = merge_labels(target, self.merges)
+            label = torch.from_numpy(label).long()      
 
         #targets = []
         #for i, t in enumerate(self.target_type):
@@ -52,5 +68,5 @@ class Cityscapes(Cityscapes):
         return {
             "image": image,
             "label": label,
-            "path": self.images[index],
+            #"path": self.imgs[index],
         }

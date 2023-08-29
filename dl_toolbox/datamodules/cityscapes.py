@@ -1,60 +1,75 @@
 from pathlib import Path
+import os
 
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader
 
-import dl_toolbox.datasets as datasets
+from dl_toolbox.datasets import CityscapesDataset
 
 
 class Cityscapes(LightningDataModule):
-    def __init__(self, data_path, batch_size, num_workers, train_tf, val_tf):
+    def __init__(
+        self,
+        data_path,
+        merge,
+        prop,
+        train_tf,
+        val_tf,
+        test_tf,
+        batch_size,
+        num_workers,
+        pin_memory,
+        class_weights=None,
+    ):
         super().__init__()
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.data_path = data_path
-        self.quality_mode = "fine"
-        self.target_type = "semantic"
+        self.data_path = Path(data_path)
+        self.merge = merge
+        self.prop = prop
         self.train_tf = train_tf
         self.val_tf = val_tf
-        self.classes = datasets.Cityscapes.classes
-
-    @property
-    def in_channels(self):
-        return 3
-
-    @property
-    def class_colors(self):
-        return [(255, (0, 0, 0))] + [
-            (l.train_id, l.color)
-            for l in datasets.Cityscapes.classes
-            if not l.ignore_in_eval
-        ]
-
-    @property
-    def num_classes(self):
-        return 20
-
-    @property
-    def class_names(self):
-        return ["ignore"] + [
-            l.name for l in datasets.Cityscapes.classes if not l.ignore_in_eval
-        ]
+        self.test_tf = test_tf
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.pin_memory = pin_memory
+        self.in_channels = 3
+        self.classes = CityscapesDataset.classes[merge].value
+        self.num_classes = len(self.classes)
+        self.class_names = [l.name for l in self.classes]
+        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
+        self.class_weights = (
+            [1.0] * self.num_classes if class_weights is None else class_weights
+        )
+        
+    def prepare_data(self):
+        def get_split_data(split):
+            imgs = []
+            msks = []
+            img_dir = self.data_path/'Cityscapes'/'leftImg8bit'/split
+            msk_dir = self.data_path/'Cityscapes'/'gtFine'/split
+            for city in os.listdir(img_dir):
+                for file_name in os.listdir(img_dir/city):
+                    target_name = "{}_{}".format(
+                        file_name.split("_leftImg8bit")[0], "gtFine_labelIds.png"
+                    )
+                    imgs.append(img_dir/city/file_name)
+                    msks.append(msk_dir/city/target_name)
+            return {'IMG': imgs, 'MSK': msks}
+        self.train_dict = get_split_data("train")
+        self.val_dict = get_split_data("val")
 
     def setup(self, stage):
-        self.train_set = datasets.Cityscapes(
-            self.data_path,
-            split="train",
-            target_type=self.target_type,
-            mode=self.quality_mode,
+        self.train_set = CityscapesDataset(
+            self.train_dict['IMG'],
+            self.train_dict['MSK'],
+            merge=self.merge,
             transforms=self.train_tf,
         )
 
-        self.val_set = datasets.Cityscapes(
-            self.data_path,
-            split="val",
-            target_type=self.target_type,
-            mode=self.quality_mode,
+        self.val_set = CityscapesDataset(
+            self.val_dict['IMG'],
+            self.val_dict['MSK'],
+            merge=self.merge,
             transforms=self.val_tf,
         )
 

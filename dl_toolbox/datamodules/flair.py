@@ -180,7 +180,6 @@ class DatamoduleFlair1(LightningDataModule):
         merge,
         prop,
         bands,
-        #crop_size,
         train_tf,
         val_tf,
         test_tf,

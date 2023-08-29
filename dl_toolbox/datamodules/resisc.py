@@ -35,7 +35,6 @@ class DatamoduleResisc1(LightningDataModule):
         self.data_path = Path(data_path) / 'NWPU-RESISC45'
         self.merge = merge
         self.prop = prop
-        assert 0 < prop < 90
         self.train_tf = train_tf
         self.val_tf = val_tf
         self.test_tf = test_tf
