@@ -79,6 +79,7 @@ def _gather_data(
     img, msk, mtd = [], [], []
     if path_folders:
         for domain in path_folders:
+            print(domain)
             # list_img = sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-2][1:]))
             list_img = sorted(
                 list(get_data_paths(domain, "IMG*.tif")),
@@ -219,8 +220,8 @@ class DatamoduleFlair1(LightningDataModule):
                 train_domains.append(domain)
             elif i%100 >= int(90 * 40 / 100):
                 val_domains.append(domain)
-            else:
-                test_domains.append(domain)
+            #else:
+            #    test_domains.append(domain)
         def get_data_dict(domains):
             img, msk, mtd = _gather_data(
                 domains, path_metadata=None, use_metadata=False, test_set=False
@@ -228,7 +229,7 @@ class DatamoduleFlair1(LightningDataModule):
             return {"IMG":img, "MSK":msk}
         self.dict_train = get_data_dict(train_domains)
         self.dict_val = get_data_dict(val_domains)
-        self.dict_test = get_data_dict(test_domains)
+        #self.dict_test = get_data_dict(test_domains)
 
     def setup(self, stage):
         if stage in ("fit", "validate"):
