@@ -4,7 +4,7 @@
 from .cityscapes import *
 from .flair import *
 from .resisc import *
-#from .semcity import *
+from .semcity import *
 #from .airs import *
 #from .rellis3d import *
 
