@@ -1,0 +1,26 @@
+defaults:
+  - _self_
+  - optimizer: sgd
+  - network@student: smpunet
+  - network@teacher: smpunet
+  - scheduler: step
+  - loss@ce_loss: ce
+  - loss@dice_loss: dice
+  - /transforms@consistency_augment: color
+
+_target_: dl_toolbox.modules.MeanTeacher
+alpha_ramp:
+    _target_: dl_toolbox.utils.SigmoidRamp
+    start: 0
+    end: 1
+    start_val: 0.
+    end_val: 1.
+ce_weight: 1
+dice_weight: 0
+threshold: 0.9
+ema_ramp:
+    _target_: dl_toolbox.utils.SigmoidRamp
+    start: 0
+    end: 10
+    start_val: 0.9
+    end_val: 0.999

@@ -1,57 +1,61 @@
 from copy import deepcopy
-
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-from torch.optim import Adam
+import torchmetrics as M
+import matplotlib.pyplot as plt
 
-import dl_toolbox.augmentations as augmentations
-from dl_toolbox.networks import NetworkFactory
+from dl_toolbox.losses import DiceLoss, ProbOhemCrossEntropy2d
+from dl_toolbox.utils import plot_confusion_matrix
 
 
 class MeanTeacher(pl.LightningModule):
     def __init__(
         self,
-        initial_lr,
-        ttas,
-        network,
-        num_classes,
-        class_weights,
+        student,
+        teacher,
+        optimizer,
+        scheduler,
+        ce_loss,
+        dice_loss,
+        ce_weight,
+        dice_weight,
         alpha_ramp,
-        pseudo_threshold,
-        consist_aug,
+        class_weights,
+        in_channels,
+        num_classes,
+        threshold,
+        consistency_augment,
         ema_ramp,
         *args,
         **kwargs
     ):
         super().__init__()
-
-        self.network = network
+        self.student = student(in_channels=in_channels, num_classes=num_classes)
+        self.teacher = teacher(in_channels=in_channels, num_classes=num_classes)
+        self.optimizer = optimizer
+        self.scheduler = scheduler
         self.num_classes = num_classes
-        self.teacher_network = deepcopy(self.network)
-
-        self.loss = nn.CrossEntropyLoss(weight=torch.Tensor(class_weights))
-
-        self.unsup_loss = nn.CrossEntropyLoss(reduction="none")
+        self.ce = ce_loss(weight=torch.Tensor(class_weights))
+        self.dice = dice_loss(mode="multiclass")
+        self.ce_weight = ce_weight
+        self.dice_weight = dice_weight
         self.alpha_ramp = alpha_ramp
-        self.pseudo_threshold = pseudo_threshold
-        self.consist_aug = augmentations.get_transforms(consist_aug)
+        self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
+        self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+
+        self.mt_loss = nn.CrossEntropyLoss(reduction="none")
+        self.threshold = threshold
+        self.consistency_augment = consistency_augment
         self.ema_ramp = ema_ramp
 
-        self.ttas = [
-            (augmentations.aug_dict[t](p=1), augmentations.anti_aug_dict[t](p=1))
-            for t in ttas
-        ]
-        self.save_hyperparameters()
-        self.initial_lr = initial_lr
-
     def configure_optimizers(self):
-        self.optimizer = Adam(self.parameters(), lr=self.initial_lr)
-
-        return self.optimizer
+        optimizer = self.optimizer(params=self.parameters())
+        scheduler = self.scheduler(optimizer=optimizer)
+        return [optimizer], [scheduler]
 
     def forward(self, x):
-        return self.network(x)
+        return self.student(x)
 
     def logits2probas(cls, logits):
         return logits.softmax(dim=1)
@@ -67,84 +71,69 @@ class MeanTeacher(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         batch, unsup_batch = batch["sup"], batch["unsup"]
-
         inputs = batch["image"]
         labels = batch["label"]
-        logits = self.network(inputs)
-        loss = self.loss(logits, labels)
-        self.log("Train_sup_loss", loss)
-
-        mt_loss = 0.0
-        if self.alpha > 0.0:
-            unsup_inputs = unsup_batch["image"]
-            with torch.no_grad():
-                teacher_logits = self.teacher_network(unsup_inputs)
-            teacher_probas = self.logits2probas(teacher_logits)
-            mt_inputs, mt_probas = self.consist_aug(
-                img=unsup_inputs, label=teacher_probas
-            )
-            mt_confs, mt_preds = self.probas2confpreds(mt_probas)
-            mt_certain = (mt_confs > self.pseudo_threshold).float()
-            mt_certain_sum = torch.sum(mt_certain) + 1e-5
-            self.log("MT certainty prop", torch.mean(mt_certain))
-            mt_logits = self.network(mt_inputs)
-            mt_loss = self.unsup_loss(mt_logits, mt_preds)
-            mt_loss = torch.sum(mt_certain * mt_loss) / mt_certain_sum
-
+        student_logits = self.student(inputs)
+        ce = self.ce(student_logits, labels)
+        self.log(f"cross_entropy/train", ce)
+        dice = self.dice(student_logits, labels)
+        self.log(f"dice/train", dice)
+                
+        unsup_inputs = unsup_batch["image"]
+        with torch.no_grad():
+            teacher_logits = self.teacher(unsup_inputs)
+        teacher_probas = self.logits2probas(teacher_logits)
+        mt_inputs, mt_probas = self.consistency_augment(
+            img=unsup_inputs, label=teacher_probas
+        )
+        mt_confs, mt_preds = self.probas2confpreds(mt_probas)
+        mt_certain = (mt_confs > self.threshold).float()
+        self.log("MT certainty prop", torch.mean(mt_certain))
+        mt_logits = self.student(mt_inputs)
+        mt_loss = self.mt_loss(mt_logits, mt_preds)
+        mt_loss = torch.sum(mt_certain * mt_loss) / (torch.sum(mt_certain) + 1e-5)
         self.log("MT loss", mt_loss)
-        loss += self.alpha * mt_loss
-        self.log("Train_loss", loss)
-
-        return loss
+        
+        return self.ce_weight * ce + self.dice_weight * dice + self.alpha * mt_loss
 
     def on_train_batch_end(self, outputs, batch, batch_idx):
         ema = min(1.0 - 1.0 / float(self.global_step + 1), self.ema)
         for param_t, param in zip(
-            self.teacher_network.parameters(), self.network.parameters()
+            self.teacher.parameters(), self.student.parameters()
         ):
             param_t.data.mul_(ema).add_(param.data, alpha=1 - ema)
-
+            
+    def on_validation_epoch_start(self):
+        self.val_accuracy.reset()
+        self.val_cm.reset()
+        
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
         labels = batch["label"]
         logits = self.forward(inputs)
-        loss = self.loss(logits, labels)
-        self.log("Val_loss", loss)
-
-        teacher_logits = self.teacher_network(inputs)
-        teacher_probas = self.logits2probas(teacher_logits)
-
-        # Validation unsup loss
-        mt_inputs, mt_probas = self.consist_aug(img=inputs, label=teacher_probas)
-        mt_confs, mt_preds = self.probas2confpreds(mt_probas)
-        mt_certain = (mt_confs > self.pseudo_threshold).float()
-        mt_certain_sum = torch.sum(mt_certain) + 1e-5
-        self.log("Val prop of confident teacher labels", torch.mean(mt_certain))
-        mt_logits = self.network(mt_inputs)
-        mt_loss = self.unsup_loss(mt_logits, mt_preds)
-        mt_loss = torch.sum(mt_certain * mt_loss) / mt_certain_sum
-        self.log("Val_mt_loss", mt_loss)
-
+        ce = self.ce(logits, labels)
+        self.log(f"cross_entropy/val", ce)
+        dice = self.dice(logits, labels)
+        self.log(f"dice/val", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits))
+        self.val_accuracy.update(preds, labels)
+        self.val_cm.update(preds, labels)
+        
         # Checking pseudo_labels quality
+        teacher_logits = self.teacher(inputs)
+        teacher_probas = self.logits2probas(teacher_logits)
         teacher_confs, teacher_preds = self.probas2confpreds(teacher_probas)
-        teacher_certain = (teacher_confs > self.pseudo_threshold).float()
-        teacher_certain_sum = torch.sum(teacher_certain) + 1e-5
         accus = teacher_preds.eq(labels).float()
+        teacher_certain = (teacher_confs > self.threshold).float()
+        teacher_certain_sum = torch.sum(teacher_certain) + 1e-5
         teacher_accus = torch.sum(teacher_certain * accus) / teacher_certain_sum
         self.log("Val acc of teacher labels", teacher_accus)
-
-        return logits
-
-    def predict_step(self, batch, batch_idx):
-        inputs = batch["image"]
-        logits = self.forward(inputs)
-
-        if self.ttas:
-            for tta, reverse in self.ttas:
-                aux, _ = tta(img=inputs)
-                aux_logits = self.forward(aux)
-                tta_logits, _ = reverse(img=aux_logits)
-                logits = torch.stack([logits, tta_logits])
-            logits = logits.mean(dim=0)
-
-        return logits
+        
+    def on_validation_epoch_end(self):
+        self.log("accuracy/val", self.val_accuracy.compute())
+        confmat = self.val_cm.compute().detach().cpu()
+        class_names = self.trainer.datamodule.class_names
+        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
+        logger = self.trainer.logger
+        if logger:
+            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)

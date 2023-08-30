@@ -12,5 +12,5 @@
 from .BCE import *
 from .supervised import *
 from .cross_pseudo_supervision import *
-# from .mean_teacher import MeanTeacher
+from .mean_teacher import MeanTeacher
 # from .module_factory import ModuleFactory
