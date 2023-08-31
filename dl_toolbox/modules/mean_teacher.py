@@ -24,8 +24,8 @@ class MeanTeacher(pl.LightningModule):
         class_weights,
         in_channels,
         num_classes,
-        threshold,
-        consistency_augment,
+        consistency_loss,
+        consistency_aug,
         ema_ramp,
         *args,
         **kwargs
@@ -43,10 +43,8 @@ class MeanTeacher(pl.LightningModule):
         self.alpha_ramp = alpha_ramp
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
-
-        self.mt_loss = nn.CrossEntropyLoss(reduction="none")
-        self.threshold = threshold
-        self.consistency_augment = consistency_augment
+        self.consistency_loss = consistency_loss
+        self.consistency_aug = consistency_aug
         self.ema_ramp = ema_ramp
 
     def configure_optimizers(self):
@@ -78,23 +76,15 @@ class MeanTeacher(pl.LightningModule):
         self.log(f"cross_entropy/train", ce)
         dice = self.dice(student_logits, labels)
         self.log(f"dice/train", dice)
-                
         unsup_inputs = unsup_batch["image"]
+        unsup_inputs_1, _ = self.consistency_aug(unsup_inputs)
+        unsup_inputs_2, _ = self.consistency_aug(unsup_inputs)
         with torch.no_grad():
-            teacher_logits = self.teacher(unsup_inputs)
-        teacher_probas = self.logits2probas(teacher_logits)
-        mt_inputs, mt_probas = self.consistency_augment(
-            img=unsup_inputs, label=teacher_probas
-        )
-        mt_confs, mt_preds = self.probas2confpreds(mt_probas)
-        mt_certain = (mt_confs > self.threshold).float()
-        self.log("MT certainty prop", torch.mean(mt_certain))
-        mt_logits = self.student(mt_inputs)
-        mt_loss = self.mt_loss(mt_logits, mt_preds)
-        mt_loss = torch.sum(mt_certain * mt_loss) / (torch.sum(mt_certain) + 1e-5)
-        self.log("MT loss", mt_loss)
-        
-        return self.ce_weight * ce + self.dice_weight * dice + self.alpha * mt_loss
+            teacher_logits = self.teacher(unsup_inputs_1)
+        student_logits = self.student(unsup_inputs_2)
+        consistency_loss = self.consistency_loss(student_logits, teacher_logits)
+        self.log("Consistency loss", consistency_loss)
+        return self.ce_weight * ce + self.dice_weight * dice + self.alpha * consistency_loss
 
     def on_train_batch_end(self, outputs, batch, batch_idx):
         ema = min(1.0 - 1.0 / float(self.global_step + 1), self.ema)
@@ -118,15 +108,11 @@ class MeanTeacher(pl.LightningModule):
         _, preds = self.probas2confpreds(self.logits2probas(logits))
         self.val_accuracy.update(preds, labels)
         self.val_cm.update(preds, labels)
-        
         # Checking pseudo_labels quality
         teacher_logits = self.teacher(inputs)
         teacher_probas = self.logits2probas(teacher_logits)
         teacher_confs, teacher_preds = self.probas2confpreds(teacher_probas)
-        accus = teacher_preds.eq(labels).float()
-        teacher_certain = (teacher_confs > self.threshold).float()
-        teacher_certain_sum = torch.sum(teacher_certain) + 1e-5
-        teacher_accus = torch.sum(teacher_certain * accus) / teacher_certain_sum
+        teacher_accus = teacher_preds.eq(labels).float().mean()
         self.log("Val acc of teacher labels", teacher_accus)
         
     def on_validation_epoch_end(self):

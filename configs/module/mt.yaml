@@ -6,7 +6,7 @@ defaults:
   - scheduler: step
   - loss@ce_loss: ce
   - loss@dice_loss: dice
-  - /transforms@consistency_augment: color
+  - /transforms@consistency_aug: color
 
 _target_: dl_toolbox.modules.MeanTeacher
 alpha_ramp:
@@ -17,10 +17,12 @@ alpha_ramp:
     end_val: 1.
 ce_weight: 1
 dice_weight: 0
-threshold: 0.9
 ema_ramp:
     _target_: dl_toolbox.utils.SigmoidRamp
     start: 0
     end: 10
-    start_val: 0.9
+    start_val: 0.999
     end_val: 0.999
+consistency_loss:
+    _target_: torch.nn.MSELoss
+    reduction: mean

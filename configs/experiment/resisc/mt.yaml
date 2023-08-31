@@ -42,9 +42,9 @@ module:
     end: 50
   
 trainer:
-  max_time: "00:02:00:20"
-  limit_train_batches: 1.
-  limit_val_batches: 1.
+  max_time: "00:00:00:20"
+  limit_train_batches: 1
+  limit_val_batches: 1
   
 hydra:
   run:
