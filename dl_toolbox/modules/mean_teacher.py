@@ -10,6 +10,7 @@ from dl_toolbox.utils import plot_confusion_matrix
 
 
 class MeanTeacher(pl.LightningModule):
+    ### I tried to follow https://github.com/CuriousAI/mean-teacher/tree/master
     def __init__(
         self,
         student,
