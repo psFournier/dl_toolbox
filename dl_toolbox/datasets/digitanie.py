@@ -1,10 +1,11 @@
 import numpy as np
 import rasterio
 import torch
+import enum
 from torch.utils.data import Dataset
 
-from dl_toolbox.utils import label
-
+from dl_toolbox.utils import label, get_tiles, merge_labels
+from rasterio.windows import Window
 
 all9 = [
     label("nodata", (250, 250, 250), {0}),
@@ -38,15 +39,22 @@ classes = enum.Enum(
     }
 )
 
-class Digitanie9Dataset1(Dataset):
+class DigitanieDataset(Dataset):
     classes = classes
 
-    def __init__(self, imgs, windows, msks, bands, merge, transforms):
+    def __init__(
+        self,
+        imgs,
+        msks,
+        bands,
+        merge,
+        transforms,
+    ):
         self.imgs = imgs
-        self.windows = windows
         self.msks = msks
         self.bands = bands
         self.class_list = self.classes[merge].value
+        self.merges = [list(l.values) for l in self.class_list]
         self.transforms = transforms
 
     def __len__(self):
@@ -55,25 +63,48 @@ class Digitanie9Dataset1(Dataset):
     def __getitem__(self, idx):
         with rasterio.open(self.imgs[idx], "r") as file:
             image = file.read(
-                window=self.windows[idx],
                 out_dtype=np.int16,
                 indexes=self.bands
             )
-        image = torch.from_numpy(image)
+        image = torch.clip(torch.from_numpy(image).float() / 8000., 0, 1)
         label = None
         if self.msks:
             with rasterio.open(self.msks[idx], "r") as file:
                 label = file.read(out_dtype=np.uint8)
-            label = merge_labels(
-                label, 
-                [list(l.values) for l in self.class_list]
-            )
+            label = merge_labels(label, self.merges)
             label = torch.from_numpy(label).long()
         image, label = self.transforms(img=image, label=label)
         return {
             "image": image,
             "label": None if label is None else label.squeeze()
         }
+    
+class DigitanieToaDataset(Dataset):
+    classes = classes
+    
+    def __init__(
+        self,
+        img,
+        bands,
+        windows,
+        transforms
+    ):
+        self.img = img
+        self.bands = bands
+        self.transforms = transforms
+        self.windows = windows
+
+    def __len__(self):
+        return len(self.windows)
+
+    def __getitem__(self, idx):
+        window = self.windows[idx]
+        with rasterio.open(self.img, "r") as file:
+            image = file.read(window=window, out_dtype=np.int16, indexes=self.bands)
+        image = torch.clip(torch.from_numpy(image).float() / 8000., 0, 1)
+        image, label = self.transforms(img=image, label=None)
+        return {"image": image, "label": None}
+    
     
 #class Digitanie(Dataset):
 #    def __init__(

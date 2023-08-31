@@ -11,5 +11,4 @@ class RandomCrop2(RandomCrop):
         img = F.crop(img, i, j, h, w)
         if label is not None:
             label = F.crop(label, i, j, h, w)
-
         return img, label
