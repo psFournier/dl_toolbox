@@ -10,6 +10,7 @@ class Cutmix:
 
     def __call__(self, input_batch, target_batch):
         lam = np.random.beta(self.alpha, self.alpha)
+        lam = max(lam, 1-lam)
         batchsize = input_batch.size()[0]
         idx = torch.tensor(np.roll(np.array(range(batchsize)), 1))
         # Use a more generic mask rather than bboxes ?
@@ -38,6 +39,7 @@ class Cutmix2:
 
     def __call__(self, input_batch, target_batch):
         lam = np.random.beta(self.alpha, self.alpha)
+        lam = max(lam, 1-lam)
         batchsize = input_batch.size()[0]
         idx = torch.tensor(np.roll(np.array(range(batchsize)), 1))
         # Use a more generic mask rather than bboxes ?

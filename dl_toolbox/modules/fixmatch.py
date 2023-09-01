@@ -25,6 +25,7 @@ class Fixmatch(pl.LightningModule):
         weak_tf,
         strong_tf,
         ce_loss_u,
+        threshold,
         *args,
         **kwargs
     ):
@@ -40,7 +41,8 @@ class Fixmatch(pl.LightningModule):
         self.alpha_ramp = alpha_ramp
         self.weak_tf = weak_tf
         self.strong_tf = strong_tf
-        self.ce_u = ce_loss_u
+        self.ce_u = ce_loss_u()
+        self.threshold = threshold
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
 
@@ -77,11 +79,11 @@ class Fixmatch(pl.LightningModule):
         xu_weak, _ = self.weak_tf(xu, None)
         xu_strong, _ = self.strong_tf(xu, None)
         with torch.no_grad():
-            logits_xu_weak = self.model(xu_weak)
+            logits_xu_weak = self.network(xu_weak)
             probs_xu_weak = self.logits2probas(logits_xu_weak)
             conf_xu_weak, pl_xu_weak = self.probas2confpreds(probs_xu_weak)
             certain_xu_weak = conf_xu_weak.ge(self.threshold).float()
-        logits_xu_strong = self.model(xu_strong)
+        logits_xu_strong = self.network(xu_strong)
         xu_ce = self.ce_u(logits_xu_strong, pl_xu_weak)
         certain_xu_weak_sum = torch.sum(certain_xu_weak) + 1e-5
         xu_ce_mean = torch.sum(certain_xu_weak * xu_ce) / certain_xu_weak_sum

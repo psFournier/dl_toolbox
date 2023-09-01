@@ -8,6 +8,7 @@ class Mixup:
 
     def __call__(self, input_batch, target_batch):
         lam = np.random.beta(self.alpha, self.alpha)
+        lam = max(lam, 1-lam)
         batchsize = input_batch.size()[0]
         idx = torch.randperm(batchsize)
         mixed_inputs = lam * input_batch + (1 - lam) * input_batch[idx, :]
@@ -26,6 +27,7 @@ class Mixup2:
 
     def __call__(self, input_batch_1, target_batch_1, input_batch_2, target_batch_2):
         lam = np.random.beta(self.alpha, self.alpha)
+        lam = max(lam, 1-lam)
         mixed_inputs = lam * input_batch_1 + (1 - lam) * input_batch_2
         mixed_targets = lam * target_batch_1 + (1 - lam) * target_batch_2
         batch = (mixed_inputs, mixed_targets)

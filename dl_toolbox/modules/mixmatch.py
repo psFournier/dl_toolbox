@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 
 from dl_toolbox.losses import DiceLoss, ProbOhemCrossEntropy2d
 from dl_toolbox.utils import plot_confusion_matrix
+from torch.nn.functional import one_hot
 
 
-class CrossPseudoSupervision(pl.LightningModule):
+class Mixmatch(pl.LightningModule):
     def __init__(
         self,
-        network1,
-        network2,
+        network,
         optimizer,
         scheduler,
         ce_loss,
@@ -23,12 +23,14 @@ class CrossPseudoSupervision(pl.LightningModule):
         class_weights,
         in_channels,
         num_classes,
+        weak_tf,
+        mix_tf,
+        temperature,
         *args,
         **kwargs
     ):
         super().__init__()
-        self.network1 = network1(in_channels=in_channels, num_classes=num_classes)
-        self.network2 = network2(in_channels=in_channels, num_classes=num_classes)
+        self.network = network(in_channels=in_channels, num_classes=num_classes)
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
@@ -37,6 +39,9 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.ce_weight = ce_weight
         self.dice_weight = dice_weight
         self.alpha_ramp = alpha_ramp
+        self.weak_tf = weak_tf
+        self.mix_tf = mix_tf
+        self.temp = temperature
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
 
@@ -46,7 +51,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def forward(self, x):
-        return self.network1(x)
+        return self.network(x)
 
     def logits2probas(cls, logits):
         return logits.softmax(dim=1)
@@ -60,54 +65,58 @@ class CrossPseudoSupervision(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         batch, unsup_batch = batch["sup"], batch["unsup"]
-        inputs = batch["image"]
-        labels = batch["label"]
-        logits1 = self.network1(inputs)
-        logits2 = self.network2(inputs)
-        ce = self.ce(logits1, labels) + self.ce(logits2, labels)
+        xs = batch["image"]
+        ys = batch["label"]
+        xs_weak, ys = self.weak_tf(xs, ys)
+        logits_xs_weak = self.network(xs_weak)
+        ce = self.ce(logits_xs_weak, ys)
         self.log(f"cross_entropy/train", ce)
-        dice = self.dice(logits1, labels)+self.dice(logits2, labels)
+        dice = self.dice(logits_xs_weak, ys)
         self.log(f"dice/train", dice)
-            
-        unsup_inputs = unsup_batch["image"]
-        unsup_logits_1 = self.network1(unsup_inputs)
-        unsup_logits_2 = self.network2(unsup_inputs)
+        # Mixmatch    
+        ys = one_hot(ys, self.num_classes).float()
+        if len(ys.shape) > 2: ys = ys.permute(0,3,1,2)
+        xu = unsup_batch["image"]
+        xu_weaks = [self.weak_tf(xu, None)[0] for _ in range(4)]
+        xu_weak = torch.vstack(xu_weaks)
         with torch.no_grad():
-            _, sup_pl_2 = torch.max(logits2, dim=1)
-            _, unsup_pl_2 = torch.max(unsup_logits_2, dim=1)
-            _, sup_pl_1 = torch.max(logits1, dim=1)
-            _, unsup_pl_1 = torch.max(unsup_logits_1, dim=1)
-        cps_loss_unlabeled = self.ce(unsup_logits_1, unsup_pl_2) + self.ce(unsup_logits_2, unsup_pl_1)
-        self.log("cps_loss_unlabeled/train", cps_loss_unlabeled)
-        cps_loss_labeled = self.ce(logits1, sup_pl_2) + self.ce(logits2, sup_pl_1)
-        self.log("cps_loss_labeled/train", cps_loss_labeled)
-        
-        pl_acc = sup_pl_1.eq(labels).float().mean()
-        self.log("pseudolabel accuracy/train", pl_acc)
-    
-        return self.ce_weight * ce + self.dice_weight * dice + self.alpha * (cps_loss_labeled + cps_loss_unlabeled)
+            logits_xu_weak = self.network(xu_weak)
+            chunks = torch.stack(torch.chunk(logits_xu_weak, chunks=4))
+            probs_xu_weak = self.logits2probas(chunks.sum(dim=0))
+            probs_xu_weak = probs_xu_weak ** (1.0 / self.temp)
+            yu_sharp = probs_xu_weak / probs_xu_weak.sum(dim=-1, keepdim=True)
+        yu = yu_sharp.repeat([4] + [1] * (len(yu_sharp.shape) - 1)) 
+        x_weak = torch.vstack((xs_weak, xu_weak))
+        y = torch.vstack((ys, yu))
+        idxs = torch.randperm(y.shape[0])
+        x_perm, y_perm = x_weak[idxs], y[idxs]
+        b_s = ys.shape[0]
+        xs_mix, ys_mix = self.mix_tf(xs_weak, ys, x_perm[:b_s], y_perm[:b_s])
+        xu_mix, yu_mix = self.mix_tf(xu_weak, yu, x_perm[b_s:], y_perm[b_s:])
+        logits_xs_mix = self.network(xs_mix)
+        logits_xu_mix = self.network(xu_mix)
+        ce_s = self.ce(logits_xs_mix, ys_mix)
+        self.log("mixmatch ce sup/train", ce_s)
+        ce_u = self.ce(logits_xu_mix, yu_mix)
+        self.log("mixmatch ce unsup/train", ce_u)
+        # Summing losses
+        return self.ce_weight * ce + self.dice_weight * dice + self.alpha * (ce_s + ce_u)
     
     def on_validation_epoch_start(self):
         self.val_accuracy.reset()
         self.val_cm.reset()
         
     def validation_step(self, batch, batch_idx):
-        inputs = batch["image"]
-        labels = batch["label"]
-        logits1 = self.network1(inputs)
-        logits2 = self.network2(inputs)
-        logits = (logits1 + logits2) / 2
-        ce = (self.ce(logits1, labels) + self.ce(logits2, labels)) / 2
+        xs = batch["image"]
+        ys = batch["label"]
+        logits = self.network(xs)
+        ce = self.ce(logits, ys)
         self.log(f"cross_entropy/val", ce)
-        dice = (self.dice(logits1, labels)+self.dice(logits2, labels))/2
+        dice = self.dice(logits, ys)
         self.log(f"dice/val", dice)
-        _, pl_1 = torch.max(logits1, dim=1)
-        self.log("cps_loss_labeled/val", self.ce(logits2, pl_1))
-        pl_acc = pl_1.eq(labels).float().mean()
-        self.log("pseudolabel accuracy/val", pl_acc)
         _, preds = self.probas2confpreds(self.logits2probas(logits))
-        self.val_accuracy.update(preds, labels)
-        self.val_cm.update(preds, labels)
+        self.val_accuracy.update(preds, ys)
+        self.val_cm.update(preds, ys)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
@@ -117,14 +126,9 @@ class CrossPseudoSupervision(pl.LightningModule):
         logger = self.trainer.logger
         if logger:
             logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
-
-    def predict_step(self, batch, batch_idx):
-        inputs = batch["image"]
-        logits = self.forward(inputs)
-        return logits
     
     
-            ## Supervising network 2 with pseudolabels from network 1
+            ## Supervising network 2 with pseudoys from network 1
             # with torch.no_grad():
             #    pseudo_probs_1 = self.logits2probas(unsup_logits_1)
             # pseudo_confs_1, pseudo_preds_1 = self.probas2confpreds(pseudo_probs_1)
