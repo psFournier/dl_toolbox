@@ -4,14 +4,13 @@
 # python train.py experiment=example
 
 defaults:
-#  - override /hydra/launcher: my_submitit_slurm
   - override /paths: qdtis056z
-  - override /datamodule: resisc_semisup
+  - override /datamodule: flair2
   - override /module: mixmatch
-  - override /module/network: efficientnet
+  - override /module/network: smpunet
   - override /trainer: gpu
-  
-name: resisc_3_80/mixmatch
+
+name: flair2_3_97/mixmatch
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -19,19 +18,22 @@ name: resisc_3_80/mixmatch
 seed: 12345
 
 datamodule:
-  batch_size: 8
+  _target_: dl_toolbox.datamodules.DatamoduleFlair2Semisup
+  batch_size: 2
   num_workers: 4
   prop: 3
-  unlabeled_prop: [20, 99]
+  unlabeled_prop: 100
   train_tf:
     _target_: dl_toolbox.transforms.Compose
     transforms: 
         - _target_: dl_toolbox.transforms.D4
-        
+        - _target_: dl_toolbox.transforms.RandomCrop2
+          size: 256
+
 trainer:
-  max_time: "00:02:00:20"
-  limit_train_batches: 1.
-  limit_val_batches: 1.
+  max_time: "00:00:00:40"
+  limit_train_batches: 1
+  limit_val_batches: 1
   
 hydra:
   run:
@@ -40,3 +42,4 @@ hydra:
 callbacks:
   model_checkpoint:
     dirpath: ${hydra:run.dir}/checkpoints
+  
