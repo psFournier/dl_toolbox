@@ -19,8 +19,8 @@ name: resisc_3_80/mixmatch
 seed: 12345
 
 datamodule:
-  batch_size: 8
-  num_workers: 4
+  batch_size: 16
+  num_workers: 16
   prop: 3
   unlabeled_prop: [20, 99]
   train_tf:
@@ -29,14 +29,21 @@ datamodule:
         - _target_: dl_toolbox.transforms.D4
         
 trainer:
-  max_time: "00:02:00:20"
+  max_time: "00:04:00:20"
   limit_train_batches: 1.
   limit_val_batches: 1.
   
 hydra:
   run:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweeper:
+    params:
+      module.alpha_ramp.end_val: 0.1,1,5
+  sweep:
+    dir: ${paths.output_dir}/${name}
+    subdir: ${module.alpha_ramp.start_val}/${now:%Y-%m-%d_%H%M%S}
     
 callbacks:
   model_checkpoint:
-    dirpath: ${hydra:run.dir}/checkpoints
+    #dirpath: ${hydra:run.dir}/checkpoints
+    dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
