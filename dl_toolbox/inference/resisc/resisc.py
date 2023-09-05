@@ -46,8 +46,7 @@ def main():
     pred_dir = str(ckpt.stem)+'_preds'
     pred_writer = ClassifPredsWriter(
         out_path=ckpt.parent / pred_dir,
-        base='/data',
-        cls_names=datamodule.class_names
+        base='/data'
     )
     
     trainer = Trainer(

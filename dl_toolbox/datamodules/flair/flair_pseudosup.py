@@ -21,24 +21,7 @@ class Flair2Pseudosup(DatamoduleFlair2):
         self.thresh = thresh
 
     def prepare_data(self):
-        domains = [self.data_path / "FLAIR_1" / "train" / d for d in self.train_domains]
-        all_img, all_msk, all_mtd = flair_gather_data(
-            domains, path_metadata=None, use_metadata=False, test_set=False
-        )
-        self.dict_train = {"IMG": [], "MSK": [], "MTD": []}
-        self.dict_val = {"IMG": [], "MSK": [], "MTD": []}
-        self.dict_test = {"IMG": [], "MSK": [], "MTD": []}
-        for i, (img, msk) in enumerate(zip(all_img, all_msk)):
-            if i%100 < self.prop:
-                self.dict_train["IMG"].append(img)
-                self.dict_train["MSK"].append(msk)
-            elif i%100 >= 90:
-                self.dict_val["IMG"].append(img)
-                self.dict_val["MSK"].append(msk)
-            else:
-                self.dict_test["IMG"].append(img)
-                self.dict_test["MSK"].append(msk)
-                
+        super().prepare_data()  
         top_pl_img = list(self.stats.index[:self.thresh])
         self.dict_pl = {
             "IMG": [self.data_path/img for img in top_pl_img],
