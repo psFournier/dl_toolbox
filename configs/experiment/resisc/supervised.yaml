@@ -1,0 +1,32 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+#  - override /hydra/launcher: my_submitit_slurm
+  - override /paths: qdtis056z
+  - override /datamodule: resisc
+  - override /module: supervised
+  - override /module/network: efficientnet
+  - override /trainer: gpu
+  
+name: resisc_3_80/sup
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+seed: 12345
+        
+trainer:
+  max_time: "00:00:00:40"
+  limit_train_batches: 1
+  limit_val_batches: 1
+  
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+    
+callbacks:
+  model_checkpoint:
+    dirpath: ${hydra:run.dir}/checkpoints

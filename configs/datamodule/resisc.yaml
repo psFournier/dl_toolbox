@@ -1,5 +1,5 @@
 defaults:
-  - /transforms@train_tf: d4_color
+  - /transforms@train_tf: none
   - /transforms@val_tf: none
   - /transforms@test_tf: none
   - _self_

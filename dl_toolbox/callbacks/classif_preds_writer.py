@@ -1,41 +1,33 @@
 import os
+import numpy as np
+import pandas as pd
 from pathlib import Path
 
 from pytorch_lightning.callbacks import BasePredictionWriter
 
 
 class ClassifPredsWriter(BasePredictionWriter):
-    def __init__(self, out_path, write_interval, cls_names, threshold):
-        super().__init__(write_interval)
-
+    def __init__(self, out_path, base, cls_names):
+        super().__init__(write_interval="batch")
         self.out_path = Path(out_path)
         self.out_path.mkdir(exist_ok=True, parents=True)
+        self.base = Path(base)
+        self.stats = {'img':[], 'probas': []}
         self.cls_names = cls_names
-        self.threshold = threshold
+        
+    def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        probas = pl_module.logits2probas(outputs.cpu())
+        for p, path in zip(probas, batch["path"]):
+            relative = Path(path).relative_to(self.base) 
+            self.stats['img'].append(relative)
+            self.stats['probas'].append(p.numpy())
+                
+    def on_predict_epoch_end(self, trainer, pl_module):
+        stats_df = pd.DataFrame(
+            np.stack(self.stats['probas']),
+            index=self.stats['img'],
+            columns = self.cls_names
+        )
+        stats_df.to_csv(self.out_path / 'stats.csv')
 
-        self.counts = [0] * len(cls_names)
 
-    def write_on_batch_end(
-        self,
-        trainer,
-        pl_module,
-        outputs,
-        batch_indices,
-        batch,
-        batch_idx,
-        dataloader_idx,
-    ):
-        logits = outputs.cpu()  # Move predictions to CPU
-        probas = pl_module.logits2probas(logits)
-        confs, preds = pl_module.probas2confpreds(probas)
-
-        for i, pred in enumerate(preds):
-            if confs[i] > self.threshold:
-                pred = int(pred)
-                cls_name = self.cls_names[pred]
-                num = self.counts[pred]
-                class_dir = self.out_path / cls_name
-                class_dir.mkdir(parents=True, exist_ok=True)
-                dst = class_dir / f"{cls_name}_{num:04}.jpg"  # max 99999 preds
-                os.symlink(batch["path"][i], dst)
-                self.counts[pred] += 1
