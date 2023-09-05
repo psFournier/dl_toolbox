@@ -10,8 +10,14 @@ torch.set_float32_matmul_precision('high')
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="train.yaml")
 def train(cfg: DictConfig) -> None:
+    
     pl.seed_everything(cfg.seed)
     logger.info("\n" + OmegaConf.to_yaml(cfg))
+    # Let hydra manage directory outputs
+    tensorboard = pl.loggers.TensorBoardLogger(
+        ".", "", "", log_graph=True, default_hp_metric=False
+    )
+    
     datamodule = hydra.utils.instantiate(cfg.datamodule)
     module = hydra.utils.instantiate(
         cfg.module,
@@ -21,15 +27,12 @@ def train(cfg: DictConfig) -> None:
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
         # _recursive_=False,
     )
-    # Let hydra manage directory outputs
-    tensorboard = pl.loggers.TensorBoardLogger(
-        ".", "", "", log_graph=True, default_hp_metric=False
-    )
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     trainer = hydra.utils.instantiate(cfg.trainer)(
         logger=tensorboard, 
         callbacks=list(callbacks.values())
     )
+    
     trainer.fit(module, datamodule=datamodule)
 
 if __name__ == "__main__":

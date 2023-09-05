@@ -1,0 +1,16 @@
+defaults:
+  - transforms@train_tf: d4_color
+  - transforms@val_tf: none
+  - transforms@test_tf: none
+  - _self_
+
+_target_: dl_toolbox.datamodules.DatamoduleFlair1
+data_path: ${paths.data_dir}/FLAIR_1
+prop: 30
+batch_size: 32
+bands: [1, 2, 3]
+crop_size: 512
+num_workers: 6
+merge: hierarchical6
+pin_memory: False
+class_weights: null

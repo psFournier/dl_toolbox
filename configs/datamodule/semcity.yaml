@@ -1,0 +1,16 @@
+defaults:
+  - transforms@train_tf: minmax_csv
+  - transforms@test_tf: minmax_csv
+  - transforms@test_tf: none
+  - _self_
+
+_target_: dl_toolbox.datamodules.SemcityDatamodule
+data_path: ${paths.data_dir}
+prop: 30
+batch_size: 32
+bands: [4,3,2]
+crop_size: 512
+num_workers: 6
+merge: all7
+pin_memory: False
+class_weights: null

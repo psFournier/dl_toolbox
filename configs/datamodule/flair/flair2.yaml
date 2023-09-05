@@ -1,0 +1,17 @@
+defaults:
+  - /transforms@train_tf: train
+  - /transforms@val_tf: none
+  - /transforms@test_tf: none
+  - _self_
+
+name: flair2
+_target_: dl_toolbox.datamodules.DatamoduleFlair2
+data_path: ${paths.data}
+prop: 30
+batch_size: 32
+bands: [1, 2, 3]
+#crop_size: 512
+num_workers: 6
+merge: hierarchical6
+pin_memory: False
+class_weights: null

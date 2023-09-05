@@ -25,7 +25,6 @@ class SemcityDatamodule(LightningDataModule):
         prop,
         bands,
         train_tf,
-        val_tf,
         test_tf,
         batch_size,
         num_workers,
@@ -40,7 +39,6 @@ class SemcityDatamodule(LightningDataModule):
         self.prop = prop
         self.bands = bands
         self.train_tf = train_tf
-        self.val_tf = val_tf
         self.test_tf = test_tf
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -87,7 +85,7 @@ class SemcityDatamodule(LightningDataModule):
                     self.dict_val["MSK"],
                     self.bands,
                     self.merge,
-                    transforms=self.val_tf,
+                    transforms=self.test_tf,
                     crop_size=512,
                     window=window,
                     crop_step=256

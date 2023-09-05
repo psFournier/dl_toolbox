@@ -1,0 +1,5 @@
+_target_: dl_toolbox.transforms.StretchToMinmaxFromCsv
+    csv: ???
+    min_p: 'p0.0',
+    max_p: 'p99.0',
+    bands: [1,2,3]

@@ -11,6 +11,8 @@ class Supervised(pl.LightningModule):
     def __init__(
         self,
         network,
+        in_channels,
+        num_classes,
         optimizer,
         scheduler,
         ce_loss,
@@ -18,8 +20,6 @@ class Supervised(pl.LightningModule):
         class_weights,
         ce_weight,
         dice_weight,
-        in_channels,
-        num_classes,
         *args,
         **kwargs
     ):
@@ -33,7 +33,7 @@ class Supervised(pl.LightningModule):
         self.ce_weight = ce_weight
         self.dice_weight = dice_weight
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
-        self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)        
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())

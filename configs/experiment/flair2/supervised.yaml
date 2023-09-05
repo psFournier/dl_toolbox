@@ -1,0 +1,43 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /paths: qdtis056z
+  - override /datamodule: flair2
+  - override /module: supervised
+  - override /module/network: smpunet
+  - override /trainer: gpu
+
+name: flair2_3_97/supervised_dummy
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+seed: 12345
+
+datamodule:
+  batch_size: 2
+  num_workers: 4
+  prop: 3
+  train_tf:
+    _target_: dl_toolbox.transforms.Compose
+    transforms: 
+        - _target_: dl_toolbox.transforms.D4
+        - _target_: dl_toolbox.transforms.RandomCrop2
+          size: 256
+
+trainer:
+  max_time: "00:00:00:40"
+  limit_train_batches: 1
+  limit_val_batches: 1
+  
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+    
+callbacks:
+  model_checkpoint:
+    dirpath: ${hydra:run.dir}/checkpoints
+  

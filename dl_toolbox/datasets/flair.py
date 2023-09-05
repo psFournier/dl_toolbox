@@ -106,7 +106,8 @@ class DatasetFlair2(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        with rasterio.open(self.imgs[idx], "r") as file:
+        path = self.imgs[idx]
+        with rasterio.open(path, "r") as file:
             image = file.read(out_dtype=np.float32, indexes=self.bands)
         image = torch.from_numpy(image) / 255.
         label = None
@@ -118,7 +119,8 @@ class DatasetFlair2(Dataset):
         image, label = self.transforms(img=image, label=label)
         return {
             "image": image,
-            "label": None if label is None else label.squeeze()
+            "label": None if label is None else label.squeeze(),
+            "path": path
         }
 
 

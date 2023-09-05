@@ -15,4 +15,5 @@ from .cross_pseudo_supervision import *
 from .mean_teacher import MeanTeacher
 from .fixmatch import *
 from .mixmatch import *
+from .self_training import *
 # from .module_factory import ModuleFactory

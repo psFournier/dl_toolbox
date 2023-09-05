@@ -2,7 +2,8 @@
 # from .semisup_dm import SemisupDm
 #from .digitanie import *
 from .cityscapes import *
-from .flair import *
+from .flair.flair import *
+from .flair.flair_pseudosup import *
 from .resisc import *
 from .semcity import *
 #from .airs import *

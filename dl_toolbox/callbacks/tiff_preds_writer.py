@@ -2,40 +2,40 @@ import os
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import rasterio
 import torch
 from pytorch_lightning.callbacks import BasePredictionWriter
 
 
 class TiffPredsWriter(BasePredictionWriter):
-    def __init__(self, out_path, write_mode):
+    def __init__(self, out_path, base):
         super().__init__(write_interval="batch")
-
         self.out_path = Path(out_path)
-        self.write_mode = write_mode
-        self.out_path.mkdir(exist_ok=True, parents=True)
+        self.base = Path(base)
+        self.stats = {'img':[], 'avg_cert': []}
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        logits = outputs.cpu()  # Move predictions to CPU
-        outputs = pl_module.logits2probas(logits)
-        count = pl_module.num_classes
-        if self.write_mode == "pred":
-            outputs = torch.unsqueeze(pl_module.probas2confpreds(outputs)[1], 1)
-            print(outputs.shape)
-            count = 1
-        for output, path, crop, tf, crs in zip(
-            outputs, batch["path"], batch["crop"], batch["crop_tf"], batch["crs"]
-        ):
-            os.makedirs(self.out_path / path.stem, exist_ok=True)
-            out_file = self.out_path / path.stem / f"{crop.col_off}_{crop.row_off}.tif"
-            meta = {
-                "driver": "GTiff",
-                "height": crop.height,
-                "width": crop.width,
-                "count": count,
-                "dtype": np.float32,
-                "crs": crs,
-                "transform": tf,
-            }
-            with rasterio.open(out_file, "w+", **meta) as dst:
-                dst.write(output.numpy())
+        probas = pl_module.logits2probas(outputs.cpu())
+        for p, path in zip(probas, batch["path"]):
+            relative = Path(path).relative_to(self.base) 
+            out_msk = self.out_path/relative        
+            self.stats['img'].append(relative)
+            self.stats['avg_cert'].append(float(p.mean()))
+            out_msk.parent.mkdir(exist_ok=True, parents=True)
+            with rasterio.open(path) as img:
+                meta = img.meta
+            meta["count"] = pl_module.num_classes
+            meta["dtype"] = np.float32
+            with rasterio.open(out_msk, "w+", **meta) as dst:
+                dst.write(p.numpy())
+                
+    def on_predict_epoch_end(self, trainer, pl_module):
+        stats_df = pd.DataFrame(
+            self.stats['avg_cert'],
+            index=self.stats['img'],
+            columns = ['avg_cert']
+        )
+        stats_df.to_csv(self.out_path / 'stats.csv')
+        #df = pd.read_csv(self.out_path / 'stats.csv', index_col=0)
+        #print(df['avg_cert'].loc['/data/outputs/flair2_3_97/supervised_dummy/2023-09-05_102306/checkpoints/last_preds/FLAIR_1/train/D007_2020/Z1_AA/img/IMG_003576.tif'])
