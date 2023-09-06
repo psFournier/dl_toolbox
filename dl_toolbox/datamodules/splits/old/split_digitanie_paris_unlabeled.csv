@@ -1,2 +1,0 @@
-city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,origin tile
-DigitanieParis,0,Paris/paris_full_tiled.tif,none,0,0,39200,38800,0,Paris/paris_full_tiled.tif

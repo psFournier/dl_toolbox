@@ -1,0 +1,6 @@
+city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,orig_image
+DigitanieToulouse,0,Toulouse/toulouse_full_tiled.tif,none,0,0,13800,13800,0,Toulouse/toulouse_full_tiled.tif
+DigitanieBiarritz,1,Biarritz/biarritz_full_tiled.tif,none,0,0,10100,10100,1,Biarritz/biarritz_full_tiled.tif
+DigitanieMontpellier,2,Montpellier/montpellier_full_tiled.tif,none,0,0,6012,14012,2,Montpellier/montpellier_full_tiled.tif
+DigitanieParis,3,Paris/paris_full_tiled.tif,none,0,0,39279,38891,3,Paris/paris_full_tiled.tif
+DigitanieStrasbourg,4,Strasbourg/strasbourg_full_tiled.tif,none,0,0,16384,16384,4,Strasbourg/strasbourg_full_tiled.tif

@@ -1,2 +1,0 @@
-city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,origin tile
-DigitanieMontpellier,0,Montpellier/montpellier_full_tiled.tif,none,0,0,6000,14000,0,Montpellier/montpellier_full_tiled.tif

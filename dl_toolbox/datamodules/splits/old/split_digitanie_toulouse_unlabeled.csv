@@ -1,2 +1,0 @@
-city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,origin tile
-DigitanieToulouse,0,Toulouse/toulouse_full_tiled.tif,none,0,0,13800,13800,0,Toulouse/toulouse_full_tiled.tif

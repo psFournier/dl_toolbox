@@ -1,2 +1,0 @@
-city,tile_id,img_path,label_path,x0,y0,patch_width,patch_height,fold_id,origin tile
-DigitanieStrasbourg,0,Strasbourg/strasbourg_full_tiled.tif,none,0,0,16300,16300,0,Strasbourg/strasbourg_full_tiled.tif
