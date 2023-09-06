@@ -7,3 +7,5 @@ from .flair.flair import *
 from .rellis3d.rellis3d import *
 from .semanticdrone.semanticdrone import *
 from .digitanie.digitanie import *
+from .digitanie.digitanie_unlabeled_toa import *
+from .digitanie.digitanie_sublabeled_toa import *
