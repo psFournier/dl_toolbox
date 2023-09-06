@@ -17,8 +17,16 @@ def labels_to_rgb(labels, colors):
     for label, color in colors:
         mask = np.array(labels == label)
         rgb[mask] = np.array(color)
-
     return rgb
+
+def rgb_to_labels(rgb, colors):
+    labels = np.zeros(shape=rgb.shape[:-1], dtype=np.uint8)
+    for label, color in colors:
+        d = rgb[..., 0] == color[0]
+        d = np.logical_and(d, (rgb[..., 1] == color[1]))
+        d = np.logical_and(d, (rgb[..., 2] == color[2]))
+        labels[d] = label
+    return labels
 
 
 class LabelsToRGB:
