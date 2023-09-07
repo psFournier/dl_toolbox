@@ -1,15 +1,13 @@
-defaults:
-  - /transforms@train_tf: none
-  - /transforms@val_tf: none
-  - /transforms@test_tf: none
-  - _self_
-
-name: resisc
-_target_: dl_toolbox.datamodules.DatamoduleResisc1
+_target_: dl_toolbox.datamodules.Resisc
 data_path: ${paths.data}
-prop: 80
+dataset_tf: 
+    _target_: dl_toolbox.transforms.StretchToMinmax
+    mins: [0, 0, 0]
+    maxs: [255, 255, 255]
+sup: 80
+unsup: 0
 batch_size: 16
 num_workers: 6
 merge: all45
-pin_memory: False
+pin_memory: True
 class_weights: null

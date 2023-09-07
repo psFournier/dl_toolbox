@@ -39,6 +39,7 @@ class SelfTraining(pl.LightningModule):
         self.strong_tf = strong_tf
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -53,6 +54,12 @@ class SelfTraining(pl.LightningModule):
 
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
+    
+    def on_train_epoch_start(self):
+        self.train_accuracy.reset()
+        
+    def on_train_epoch_end(self):
+        self.log("accuracy/train", self.train_accuracy.compute())
 
     def training_step(self, batch, batch_idx):
         batch, pseudosup_batch = batch["sup"], batch["pseudosup"]
@@ -71,6 +78,8 @@ class SelfTraining(pl.LightningModule):
         self.log(f"cross_entropy/train", ce)
         dice = self.dice(logits_x, y)
         self.log(f"dice/train", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits_x))
+        self.train_accuracy.update(preds, y)
         return self.ce_weight * ce + self.dice_weight * dice
     
     def on_validation_epoch_start(self):

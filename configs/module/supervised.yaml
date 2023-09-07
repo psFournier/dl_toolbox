@@ -5,6 +5,7 @@ defaults:
   - network: smpunet
   - loss@ce_loss: ce
   - loss@dice_loss: dice
+  - /transforms@tf: d4_color
 
 _target_: dl_toolbox.modules.Supervised
 ce_weight: 1

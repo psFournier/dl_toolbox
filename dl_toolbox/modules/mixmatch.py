@@ -44,6 +44,7 @@ class Mixmatch(pl.LightningModule):
         self.temp = temperature
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -58,6 +59,12 @@ class Mixmatch(pl.LightningModule):
 
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
+    
+    def on_train_epoch_start(self):
+        self.train_accuracy.reset()
+        
+    def on_train_epoch_end(self):
+        self.log("accuracy/train", self.train_accuracy.compute())
 
     def on_train_epoch_start(self):
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)
@@ -73,6 +80,8 @@ class Mixmatch(pl.LightningModule):
         self.log(f"cross_entropy/train", ce)
         dice = self.dice(logits_xs_weak, ys)
         self.log(f"dice/train", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits_xs_weak))
+        self.train_accuracy.update(preds, ys)
         # Mixmatch    
         ys = one_hot(ys, self.num_classes).float()
         if len(ys.shape) > 2: ys = ys.permute(0,3,1,2)

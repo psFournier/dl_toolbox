@@ -44,6 +44,7 @@ class MeanTeacher(pl.LightningModule):
         self.alpha_ramp = alpha_ramp
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.consistency_loss = consistency_loss
         self.consistency_aug = consistency_aug
         self.ema_ramp = ema_ramp
@@ -61,6 +62,12 @@ class MeanTeacher(pl.LightningModule):
 
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
+    
+    def on_train_epoch_start(self):
+        self.train_accuracy.reset()
+        
+    def on_train_epoch_end(self):
+        self.log("accuracy/train", self.train_accuracy.compute())
 
     def on_train_epoch_start(self):
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)
@@ -70,13 +77,15 @@ class MeanTeacher(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         batch, unsup_batch = batch["sup"], batch["unsup"]
-        inputs = batch["image"]
-        labels = batch["label"]
-        student_logits = self.student(inputs)
-        ce = self.ce(student_logits, labels)
+        xs = batch["image"]
+        ys = batch["label"]
+        logits_xs = self.student(xs)
+        ce = self.ce(logits_xs, ys)
         self.log(f"cross_entropy/train", ce)
-        dice = self.dice(student_logits, labels)
+        dice = self.dice(logits_xs, ys)
         self.log(f"dice/train", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
+        self.train_accuracy.update(preds, ys)
         unsup_inputs = unsup_batch["image"]
         unsup_inputs_1, _ = self.consistency_aug(unsup_inputs)
         unsup_inputs_2, _ = self.consistency_aug(unsup_inputs)

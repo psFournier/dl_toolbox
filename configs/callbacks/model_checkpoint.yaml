@@ -2,7 +2,7 @@
 
 model_checkpoint:
   _target_: pytorch_lightning.callbacks.ModelCheckpoint
-  monitor: cross_entropy/val # name of the logged metric which determines when model is improving
+  monitor: null # name of the logged metric which determines when model is improving
   dirpath: ${hydra:run.dir}/checkpoints
   filename: "epoch_{epoch:03d}"
   save_last: True

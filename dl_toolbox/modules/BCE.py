@@ -38,6 +38,7 @@ class Multilabel(pl.LightningModule):
         self.dice_weight = dice_weight
         self.val_accuracy = M.Accuracy(task='multilabel', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multilabel", num_classes=num_classes)
+        self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -60,6 +61,12 @@ class Multilabel(pl.LightningModule):
         preds = torch.where(cond, aux_preds + 1, 0)
         confs = torch.where(cond, aux_confs, 1 - aux_confs)
         return confs, preds
+    
+    def on_train_epoch_start(self):
+        self.train_accuracy.reset()
+        
+    def on_train_epoch_end(self):
+        self.log("accuracy/train", self.train_accuracy.compute())
     
     def one_hot(self, labels):
         one_hot = nn.functional.one_hot(labels, self.num_classes)

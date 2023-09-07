@@ -7,9 +7,9 @@ from .utils import stretch_to_minmax
 
 
 class StretchToMinmax:
-    def __init__(self, minval, maxval):
-        self.mins = Tensor(minval).reshape((-1, 1, 1))
-        self.maxs = Tensor(maxval).reshape((-1, 1, 1))
+    def __init__(self, mins, maxs):
+        self.mins = Tensor(mins).reshape((-1, 1, 1))
+        self.maxs = Tensor(maxs).reshape((-1, 1, 1))
 
     def __call__(self, img, label=None):
         img = stretch_to_minmax(img, self.mins, self.maxs)

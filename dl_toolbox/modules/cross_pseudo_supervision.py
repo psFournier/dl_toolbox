@@ -39,6 +39,7 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.alpha_ramp = alpha_ramp
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -53,6 +54,12 @@ class CrossPseudoSupervision(pl.LightningModule):
 
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
+    
+    def on_train_epoch_start(self):
+        self.train_accuracy.reset()
+        
+    def on_train_epoch_end(self):
+        self.log("accuracy/train", self.train_accuracy.compute())
 
     def on_train_epoch_start(self):
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)
@@ -68,6 +75,8 @@ class CrossPseudoSupervision(pl.LightningModule):
         self.log(f"cross_entropy/train", ce)
         dice = self.dice(logits1, labels)+self.dice(logits2, labels)
         self.log(f"dice/train", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits1))
+        self.train_accuracy.update(preds, labels)
             
         unsup_inputs = unsup_batch["image"]
         unsup_logits_1 = self.network1(unsup_inputs)

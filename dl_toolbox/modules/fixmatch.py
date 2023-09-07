@@ -45,6 +45,7 @@ class Fixmatch(pl.LightningModule):
         self.threshold = threshold
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -59,6 +60,12 @@ class Fixmatch(pl.LightningModule):
 
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
+    
+    def on_train_epoch_start(self):
+        self.train_accuracy.reset()
+        
+    def on_train_epoch_end(self):
+        self.log("accuracy/train", self.train_accuracy.compute())
 
     def on_train_epoch_start(self):
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)
@@ -74,6 +81,8 @@ class Fixmatch(pl.LightningModule):
         self.log(f"cross_entropy/train", ce)
         dice = self.dice(logits_xs_weak, ys_weak)
         self.log(f"dice/train", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits_xs_weak))
+        self.train_accuracy.update(preds, ys_weak)
         # Fixmatch part    
         xu = unsup_batch["image"]
         xu_weak, _ = self.weak_tf(xu, None)

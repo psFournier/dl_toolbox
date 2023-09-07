@@ -20,6 +20,7 @@ class Supervised(pl.LightningModule):
         class_weights,
         ce_weight,
         dice_weight,
+        tf,
         *args,
         **kwargs
     ):
@@ -32,7 +33,9 @@ class Supervised(pl.LightningModule):
         self.dice = dice_loss(mode="multiclass")
         self.ce_weight = ce_weight
         self.dice_weight = dice_weight
+        self.tf = tf
         self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
+        self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)        
 
     def configure_optimizers(self):
@@ -49,17 +52,26 @@ class Supervised(pl.LightningModule):
     def probas2confpreds(cls, probas):
         return torch.max(probas, dim=1)
     
+    def on_train_epoch_start(self):
+        self.train_accuracy.reset()
+        
+    def on_train_epoch_end(self):
+        self.log("accuracy/train", self.train_accuracy.compute())
+    
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
-        inputs = batch["image"]
-        labels = batch["label"]
-        logits = self.network(inputs)
-        ce = self.ce(logits, labels)
+        xs = batch["image"]
+        ys = batch["label"]
+        xs, ys = self.tf(xs, ys)
+        logits_xs = self.network(xs)
+        ce = self.ce(logits_xs, ys)
         self.log(f"cross_entropy/train", ce)
-        dice = self.dice(logits, labels)
+        dice = self.dice(logits_xs, ys)
         self.log(f"dice/train", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
+        self.train_accuracy.update(preds, ys)
         return self.ce_weight * ce + self.dice_weight * dice
-    
+
     def on_validation_epoch_start(self):
         self.val_accuracy.reset()
         self.val_cm.reset()
