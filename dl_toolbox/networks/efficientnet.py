@@ -9,6 +9,7 @@ class EfficientNet_b0(EfficientNet):
         in_channels,
         num_classes,
         weights=None,
+        #norm_layer=None,
         **kwargs
     ):  
         weights = EfficientNet_B0_Weights[weights] if weights else None
@@ -22,6 +23,7 @@ class EfficientNet_b0(EfficientNet):
             kwargs.pop("dropout", 0.2),
             last_channel=last_channel,
             num_classes=out_channels,
+            #norm_layer=nn.Identity,
             **kwargs
         )
         if weights is not None:

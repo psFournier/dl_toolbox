@@ -13,6 +13,7 @@ def train(cfg: DictConfig) -> None:
     
     pl.seed_everything(cfg.seed)
     logger.info("\n" + OmegaConf.to_yaml(cfg))
+    logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
     # Let hydra manage directory outputs
     tensorboard = pl.loggers.TensorBoardLogger(
         ".", "", "", log_graph=True, default_hp_metric=False
@@ -34,6 +35,7 @@ def train(cfg: DictConfig) -> None:
     )
     
     trainer.fit(module, datamodule=datamodule)
+    trainer.validate(module, datamodule=datamodule)
 
 if __name__ == "__main__":
     train()

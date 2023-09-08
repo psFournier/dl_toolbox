@@ -3,7 +3,7 @@ defaults:
   - optimizer: sgd
   - network@student: smpunet
   - network@teacher: smpunet
-  - scheduler: step
+  - scheduler: linear
   - loss@ce_loss: ce
   - loss@dice_loss: dice
   - /transforms@consistency_aug: color

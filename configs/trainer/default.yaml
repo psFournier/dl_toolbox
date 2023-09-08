@@ -5,7 +5,7 @@ default_root_dir: ${hydra:run.dir}
 
 min_epochs: 1 # prevents early stopping
 max_steps: 200000
-max_epochs: 1000
+max_epochs: 100
 limit_train_batches: 1.
 limit_val_batches: 1.
 

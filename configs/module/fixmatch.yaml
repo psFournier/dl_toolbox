@@ -1,14 +1,13 @@
 defaults:
   - optimizer: sgd
   - network: smpunet
-  - scheduler: step
+  - scheduler: linear
   - loss@ce_loss: ce
   - loss@dice_loss: dice
   - /transforms@weak_tf: color
   - /transforms@strong_tf: color
   - loss@ce_loss_u: ce
   - _self_
-
 
 _target_: dl_toolbox.modules.Fixmatch
 alpha_ramp:

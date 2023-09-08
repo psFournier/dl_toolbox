@@ -2,7 +2,9 @@
 
 model_checkpoint:
   _target_: pytorch_lightning.callbacks.ModelCheckpoint
-  monitor: null # name of the logged metric which determines when model is improving
+  monitor: epoch # name of the logged metric which determines when model is improving
+  mode: max
+  save_top_k: 2
   dirpath: ${hydra:run.dir}/checkpoints
   filename: "epoch_{epoch:03d}"
   save_last: True

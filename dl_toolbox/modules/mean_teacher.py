@@ -133,3 +133,8 @@ class MeanTeacher(pl.LightningModule):
         logger = self.trainer.logger
         if logger:
             logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
+
+    def predict_step(self, batch, batch_idx):
+        inputs = batch["image"]
+        logits = self.forward(inputs)
+        return logits

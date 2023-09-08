@@ -11,30 +11,28 @@ defaults:
   - override /module/network: efficientnet
   - override /trainer: gpu
   
-name: resisc/run:supervised
+name: resisc/sweep:sup
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
 seed: 12345
-
-datamodule:
-    sup: 10
-    unsup: 0
-    num_workers: 0
         
 trainer:
-  max_time: "00:08:00:40"
-  max_epochs: 200
-  limit_train_batches: 1.
-  limit_val_batches: 1.
-    
+  max_time: "00:00:00:40"
+  limit_train_batches: 1
+  limit_val_batches: 1
+  
 hydra:
   run:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweeper:
+    params:
+      datamodule.sup: 3,10,80
+  sweep:
+    dir: ${paths.output_dir}/${name}
+    subdir: ${datamodule.sup}/${now:%Y-%m-%d_%H%M%S}
     
 callbacks:
   model_checkpoint:
-    dirpath: ${hydra:run.dir}/checkpoints
-  swa:
-    swa_epoch_start: 20
+    dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints

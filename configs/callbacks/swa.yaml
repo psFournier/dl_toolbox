@@ -1,0 +1,8 @@
+swa:
+  _target_: pytorch_lightning.callbacks.StochasticWeightAveraging
+  swa_lrs: 0.05
+  swa_epoch_start: 0.6
+  annealing_epochs: 10
+  annealing_strategy: cos
+  avg_fn: null
+  device: null

@@ -3,7 +3,7 @@ defaults:
   - optimizer: sgd
   - network@network1: smpunet
   - network@network2: smpunet
-  - scheduler: step
+  - scheduler: linear
   - loss@ce_loss: ce
   - loss@dice_loss: dice
 

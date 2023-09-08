@@ -50,13 +50,11 @@ class Supervised(pl.LightningModule):
         return logits.softmax(dim=1)
 
     def probas2confpreds(cls, probas):
-        return torch.max(probas, dim=1)
-    
-    def on_train_epoch_start(self):
-        self.train_accuracy.reset()
+        return torch.max(probas, dim=1)        
         
     def on_train_epoch_end(self):
         self.log("accuracy/train", self.train_accuracy.compute())
+        self.train_accuracy.reset()
     
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
@@ -71,10 +69,6 @@ class Supervised(pl.LightningModule):
         _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
         self.train_accuracy.update(preds, ys)
         return self.ce_weight * ce + self.dice_weight * dice
-
-    def on_validation_epoch_start(self):
-        self.val_accuracy.reset()
-        self.val_cm.reset()
         
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]
@@ -96,15 +90,10 @@ class Supervised(pl.LightningModule):
         logger = self.trainer.logger
         if logger:
             logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
+        self.val_accuracy.reset()
+        self.val_cm.reset()
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]
         logits = self.forward(inputs)
-        # if self.ttas:
-        #    for tta, reverse in self.ttas:
-        #        aux, _ = tta(img=inputs)
-        #        aux_logits = self.forward(aux)
-        #        tta_logits, _ = reverse(img=aux_logits)
-        #        logits = torch.stack([logits, tta_logits])
-        #    logits = logits.mean(dim=0)
         return logits

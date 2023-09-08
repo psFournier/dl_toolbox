@@ -11,6 +11,8 @@ defaults:
       - model_checkpoint
       - model_summary
       - early_stopping
+      - swa
+      - lr_monitor
   - paths: qdtis056z
   - trainer: gpu
   - hydra: default

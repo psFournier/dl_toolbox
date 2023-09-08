@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - optimizer: sgd
-  - scheduler: step
+  - scheduler: linear
   - network: smpunet
   - loss@ce_loss: ce
   - loss@dice_loss: dice
