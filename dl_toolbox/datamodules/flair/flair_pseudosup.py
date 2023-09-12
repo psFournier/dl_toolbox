@@ -1,11 +1,13 @@
-from .flair import DatamoduleFlair2
 from .utils import flair_gather_data
 import pandas as pd
-from dl_toolbox.datasets import DatasetFlair2
+from .flair import Flair
+import dl_toolbox.datasets as datasets
 from pytorch_lightning.utilities import CombinedLoader
+from torch.utils.data import DataLoader, RandomSampler
+from dl_toolbox.utils import CustomCollate
 from pathlib import Path
 
-class Flair2Pseudosup(DatamoduleFlair2):
+class FlairPseudosup(Flair):
 
     def __init__(
         self,
@@ -31,21 +33,31 @@ class Flair2Pseudosup(DatamoduleFlair2):
     def setup(self, stage):
         super().setup(stage)
         if stage in ("fit"):
-            self.pl_set = DatasetFlair2(
+            self.pl_set = datasets.Flair(
                 self.dict_pl["IMG"],
                 self.dict_pl["MSK"],
                 self.bands,
                 self.merge,
-                transforms=self.train_tf,
+                transforms=self.dataset_tf,
             )
         
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = self.get_loader(self.train_set)(
+        train_dataloaders["sup"] = DataLoader(
+            dataset=self.train_set,
+            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
             shuffle=True,
-            drop_last=True,
+            drop_last=True
         )
-        train_dataloaders["pseudosup"] = self.get_loader(self.pl_set)(
+        train_dataloaders["pseudosup"] = DataLoader(
+            dataset=self.pl_set,
+            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
             shuffle=True,
             drop_last=True
         )

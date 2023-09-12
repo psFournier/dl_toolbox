@@ -13,9 +13,9 @@ _target_: dl_toolbox.modules.Mixmatch
 alpha_ramp:
     _target_: dl_toolbox.utils.SigmoidRamp
     start: 0
-    end: 10
+    end: 50
     start_val: 0.1
-    end_val: 5.
+    end_val: 0.1.
 ce_weight: 1
 dice_weight: 0
 weak_tf:

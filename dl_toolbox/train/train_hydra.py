@@ -34,7 +34,7 @@ def train(cfg: DictConfig) -> None:
         callbacks=list(callbacks.values())
     )
     
-    trainer.fit(module, datamodule=datamodule)
+    trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
     trainer.validate(module, datamodule=datamodule)
 
 if __name__ == "__main__":

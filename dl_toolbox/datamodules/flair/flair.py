@@ -4,7 +4,7 @@ from functools import partial
 
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate
@@ -21,8 +21,8 @@ class Flair(LightningDataModule):
         self,
         data_path,
         merge,
-        labeled_prop,
-        unlabeled_prop,
+        sup,
+        unsup,
         bands,
         dataset_tf,
         batch_size,
@@ -35,8 +35,8 @@ class Flair(LightningDataModule):
         super().__init__()
         self.data_path = Path(data_path)
         self.merge = merge
-        self.labeled_prop = labeled_prop
-        self.unlabeled_prop = unlabeled_prop
+        self.sup = sup
+        self.unsup = unsup
         self.bands = bands
         self.dataset_tf = dataset_tf
         self.batch_size = batch_size
@@ -60,9 +60,9 @@ class Flair(LightningDataModule):
         self.dict_train_unlabeled = {"IMG": [], "MSK": [], "MTD": []}
         self.dict_val = {"IMG": [], "MSK": [], "MTD": []}
         for i, (img, msk) in enumerate(zip(all_img, all_msk)):
-            if self.labeled_prop <= i%100 < self.labeled_prop + self.unlabeled_prop:
+            if self.sup <= i%100 < self.sup + self.unsup:
                 self.dict_train_unlabeled["IMG"].append(img)
-            if i%100 < self.labeled_prop:
+            if i%100 < self.sup:
                 self.dict_train["IMG"].append(img)
                 self.dict_train["MSK"].append(msk)
             elif 90 <= i%100:
@@ -85,7 +85,7 @@ class Flair(LightningDataModule):
                 self.merge,
                 transforms=self.dataset_tf,
             )
-            if self.unlabeled_prop > 0:
+            if self.unsup > 0:
                 self.unlabeled_set = datasets.Flair(
                     self.dict_train_unlabeled["IMG"],
                     [],
@@ -105,7 +105,7 @@ class Flair(LightningDataModule):
             shuffle=True,
             drop_last=True
         )
-        if self.unlabeled_prop > 0:
+        if self.unsup > 0:
             train_dataloaders["unsup"] = DataLoader(
                 dataset=self.unlabeled_set,
                 collate_fn=CustomCollate(),

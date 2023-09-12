@@ -5,7 +5,7 @@ from pytorch_lightning import Trainer
 from torch.utils.data import DataLoader, Subset
 import torch.nn as nn
 
-from dl_toolbox.datamodules import DatamoduleResisc1
+import dl_toolbox.datamodules as datamodules
 import dl_toolbox.transforms as tf
 import dl_toolbox.utils as utils
 from dl_toolbox.modules import Supervised
@@ -16,13 +16,12 @@ from dl_toolbox.callbacks import ClassifPredsWriter
 
 def main():
 
-    datamodule = DatamoduleResisc1(
+    datamodule = datamodules.Resisc(
         data_path=Path('/data'),
         merge='all45',
-        prop=3,
-        train_tf=tf.NoOp(),
-        val_tf=tf.NoOp(),
-        test_tf=tf.NoOp(),
+        sup=10,
+        unsup=0,
+        dataset_tf=tf.StretchToMinmax([0]*3, [255.]*3),
         batch_size=4,
         num_workers=4,
         pin_memory=True,
@@ -40,9 +39,10 @@ def main():
         dice_weight=0,
         in_channels=3,
         num_classes=45,
+        tf=tf.NoOp()
     )
     
-    ckpt = Path('/data/outputs/resisc_3_80/sup/2023-09-05_154623/checkpoints/last.ckpt')
+    ckpt = Path('/data/outputs/resisc/run:supervised/2023-09-09_111155/checkpoints/last.ckpt')
     pred_dir = str(ckpt.stem)+'_preds'
     pred_writer = ClassifPredsWriter(
         out_path=ckpt.parent / pred_dir,
@@ -53,10 +53,10 @@ def main():
         accelerator="gpu",
         devices=1,
         limit_predict_batches=5,
-        callbacks=[pred_writer],
+        #callbacks=[pred_writer],
         logger=False
     )
-    trainer.predict(model=module, datamodule=datamodule, ckpt_path=ckpt)
+    trainer.validate(model=module, datamodule=datamodule, ckpt_path=ckpt)
 
 if __name__ == "__main__":
     main()

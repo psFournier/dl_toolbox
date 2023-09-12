@@ -1,5 +1,5 @@
 _target_: torch.optim.SGD
 _partial_: True
-lr: 0.04
+lr: 0.05
 momentum: 0.9
 weight_decay: 0.0005

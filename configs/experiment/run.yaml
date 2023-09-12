@@ -8,24 +8,28 @@ defaults:
   - override /paths: qdtis056z
   - override /datamodule: resisc
   - override /module: supervised
+  - override /transforms@module.tf: d4_color
   - override /module/network: efficientnet
+  - override /module/scheduler: swa
   - override /trainer: gpu
   
-name: resisc/run:supervised
+name: resisc10/run:supervised
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
 seed: 12345
+#ckpt: "/data/outputs/resisc/run:supervised/2023-09-10_185348/checkpoints/epoch_349.ckpt"
 
 datamodule:
     sup: 10
     unsup: 0
-    num_workers: 0
+    num_workers: 6
         
 trainer:
-  max_time: "00:08:00:40"
-  max_epochs: 200
+  max_time: "00:12:00:40"
+  max_epochs: 125
+  max_steps: 500000
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -36,5 +40,3 @@ hydra:
 callbacks:
   model_checkpoint:
     dirpath: ${hydra:run.dir}/checkpoints
-  swa:
-    swa_epoch_start: 20

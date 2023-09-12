@@ -62,7 +62,6 @@ class Resisc(LightningDataModule):
                 datasets.Resisc(data_path, self.dataset_tf, self.merge),
                 indices=self.train_idx,
             )
-            print(len(self.train_set))
             self.val_set = Subset(
                 datasets.Resisc(data_path, self.dataset_tf, self.merge),
                 indices=self.val_idx,
