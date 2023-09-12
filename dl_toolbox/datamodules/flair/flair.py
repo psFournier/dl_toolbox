@@ -93,36 +93,32 @@ class Flair(LightningDataModule):
                     self.merge,
                     transforms=self.dataset_tf,
                 )
-                       
-    def train_dataloader(self):
-        train_dataloaders = {}
-        train_dataloaders["sup"] = DataLoader(
-            dataset=self.train_set,
+                
+    def dataloader(self, dataset):
+        return partial(
+            DataLoader,
+            dataset=dataset,
             collate_fn=CustomCollate(),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
+            pin_memory=self.pin_memory
+        )
+                       
+    def train_dataloader(self):
+        train_dataloaders = {}
+        train_dataloaders["sup"] = self.dataloader(self.train_set)(
             shuffle=True,
-            drop_last=True
+            drop_last=True,
         )
         if self.unsup > 0:
-            train_dataloaders["unsup"] = DataLoader(
-                dataset=self.unlabeled_set,
-                collate_fn=CustomCollate(),
-                batch_size=self.batch_size,
-                num_workers=self.num_workers,
-                pin_memory=self.pin_memory,
+            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
                 shuffle=True,
-                drop_last=True
+                drop_last=True,
             )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
     def val_dataloader(self):
-        return DataLoader(
-            dataset=self.val_set,
-            collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
+        return self.get_loader(self.val_set)(
             shuffle=False,
             drop_last=False,
         )

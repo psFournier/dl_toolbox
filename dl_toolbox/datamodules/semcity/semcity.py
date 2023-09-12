@@ -6,6 +6,7 @@ import re
 from os.path import join
 from pathlib import Path
 from functools import partial
+from itertools import product
 
 import numpy as np
 from pytorch_lightning import LightningDataModule
@@ -22,10 +23,10 @@ class Semcity(LightningDataModule):
         self,
         data_path,
         merge,
-        prop,
+        sup,
+        unsup,
         bands,
-        train_tf,
-        test_tf,
+        dataset_tf,
         batch_size,
         num_workers,
         pin_memory,
@@ -36,10 +37,10 @@ class Semcity(LightningDataModule):
         super().__init__()
         self.data_path = Path(data_path)
         self.merge = merge
-        self.prop = prop
+        self.sup = sup
+        self.unsup = unsup
         self.bands = bands
-        self.train_tf = train_tf
-        self.test_tf = test_tf
+        self.dataset_tf = dataset_tf
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
@@ -59,40 +60,53 @@ class Semcity(LightningDataModule):
         msk_dir = self.data_path/'SemCity-Toulouse-bench/semantic_05/TLS_indMap'
         imgs = [img_dir/f'{num}' for num in num_img]
         msks = [msk_dir/f'{num}' for num in num_msk]
-        train_windows = [(0, 0, 1752, 1726), (1752, 0, 1752, 1726), (0, 1726, 1752, 1726)]
-        val_windows = [(1752, 1726, 1752, 1726)]
-        self.dict_train = {'IMG': imgs, 'MSK': msks, 'WIN': train_windows}
-        self.dict_val = {'IMG': imgs, 'MSK': msks, 'WIN': val_windows}
+        windows = get_tiles(3504, 3452, 876, 863)
+        self.dict_train = {"IMG": [], "MSK": [], "WIN": []}
+        self.dict_train_unlabeled = {"IMG": [], "MSK": [], "WIN": []}
+        self.dict_val = {"IMG": [], "MSK": [], "WIN": []}
+        for i, prod in enumerate(product(windows, zip(imgs, msks))):
+            win, (img, msk) = prod
+            if self.sup <= i%100 < self.sup + self.unsup:
+                self.dict_train_unlabeled["IMG"].append(img)
+                self.dict_train_unlabeled["WIN"].append(win)
+            if i%100 < self.sup:
+                self.dict_train["IMG"].append(img)
+                self.dict_train["MSK"].append(msk)
+                self.dict_train["WIN"].append(win)
+            elif 90 <= i%100:
+                self.dict_val["IMG"].append(img)
+                self.dict_val["MSK"].append(msk)
+                self.dict_val["WIN"].append(win)
 
     def setup(self, stage):
         if stage in ("fit", "validate"):
-            self.train_set = ConcatDataset([
-                datasets.Semcity(
-                    self.dict_train["IMG"],
-                    self.dict_train["MSK"],
-                    self.bands,
-                    self.merge,
-                    transforms=self.train_tf,
-                    crop_size=512,
-                    window=window,
-                    crop_step=256
-                ) for window in self.dict_train["WIN"]
-            ])
-
-            self.val_set = ConcatDataset([
-                datasets.Semcity(
+            self.train_set = datasets.Semcity(
+                self.dict_train["IMG"],
+                self.dict_train["MSK"],
+                self.dict_train["WIN"],
+                self.bands,
+                self.merge,
+                transforms=self.dataset_tf
+            )
+            self.val_set = datasets.Semcity(
+                self.dict_val["IMG"],
+                self.dict_val["MSK"],
+                self.dict_val["WIN"],
+                self.bands,
+                self.merge,
+                transforms=self.dataset_tf
+            )
+            if self.unsup > 0:
+                self.unlabeled_set = datasets.Semcity(
                     self.dict_val["IMG"],
-                    self.dict_val["MSK"],
+                    [],
+                    self.dict_val["WIN"],
                     self.bands,
                     self.merge,
-                    transforms=self.test_tf,
-                    crop_size=512,
-                    window=window,
-                    crop_step=256
-                ) for window in self.dict_val["WIN"]
-            ])
+                    transforms=self.dataset_tf
+                )
                 
-    def get_loader(self, dataset):
+    def dataloader(self, dataset):
         return partial(
             DataLoader,
             dataset=dataset,
@@ -104,26 +118,19 @@ class Semcity(LightningDataModule):
                        
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = self.get_loader(self.train_set)(
+        train_dataloaders["sup"] = self.dataloader(self.train_set)(
             shuffle=True,
             drop_last=True,
         )
-        return CombinedLoader(train_dataloaders, mode="min_size")
+        if self.unsup > 0:
+            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
+                shuffle=True,
+                drop_last=True,
+            )
+        return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
     def val_dataloader(self):
-        return self.get_loader(self.val_set)(
-            shuffle=False,
-            drop_last=False,
-        )
-
-    def predict_dataloader(self):
-        return self.get_loader(self.pred_set)(
-            shuffle=False,
-            drop_last=False,
-        )
-    
-    def test_dataloader(self):
-        return self.get_loader(self.test_set)(
+        return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
         )
