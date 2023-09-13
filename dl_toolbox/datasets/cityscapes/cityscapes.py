@@ -45,6 +45,7 @@ class Cityscapes(Dataset):
 
         image = Image.open(self.imgs[index]).convert("RGB")
         image = pil_to_tensor(image)
+        label = None
         if self.msks:
             target = Image.open(self.msks[index])
             target = np.array(target)
@@ -67,6 +68,6 @@ class Cityscapes(Dataset):
 
         return {
             "image": image,
-            "label": label,
+            "label": None if label is None else label.squeeze()
             #"path": self.imgs[index],
         }

@@ -47,16 +47,6 @@ class Semcity(Dataset):
         self.class_list = self.classes[merge].value
         self.merges = [list(l.values) for l in self.class_list]
         self.transforms = transforms
-        #col_off, row_off, width, height = window
-        #self.crops = list(get_tiles(
-        #        nols=width,
-        #        nrows=height,
-        #        width=crop_size,
-        #        step_w=crop_step,
-        #        row_offset=row_off,
-        #        col_offset=col_off,
-        #        cover_all=True
-        #))
 
     def __len__(self):
         return len(self.imgs)

@@ -1,11 +1,12 @@
 from pathlib import Path
 import os
-
+from functools import partial
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader
 
 import dl_toolbox.datasets as datasets
+from dl_toolbox.utils import CustomCollate
 
 
 class Cityscapes(LightningDataModule):
@@ -13,10 +14,9 @@ class Cityscapes(LightningDataModule):
         self,
         data_path,
         merge,
-        prop,
-        train_tf,
-        val_tf,
-        test_tf,
+        sup,
+        unsup,
+        dataset_tf,
         batch_size,
         num_workers,
         pin_memory,
@@ -25,10 +25,9 @@ class Cityscapes(LightningDataModule):
         super().__init__()
         self.data_path = Path(data_path)
         self.merge = merge
-        self.prop = prop
-        self.train_tf = train_tf
-        self.val_tf = val_tf
-        self.test_tf = test_tf
+        self.sup = sup
+        self.unsup = unsup
+        self.dataset_tf = dataset_tf
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
@@ -42,6 +41,9 @@ class Cityscapes(LightningDataModule):
         )
         
     def prepare_data(self):
+        self.dict_train = {"IMG": [], "MSK": [], "WIN": []}
+        self.dict_train_unlabeled = {"IMG": [], "MSK": [], "WIN": []}
+        self.dict_val = {"IMG": [], "MSK": [], "WIN": []}
         def get_split_data(split):
             imgs = []
             msks = []
@@ -54,43 +56,65 @@ class Cityscapes(LightningDataModule):
                     )
                     imgs.append(img_dir/city/file_name)
                     msks.append(msk_dir/city/target_name)
-            return {'IMG': imgs, 'MSK': msks}
-        self.train_dict = get_split_data("train")
-        self.val_dict = get_split_data("val")
+            return zip(imgs, msks)
+        for i, (img, msk) in enumerate(get_split_data('train')):
+            if self.sup <= i%100 < self.sup + self.unsup:
+                self.dict_train_unlabeled["IMG"].append(img)
+            if i%100 < self.sup:
+                self.dict_train["IMG"].append(img)
+                self.dict_train["MSK"].append(msk)
+        for img, msk in get_split_data('val'):
+            self.dict_val["IMG"].append(img)
+            self.dict_val["MSK"].append(msk)
 
     def setup(self, stage):
-        self.train_set = datasets.Cityscapes(
-            self.train_dict['IMG'],
-            self.train_dict['MSK'],
-            merge=self.merge,
-            transforms=self.train_tf,
-        )
+        if stage in ("fit", "validate"):
+            self.train_set = datasets.Cityscapes(
+                self.dict_train['IMG'],
+                self.dict_train['MSK'],
+                merge=self.merge,
+                transforms=self.dataset_tf,
+            )
 
-        self.val_set = datasets.Cityscapes(
-            self.val_dict['IMG'],
-            self.val_dict['MSK'],
-            merge=self.merge,
-            transforms=self.val_tf,
-        )
+            self.val_set = datasets.Cityscapes(
+                self.dict_val['IMG'],
+                self.dict_val['MSK'],
+                merge=self.merge,
+                transforms=self.dataset_tf,
+            )
+            if self.unsup > 0:
+                self.unlabeled_set = datasets.Cityscapes(
+                    self.dict_train_unlabeled["IMG"],
+                    [],
+                    self.merge,
+                    transforms=self.dataset_tf
+                )
 
+    def dataloader(self, dataset):
+        return partial(
+            DataLoader,
+            dataset=dataset,
+            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory
+        )
+                       
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = DataLoader(
-            self.train_set,
-            batch_size=self.batch_size,
+        train_dataloaders["sup"] = self.dataloader(self.train_set)(
             shuffle=True,
-            num_workers=self.num_workers,
             drop_last=True,
-            pin_memory=True,
         )
-        return CombinedLoader(train_dataloaders, mode="min_size")
-
-    def val_dataloader(self) -> DataLoader:
-        return DataLoader(
-            self.val_set,
-            batch_size=self.batch_size,
+        if self.unsup > 0:
+            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
+                shuffle=True,
+                drop_last=True,
+            )
+        return CombinedLoader(train_dataloaders, mode="max_size_cycle")
+    
+    def val_dataloader(self):
+        return self.dataloader(self.val_set)(
             shuffle=False,
-            num_workers=self.num_workers,
-            pin_memory=True,
-            drop_last=True,
+            drop_last=False,
         )

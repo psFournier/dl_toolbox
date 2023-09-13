@@ -98,9 +98,9 @@ class Semcity(LightningDataModule):
             )
             if self.unsup > 0:
                 self.unlabeled_set = datasets.Semcity(
-                    self.dict_val["IMG"],
+                    self.dict_train_unlabeled["IMG"],
                     [],
-                    self.dict_val["WIN"],
+                    self.dict_train_unlabeled["WIN"],
                     self.bands,
                     self.merge,
                     transforms=self.dataset_tf
