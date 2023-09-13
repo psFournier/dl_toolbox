@@ -3,10 +3,10 @@ import csv
 
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
-
+from functools import partial
 import numpy as np
 import pandas as pd
-
+from itertools import product
 import rasterio
 import rasterio.windows as windows
 
@@ -16,7 +16,7 @@ from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader, RandomSampler
 
 import dl_toolbox.datasets as datasets
-from dl_toolbox.utils import CustomCollate
+from dl_toolbox.utils import CustomCollate, get_tiles
 
 
 class Digitanie(LightningDataModule):
@@ -77,8 +77,8 @@ class Digitanie(LightningDataModule):
         )
         
     def prepare_data(self):
-        self.dict_train = {'IMG':[], 'MSK':[]}
-        self.dict_val = {'IMG':[], 'MSK':[]}
+        self.dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
+        self.dict_val = {'IMG':[], 'MSK':[], "WIN": []}
         for city, val_test in self.cities.items():
             citypath = self.data_path/f'DIGITANIE_v4/{city}'
             val_idx, test_idx = map(int, val_test.split('_'))
@@ -86,21 +86,31 @@ class Digitanie(LightningDataModule):
             imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
             msks = list(citypath.glob('COS9/*.tif'))
             msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
-            for i, (img, msk) in enumerate(zip(imgs, msks)):
-                if i == val_idx:
+            try:
+                assert len(msks)==len(imgs)
+            except AssertionError:
+                print(city, ' is not ok')
+            nums = range(len(imgs))
+            windows = get_tiles(2048, 2048, 512)
+            for prod in product(windows, zip(imgs, msks, nums)):
+                win, (img, msk, num) = prod
+                if num == val_idx:
                     self.dict_val['IMG'].append(img)
                     self.dict_val['MSK'].append(msk)
-                elif i == test_idx:
+                    self.dict_val['WIN'].append(win)
+                elif num == test_idx:
                     pass
                 else:
                     self.dict_train['IMG'].append(img)
                     self.dict_train['MSK'].append(msk)
+                    self.dict_train['WIN'].append(win)
         
     def setup(self, stage):
         if stage in ("fit", "validate"):
             self.train_set = datasets.Digitanie(
                 self.dict_train["IMG"],
                 self.dict_train["MSK"],
+                self.dict_train["WIN"],
                 self.bands,
                 self.merge,
                 transforms=self.dataset_tf,
@@ -108,30 +118,33 @@ class Digitanie(LightningDataModule):
             self.val_set = datasets.Digitanie(
                 self.dict_val["IMG"],
                 self.dict_val["MSK"],
+                self.dict_val["WIN"],
                 self.bands,
                 self.merge,
                 transforms=self.dataset_tf,
             )
 
 
+    def dataloader(self, dataset):
+        return partial(
+            DataLoader,
+            dataset=dataset,
+            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory
+        )
+                       
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = DataLoader(
-            dataset=self.train_set,
-            batch_size=self.batch_size,
-            collate_fn=CustomCollate(),
+        train_dataloaders["sup"] = self.dataloader(self.train_set)(
             shuffle=True,
-            num_workers=self.num_workers,
             drop_last=True,
         )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
-
+    
     def val_dataloader(self):
-        return DataLoader(
-            dataset=self.val_set,
-            collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
+        return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
         )

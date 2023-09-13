@@ -4,7 +4,7 @@ from torch.utils.data._utils.collate import default_collate
 
 class CustomCollate:
     def __call__(self, batch, *args, **kwargs):
-        keys_to_collate = ["image", "label", "pre_image"]
+        keys_to_collate = ["image", "label"]
         to_collate = [
             {
                 k: v
@@ -18,7 +18,7 @@ class CustomCollate:
         if "label" not in collated_batch.keys():
             collated_batch["label"] = None
 
-        for aux in ["crop", "crop_tf", "path", "crs"]:
+        for aux in ["image_path", "window", "label_path"]:
             collated_batch[aux] = [elem[aux] for elem in batch if aux in elem.keys()]
 
         return collated_batch

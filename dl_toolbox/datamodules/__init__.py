@@ -5,6 +5,7 @@ from .resisc.resisc import *
 from .resisc.resisc_pseudosup import *
 from .semcity.semcity import *
 from .airs.airs import *
+from .digitanie.digitanie_semisup import *
 #from .semcity.semcity_pseudosup import *
 #from .digitanie.digitanie import *
 #from .digitanie.digitanie_unlabeled_toa import *

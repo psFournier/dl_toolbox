@@ -23,6 +23,7 @@ class Airs(LightningDataModule):
     def __init__(
         self,
         data_path,
+        filter_path,
         merge,
         sup,
         unsup,
@@ -37,6 +38,7 @@ class Airs(LightningDataModule):
     ):
         super().__init__()
         self.data_path = Path(data_path)
+        self.filter_path = filter_path
         self.merge = merge
         self.sup = sup
         self.unsup = unsup
@@ -57,12 +59,12 @@ class Airs(LightningDataModule):
     def prepare_data(self):
         imgs = []
         msks = []
-        with open(self.data_path/'AIRS/train.csv', newline='') as f:
+        with open(self.filter_path, newline='') as f:
             r = csv.reader(f, delimiter=',')
             for row in r:
                 img, msk = row
-                imgs.append(img)
-                msks.append(msk)
+                imgs.append(self.data_path/'AIRS'/img)
+                msks.append(self.data_path/'AIRS'/msk)
         windows = get_tiles(10000, 10000, 768, 768, cover_all=False)
         self.dict_train = {"IMG": [], "MSK": [], "WIN": []}
         self.dict_train_unlabeled = {"IMG": [], "MSK": [], "WIN": []}

@@ -4,6 +4,7 @@ import torch
 import enum
 import random
 from torch.utils.data import Dataset
+from rasterio.windows import Window
 
 from dl_toolbox.utils import label, get_tiles, merge_labels
 import rasterio.windows as W
@@ -52,12 +53,14 @@ class Digitanie(Dataset):
         self,
         imgs,
         msks,
+        windows,
         bands,
         merge,
         transforms,
     ):
         self.imgs = imgs
         self.msks = msks
+        self.windows = windows
         self.bands = bands
         self.class_list = self.classes[merge].value
         self.merges = [list(l.values) for l in self.class_list]
@@ -67,20 +70,27 @@ class Digitanie(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        with rasterio.open(self.imgs[idx], "r") as file:
-            image = file.read(
-                out_dtype=np.float32,
-                indexes=self.bands
-            )
+        #img = self.imgs[idx // len(self.crops)]
+        #crop = self.crops[idx % len(self.crops)]
+        img = self.imgs[idx]
+        win = self.windows[idx]
+        window = Window(*win)
+        with rasterio.open(img, "r") as file:
+            image = file.read(window=window, out_dtype=np.float32, indexes=self.bands)
         image = torch.from_numpy(image)
         label = None
         if self.msks:
-            with rasterio.open(self.msks[idx], "r") as file:
-                label = file.read(out_dtype=np.uint8)
+            #msk = self.msks[idx // len(self.crops)]
+            msk = self.msks[idx]
+            with rasterio.open(msk, "r") as file:
+                label = file.read(window=window, out_dtype=np.uint8)
             label = merge_labels(label, self.merges)
             label = torch.from_numpy(label).long()
         image, label = self.transforms(img=image, label=label)
         return {
             "image": image,
-            "label": None if label is None else label.squeeze()
+            "label": None if label is None else label.squeeze(),
+            "image_path": img,
+            "window": win,
+            "label_path": None if label is None else msk
         }
