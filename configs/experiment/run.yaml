@@ -4,6 +4,7 @@
 # python train.py experiment=example
 
 defaults:
+#  - override /hydra/launcher: slurm_spiro
   - override /paths: qdtis056z
   - override /datamodule: resisc/resisc
   - override /module: supervised
@@ -11,7 +12,6 @@ defaults:
   - override /module/network: efficientnet
   - override /module/scheduler: swa
   - override /trainer: gpu
-  - override /hydra/launcher: slurm_spiro
 
 name: resisc10/run:supervised
 

@@ -6,7 +6,7 @@ dataset_tf:
     maxs: [255, 255, 255]
 sup: 80
 unsup: 0
-batch_size: 16
+batch_size: 8
 num_workers: 16
 merge: all45
 pin_memory: False
