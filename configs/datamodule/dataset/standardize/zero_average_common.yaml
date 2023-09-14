@@ -1,3 +1,0 @@
-_target_: dl_toolbox.transforms.ZeroAverageCommon
-_partial_: True
-meanval: [0.123, 0.133, 0.144, 0.197]
