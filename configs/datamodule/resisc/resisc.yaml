@@ -7,7 +7,7 @@ dataset_tf:
 sup: 80
 unsup: 0
 batch_size: 16
-num_workers: 6
+num_workers: 16
 merge: all45
-pin_memory: True
+pin_memory: False
 class_weights: null

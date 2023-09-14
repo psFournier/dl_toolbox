@@ -11,5 +11,6 @@
 #SBATCH --partition=gpu        # material partition 
 #SBATCH --qos=co_long_gpu             # Need to specify QoS because it is not default QoS
 ##SBATCH --export=none              # Uncomment to start the job with a clean environnement and source of ~/.bashrc
+#SBATCH --constraint=v100
 
 HYDRA_FULL_ERROR=1 /stck/pfournie/venv/bin/python /scratchm/pfournie/dl_toolbox/dl_toolbox/train/train_hydra.py -m paths=spiro +experiment=run

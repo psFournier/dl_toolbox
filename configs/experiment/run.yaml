@@ -27,11 +27,11 @@ datamodule:
     num_workers: 6
         
 trainer:
-  max_time: "00:00:00:40"
-  max_epochs: 10
+  max_time: "00:02:00:40"
+  max_epochs: 100
   max_steps: 500000
-  limit_train_batches: 1
-  limit_val_batches: 1
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:
