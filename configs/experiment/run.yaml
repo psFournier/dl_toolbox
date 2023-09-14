@@ -4,14 +4,14 @@
 # python train.py experiment=example
 
 defaults:
-  - override /paths: trex
+  - override /paths: qdtis056z
   - override /datamodule: resisc/resisc
   - override /module: supervised
   - override /transforms@module.tf: d4_color
   - override /module/network: efficientnet
   - override /module/scheduler: swa
-  - override /trainer: cpu
-  - override /hydra/launcher: my_submitit_slurm
+  - override /trainer: gpu
+  - override /hydra/launcher: slurm_spiro
 
 name: resisc10/run:supervised
 
@@ -37,10 +37,7 @@ hydra:
   run:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweep:
-    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-  launcher:
-    gres: null
-    
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}   
     
 callbacks:
   model_checkpoint:
