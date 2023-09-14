@@ -1,0 +1,17 @@
+_target_: dl_toolbox.datamodules.FlairPseudosup
+data_path: ${paths.data_dir}
+sup: 80
+unsup: 0
+batch_size: 8
+dataset_tf:
+  _target_: dl_toolbox.transforms.StretchToMinmax
+  mins: [0.,0.,0.]
+  maxs: [255.,255.,255.]
+bands: [1, 2, 3]
+crop_size: 512
+num_workers: 6
+merge: hierarchical6
+pin_memory: False
+class_weights: null
+pl_dir: ???
+thresh: 1000

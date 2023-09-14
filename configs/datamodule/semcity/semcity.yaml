@@ -1,15 +1,16 @@
-defaults:
-  - transforms@train_tf: minmax_csv
-  - transforms@test_tf: minmax_csv
-  - transforms@test_tf: none
-  - _self_
-
 _target_: dl_toolbox.datamodules.SemcityDatamodule
 data_path: ${paths.data_dir}
-prop: 30
-batch_size: 32
+sup: 80
+unsup: 0
+batch_size: 8
 bands: [4,3,2]
-crop_size: 512
+dataset_tf: 
+    _target_: dl_toolbox.transforms.StretchToMinmaxFromCsv
+    csv: ???
+    min_p: p0.0
+    max_p: p99.0
+    bands: ${bands}
+crop_size: 256
 num_workers: 6
 merge: all7
 pin_memory: False

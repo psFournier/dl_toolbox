@@ -1,4 +1,4 @@
-_target_: dl_toolbox.datamodules.Digitanie
+_target_: dl_toolbox.datamodules.DigitanieAi4geo
 data_path: ${paths.data_dir}
 bands: [1,2,3]
 dataset_tf: 
@@ -11,6 +11,3 @@ merge: main
 batch_size: 8
 num_workers: 6
 pin_memory: False
-city: ???
-sup: 80
-unsup: 0
