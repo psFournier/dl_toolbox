@@ -74,9 +74,15 @@ class Semcity(LightningDataModule):
                 self.dict_train["MSK"].append(msk)
                 self.dict_train["WIN"].append(win)
             elif 90 <= i%100:
-                self.dict_val["IMG"].append(img)
-                self.dict_val["MSK"].append(msk)
-                self.dict_val["WIN"].append(win)
+                col_off, row_off, width, height = win
+                val_tiles = get_tiles(
+                    width, height, 256, step_w=224, 
+                    col_offset=col_off, row_offset=row_off
+                )
+                for subwin in val_tiles:
+                    self.dict_val["IMG"].append(img)
+                    self.dict_val["MSK"].append(msk)
+                    self.dict_val["WIN"].append(subwin)
 
     def setup(self, stage):
         if stage in ("fit", "validate"):
@@ -96,6 +102,7 @@ class Semcity(LightningDataModule):
                 self.merge,
                 transforms=self.dataset_tf
             )
+            print(self.val_set.windows)
             if self.unsup > 0:
                 self.unlabeled_set = datasets.Semcity(
                     self.dict_train_unlabeled["IMG"],
