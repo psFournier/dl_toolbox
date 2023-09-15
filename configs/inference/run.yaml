@@ -1,0 +1,35 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+#  - override /hydra/launcher: slurm_spiro
+  - override /paths: qdtis056z
+  - override /module: supervised
+  - override /module/network: efficientnet
+  - override /trainer: gpu
+
+name: resisc10/test:supervised
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+seed: 12345
+ckpt: "/data/outputs/resisc/run:supervised/2023-09-09_111155/checkpoints/last.ckpt"
+        
+trainer:
+  max_time: "00:02:00:40"
+  limit_pred_batches: 5
+  limit_test_batches: 5
+    
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweep:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}   
+    
+callbacks:
+  classif_preds_writer:
+    out_path: "/data/outputs/resisc/run:supervised/2023-09-09_111155/checkpoints/last_preds"
+    base: "/data"
