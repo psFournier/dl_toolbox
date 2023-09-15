@@ -20,7 +20,7 @@ import rasterio.windows as W
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate, get_tiles
 from .digi_polygons import digitanie_polygons
-from .digitanie import DigitanieAi4geo
+from .digitanie_ai4geo import DigitanieAi4geo
 
 
 def is_window_in_poly(w, tf, p):

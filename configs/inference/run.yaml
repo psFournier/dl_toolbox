@@ -16,11 +16,10 @@ name: resisc10/test:supervised
 # this allows you to overwrite only specified parameters
 
 seed: 12345
-ckpt: "/data/outputs/resisc/run:supervised/2023-09-09_111155/checkpoints/last.ckpt"
+ckpt: "/data/outputs/test_swa_resisc/run:supervised/2023-09-09_111155/checkpoints/last.ckpt"
         
 trainer:
   max_time: "00:02:00:40"
-  limit_pred_batches: 5
   limit_test_batches: 5
     
 hydra:
@@ -31,5 +30,5 @@ hydra:
     
 callbacks:
   classif_preds_writer:
-    out_path: "/data/outputs/resisc/run:supervised/2023-09-09_111155/checkpoints/last_preds"
+    out_path: "/data/outputs/test_swa_resisc/run:supervised/2023-09-09_111155/checkpoints/last_preds"
     base: "/data"

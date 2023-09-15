@@ -1,10 +1,9 @@
 defaults:
   - optimizer: sgd
   - network: smpunet
-  - scheduler: linear
+  - scheduler: constant
   - loss@ce_loss: ce
   - loss@dice_loss: dice
-  - /transforms@weak_tf: color
   - /transforms@mix_tf: mixup2
   - _self_
 
@@ -15,9 +14,10 @@ alpha_ramp:
     start: 0
     end: 50
     start_val: 0.1
-    end_val: 0.1.
+    end_val: 0.1
 ce_weight: 1
 dice_weight: 0
-weak_tf:
-    bounds: [0.9, 0.9]
+/transforms@tf:
+    - _target_: dl_toolbox.transforms.Color
+      bounds: [0.9, 0.9]
 temperature: 0.5

@@ -54,9 +54,9 @@ class Semcity(LightningDataModule):
         )
     
     def prepare_data(self):
-        num_img = [f'TLS_BDSD_M_{i:02}.tif' for i in range(1, 16)]
+        num_img = [f'TLS_BDSD_RGB_{i:02}.tif' for i in range(1, 16)]
         num_msk = [f'TLS_indMap_{i:02}_1.tif' for i in range(1, 16)]
-        img_dir = self.data_path/'SemCity-Toulouse-bench/img_multispec_05/TLS_BDSD_M'
+        img_dir = self.data_path/'SemCity-Toulouse-bench/img_multispec_05/TLS_BDSD_RGB'
         msk_dir = self.data_path/'SemCity-Toulouse-bench/semantic_05/TLS_indMap'
         imgs = [img_dir/f'{num}' for num in num_img]
         msks = [msk_dir/f'{num}' for num in num_msk]

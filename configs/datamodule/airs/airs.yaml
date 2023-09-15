@@ -1,5 +1,5 @@
 _target_: dl_toolbox.datamodules.Airs
-data_path: ${paths.data_dir}
+data_path: ${paths.data}
 filter_path: ???
 sup: 80
 unsup: 0

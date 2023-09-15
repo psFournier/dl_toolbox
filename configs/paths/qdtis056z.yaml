@@ -1,3 +1,4 @@
 # path to data directory
 data: /data
 output_dir: /data/outputs
+code: /d/pfournie/dl_toolbox

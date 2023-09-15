@@ -1,5 +1,5 @@
 _target_: dl_toolbox.datamodules.Digitanie
-data_path: ${paths.data_dir}
+data_path: ${paths.data}
 bands: [1,2,3]
 dataset_tf: 
     _target_: dl_toolbox.transforms.StretchToMinmaxFromCsv

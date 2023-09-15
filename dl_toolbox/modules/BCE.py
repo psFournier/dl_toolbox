@@ -5,6 +5,7 @@ import torchmetrics as M
 import matplotlib.pyplot as plt
 
 from dl_toolbox.utils import plot_confusion_matrix
+from .supervised import Supervised
 
 
 class Multilabel(pl.LightningModule):

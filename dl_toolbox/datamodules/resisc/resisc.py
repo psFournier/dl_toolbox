@@ -52,12 +52,13 @@ class Resisc(LightningDataModule):
             m = i%100
             if self.sup <= m < self.sup + self.unsup: self.unsup_idx.append(i)
             if 0 <= m < self.sup: self.train_idx.append(i)
-            elif 90 <= m < 100: self.val_idx.append(i)
+            elif 80 <= m < 90: self.val_idx.append(i)
+            elif 90 <= m < 100: self.test_idx.append(i)
             else: pass
 
     def setup(self, stage):
         data_path = self.data_path/'NWPU-RESISC45'
-        if stage in ("fit", "validate"):
+        if stage in ['fit', 'validate']:
             self.train_set = Subset(
                 datasets.Resisc(data_path, self.dataset_tf, self.merge),
                 indices=self.train_idx,
@@ -71,42 +72,43 @@ class Resisc(LightningDataModule):
                     datasets.Resisc(data_path, self.dataset_tf, self.merge),
                     indices=self.unsup_idx,
                 )
+        elif stage == 'test':
+            self.test_set = Subset(
+                datasets.Resisc(data_path, self.dataset_tf, self.merge),
+                indices=self.test_idx,
+            )
                 
+    def dataloader(self, dataset):
+        return partial(
+            DataLoader,
+            dataset=dataset,
+            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=self.pin_memory
+        )
+                       
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = DataLoader(
-            dataset=self.train_set,
-            collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory,
+        train_dataloaders["sup"] = self.dataloader(self.train_set)(
             shuffle=True,
-            drop_last=True
+            drop_last=True,
         )
         if self.unsup > 0:
-            train_dataloaders["unsup"] = DataLoader(
-                dataset=self.unsup_set,
-                collate_fn=CustomCollate(),
-                batch_size=self.batch_size,
-                num_workers=self.num_workers,
-                pin_memory=self.pin_memory,
+            train_dataloaders["unsup"] = self.dataloader(self.unsup_set)(
                 shuffle=True,
-                drop_last=True
+                drop_last=True,
             )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
-                
+    
     def val_dataloader(self):
-        return DataLoader(
-            dataset=self.val_set,
-            collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
+        return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
         )
-
-#    def predict_dataloader(self):
-#        return self.get_loader(self.pred_set)(
-#            shuffle=False,
-#            drop_last=False,
-#        )
+    
+    def test_dataloader(self):
+        return self.dataloader(self.test_set)(
+            shuffle=False,
+            drop_last=False,
+        )

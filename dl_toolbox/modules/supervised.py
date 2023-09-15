@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torchmetrics as M
 import matplotlib.pyplot as plt
-
 from dl_toolbox.utils import plot_confusion_matrix
 
 
@@ -34,9 +33,11 @@ class Supervised(pl.LightningModule):
         self.ce_weight = ce_weight
         self.dice_weight = dice_weight
         self.tf = tf
-        self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
         self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
-        self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)        
+        self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
+        self.test_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
+        self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.test_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -92,6 +93,31 @@ class Supervised(pl.LightningModule):
             logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
         self.val_accuracy.reset()
         self.val_cm.reset()
+
+    def test_step(self, batch, batch_idx):
+        xs = batch['image']
+        ys = batch["label"]
+        logits = self.forward(xs)
+        ce = self.ce(logits, ys)
+        self.log(f"cross_entropy/test", ce)
+        dice = self.dice(logits, ys)
+        self.log(f"dice/test", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits))
+        self.test_accuracy.update(preds, ys)
+        self.test_cm.update(preds, ys)
+        
+    def on_test_epoch_end(self):
+        self.log("accuracy/test", self.test_accuracy.compute())
+        confmat = self.test_cm.compute().detach().cpu()
+        self.test_accuracy.reset()
+        self.test_cm.reset()
+        class_names = self.trainer.datamodule.class_names
+        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
+        logger = self.trainer.logger
+        if logger:
+            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
+        else:
+            plt.savefig('/tmp/last_conf_mat.png')
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]

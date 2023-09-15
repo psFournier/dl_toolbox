@@ -118,7 +118,7 @@ class Flair(LightningDataModule):
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
     def val_dataloader(self):
-        return self.get_loader(self.val_set)(
+        return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
         )

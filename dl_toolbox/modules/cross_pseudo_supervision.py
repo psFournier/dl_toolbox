@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from dl_toolbox.losses import DiceLoss, ProbOhemCrossEntropy2d
 from dl_toolbox.utils import plot_confusion_matrix
+from .supervised import Supervised
 
 
 class CrossPseudoSupervision(pl.LightningModule):
