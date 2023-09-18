@@ -85,7 +85,10 @@ class DigitanieAi4geo(LightningDataModule):
             val_idx, test_idx = map(int, val_test.split('_'))
             imgs = list(citypath.glob('*16bits_COG_*.tif'))
             imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
-            msks = list(citypath.glob('COS9/*.tif'))
+            msks = list(citypath.glob('COS9/*_mask.tif'))
+            if len(msks) == 0:
+                msks = list(citypath.glob('COS9/*[0-9].tif'))
+            print(city, len(msks))
             msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
             try:
                 assert len(msks)==len(imgs)

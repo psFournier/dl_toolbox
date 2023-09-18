@@ -6,32 +6,35 @@
 defaults:
 #  - override /hydra/launcher: slurm_spiro
   - override /paths: qdtis056z
-  - override /datamodule: flair/flair
+  - override /datamodule: digitanie/digitanie_ai4geo
   - override /module: supervised
   - override /module/network: smpunet
   #- override /module/network@module.network2: efficientnet
   - override /module/scheduler: constant
   - override /trainer: gpu
 
-name: flair10/run:sup
+name: digitanie/run:sup
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-seed: 12345
+seed: 1
 #ckpt: "/data/outputs/resisc/run:supervised/2023-09-10_185348/checkpoints/epoch_349.ckpt"
 
 datamodule:
     sup: 10
-    unsup: 10
+    unsup: 0
     num_workers: 6
         
 trainer:
-  max_time: "00:00:00:40"
-  max_epochs: 3
+  max_time: "00:02:00:40"
+  max_epochs: 100
   max_steps: 500000
-  limit_train_batches: 5
-  limit_val_batches: 5
+  limit_train_batches: 1
+  limit_val_batches: 1
+
+paths:
+    output_dir: /data/outputs_archive
     
 hydra:
   run:
