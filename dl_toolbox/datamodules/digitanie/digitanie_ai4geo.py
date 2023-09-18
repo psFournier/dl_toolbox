@@ -22,7 +22,7 @@ from dl_toolbox.utils import CustomCollate, get_tiles
 class DigitanieAi4geo(LightningDataModule):
     
     cities = {
-        'ABU-DHABI': '8_9',
+        'ABU-DHABI': '4_2',
         'CAN-THO': '6_2',
         'HELSINKI': '8_1',
         'MAROS': '0_2',
