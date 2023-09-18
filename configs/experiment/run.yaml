@@ -6,14 +6,14 @@
 defaults:
 #  - override /hydra/launcher: slurm_spiro
   - override /paths: qdtis056z
-  - override /datamodule: resisc/resisc
-  - override /module: selftraining
-  - override /module/network: efficientnet
+  - override /datamodule: flair/flair
+  - override /module: supervised
+  - override /module/network: smpunet
   #- override /module/network@module.network2: efficientnet
   - override /module/scheduler: constant
   - override /trainer: gpu
 
-name: resisc10/run:st
+name: flair10/run:sup
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -28,7 +28,7 @@ datamodule:
         
 trainer:
   max_time: "00:00:00:40"
-  max_epochs: 5
+  max_epochs: 3
   max_steps: 500000
   limit_train_batches: 5
   limit_val_batches: 5

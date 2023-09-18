@@ -4,7 +4,7 @@ defaults:
   - scheduler: linear
   - loss@ce_loss: ce
   - loss@dice_loss: dice
-  - /transforms@tf: crop_and_flip
+  - /transforms@tf: d4
   - loss@ce_loss_u: ce
   - _self_
 

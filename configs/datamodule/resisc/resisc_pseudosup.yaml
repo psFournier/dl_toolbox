@@ -1,9 +1,13 @@
 _target_: dl_toolbox.datamodules.ResiscPseudosup
 data_path: ${paths.data}
-dataset_tf: 
-    _target_: dl_toolbox.transforms.StretchToMinmax
-    mins: [0, 0, 0]
-    maxs: [255, 255, 255]
+dataset_tf:
+    _target_: dl_toolbox.transforms.Compose
+    transforms: 
+        - _target_: dl_toolbox.transforms.RandomCrop2
+          size: 256
+        - _target_: dl_toolbox.transforms.StretchToMinmax
+          mins: [0,0,0]
+          maxs: [255,255,255]
 sup: 80
 unsup: 0
 batch_size: 8

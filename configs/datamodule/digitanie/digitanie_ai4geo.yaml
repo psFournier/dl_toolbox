@@ -1,12 +1,16 @@
 _target_: dl_toolbox.datamodules.DigitanieAi4geo
 data_path: ${paths.data_dir}
 bands: [1,2,3]
-dataset_tf: 
-    _target_: dl_toolbox.transforms.StretchToMinmaxFromCsv
-    csv: ???
-    min_p: p0.0
-    max_p: p99.0
-    bands: ${bands}
+dataset_tf:
+    _target_: dl_toolbox.transforms.Compose
+    transforms: 
+        - _target_: dl_toolbox.transforms.RandomCrop2
+          size: 256
+        _target_: dl_toolbox.transforms.StretchToMinmaxFromCsv
+        csv: ???
+        min_p: p0.0
+        max_p: p99.0
+        bands: [1,2,3]
 merge: main
 batch_size: 8
 num_workers: 6

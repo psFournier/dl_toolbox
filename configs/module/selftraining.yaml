@@ -4,10 +4,14 @@ defaults:
   - scheduler: linear
   - loss@ce_loss: ce
   - loss@dice_loss: dice
-  - /transforms@tf: crop_and_flip
-  - /transforms@strong_tf: color
+  - /transforms@tf: d4
   - _self_
 
 _target_: dl_toolbox.modules.SelfTraining
 ce_weight: 1
 dice_weight: 0
+strong_tf: 
+    _target_: dl_toolbox.transforms.Compose
+    transforms: 
+        - _target_: dl_toolbox.transforms.Color
+          bounds: [0.5, 0.5]

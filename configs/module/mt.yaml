@@ -6,7 +6,7 @@ defaults:
   - scheduler: linear
   - loss@ce_loss: ce
   - loss@dice_loss: dice
-  - /transforms@tf: crop_and_flip
+  - /transforms@tf: d4
 
 _target_: dl_toolbox.modules.MeanTeacher
 alpha_ramp:

@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - optimizer: sgd
-  - /transforms@tf: crop_and_flip
+  - /transforms@tf: d4
   - network@network: smpunet
   - network@network2: smpunet
   - scheduler: linear

@@ -1,5 +1,0 @@
-_target_: dl_toolbox.transforms.Compose
-transforms: 
-    - _target_: dl_toolbox.transforms.RandomCrop2
-      size: 256
-    - _target_: dl_toolbox.transforms.D4
