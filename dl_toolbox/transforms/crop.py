@@ -9,6 +9,6 @@ class RandomCrop2(RandomCrop):
     def __call__(self, img, label=None):
         i, j, h, w = self.get_params(img, self.size)
         img = F.crop(img, i, j, h, w)
-        if label is not None:
+        if label is not None and label.dim() > 2:
             label = F.crop(label, i, j, h, w)
         return img, label

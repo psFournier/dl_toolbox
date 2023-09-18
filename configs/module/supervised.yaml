@@ -10,5 +10,10 @@ _target_: dl_toolbox.modules.Supervised
 ce_weight: 1
 dice_weight: 0
 tf:
-    _target_: dl_toolbox.transforms.RandomCrop2
-    size: 256
+    _target_: dl_toolbox.transforms.Compose
+    transforms: 
+        - _target_: dl_toolbox.transforms.RandomCrop2
+          size: 256
+        - _target_: dl_toolbox.transforms.D4
+        - _target_: dl_toolbox.transforms.Color
+          bounds: [0.9, 0.9]

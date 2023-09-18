@@ -1,7 +1,8 @@
 defaults:
   - _self_
   - optimizer: sgd
-  - network@network1: smpunet
+  - /transforms@tf: crop_and_flip
+  - network@network: smpunet
   - network@network2: smpunet
   - scheduler: linear
   - loss@ce_loss: ce

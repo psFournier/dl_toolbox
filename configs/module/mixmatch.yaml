@@ -4,6 +4,7 @@ defaults:
   - scheduler: constant
   - loss@ce_loss: ce
   - loss@dice_loss: dice
+  - /transforms@tf: crop_and_flip
   - /transforms@mix_tf: mixup2
   - _self_
 
@@ -17,7 +18,9 @@ alpha_ramp:
     end_val: 0.1
 ce_weight: 1
 dice_weight: 0
-/transforms@tf:
-    - _target_: dl_toolbox.transforms.Color
-      bounds: [0.9, 0.9]
+weak_tf:
+    _target_: dl_toolbox.transforms.Compose
+    transforms: 
+        - _target_: dl_toolbox.transforms.Color
+          bounds: [0.9, 0.9]
 temperature: 0.5

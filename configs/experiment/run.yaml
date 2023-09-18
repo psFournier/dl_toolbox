@@ -6,13 +6,14 @@
 defaults:
 #  - override /hydra/launcher: slurm_spiro
   - override /paths: qdtis056z
-  - override /datamodule: semcity/semcity
-  - override /module: supervised
-  - override /module/network: smpunet
+  - override /datamodule: resisc/resisc
+  - override /module: selftraining
+  - override /module/network: efficientnet
+  #- override /module/network@module.network2: efficientnet
   - override /module/scheduler: constant
   - override /trainer: gpu
 
-name: resisc10/run:mixmatch
+name: resisc10/run:st
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -26,8 +27,8 @@ datamodule:
     num_workers: 6
         
 trainer:
-  max_time: "00:02:00:40"
-  max_epochs: 100
+  max_time: "00:00:00:40"
+  max_epochs: 5
   max_steps: 500000
   limit_train_batches: 5
   limit_val_batches: 5
