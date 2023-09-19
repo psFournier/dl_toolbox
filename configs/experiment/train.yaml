@@ -1,0 +1,53 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+#  - override /hydra/launcher: slurm_spiro
+  - override /paths: qdtis056z
+  - override /datamodule: digitanie/digitanie
+  - override /module: supervised
+  - override /module/network: smpunet
+  #- override /module/network@module.network2: efficientnet
+  - override /module/scheduler: constant
+  - override /trainer: gpu
+
+name: digitanie/run_sup
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+seed: 1
+#ckpt: "/data/outputs/resisc/run:supervised/2023-09-10_185348/checkpoints/epoch_349.ckpt"
+
+datamodule:
+    sup: 80
+    unsup: 0
+    num_workers: 6
+    city: ARCACHON
+    
+module:
+    ce_loss:
+        ignore_index: 0
+    dice_weight: 1
+        
+trainer:
+  max_time: "00:02:00:40"
+  max_epochs: 100
+  max_steps: 500000
+  limit_train_batches: 1.
+  limit_val_batches: 1.
+
+#paths:
+#    output_dir: /data/outputs_archive
+    
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweep:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}   
+    
+callbacks:
+  model_checkpoint:
+    dirpath: ${hydra:run.dir}/checkpoints

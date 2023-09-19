@@ -25,30 +25,25 @@ def dist_to_edge_mask(crop_size):
     return crop_mask
 
 class MergePreds(Callback):
-    def __init__(self, window):
+    def __init__(self, size):
         super().__init__()
-        self.window = window
+        self.size = size
 
     def on_predict_epoch_start(self, trainer, pl_module):
-        h, w = self.window.height, self.window.width
+        w, h = self.size
         self.merged = torch.zeros((pl_module.num_classes, h, w))
         self.weights = torch.zeros((h, w))
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         logits = outputs.cpu()
         probas = pl_module.logits2probas(logits)
-        crops = batch["crop"]
+        crops = batch["window"]
         for proba, crop in zip(probas, crops):
-            row_off = crop.row_off - self.window.row_off
-            col_off = crop.col_off - self.window.col_off
-            mask = torch.ones((crop.height, crop.width)).float()
+            co, ro, w, h = crop
+            mask = torch.ones((h, w)).float()
             #mask = dist_to_edge_mask(crop_size)
-            self.merged[
-                :, row_off : row_off + crop.height, col_off : col_off + crop.width
-            ] += (proba * mask)
-            self.weights[
-                row_off : row_off + crop.height, col_off : col_off + crop.width
-            ] += mask
+            self.merged[:, ro:ro+h, co:co+w] += (proba * mask)
+            self.weights[ro:ro+h, co:co+w] += mask
 
     def on_predict_epoch_end(self, trainer, pl_module):
         self.merged = torch.div(self.merged, self.weights)

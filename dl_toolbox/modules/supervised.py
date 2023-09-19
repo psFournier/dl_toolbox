@@ -111,13 +111,13 @@ class Supervised(pl.LightningModule):
         confmat = self.test_cm.compute().detach().cpu()
         self.test_accuracy.reset()
         self.test_cm.reset()
-        class_names = self.trainer.datamodule.class_names
-        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
-        logger = self.trainer.logger
-        if logger:
-            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
-        else:
-            plt.savefig('/tmp/last_conf_mat.png')
+        #class_names = self.trainer.datamodule.class_names
+        #fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
+        #logger = self.trainer.logger
+        #if logger:
+        #    logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
+        #else:
+        #    plt.savefig('/tmp/last_conf_mat.png')
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]

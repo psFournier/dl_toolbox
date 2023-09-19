@@ -11,7 +11,7 @@ defaults:
   - override /module/network: efficientnet
   - override /trainer: gpu
   
-name: resisc/sweep:sup
+name: resisc/sweep_sup
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters

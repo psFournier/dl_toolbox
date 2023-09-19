@@ -18,18 +18,21 @@ class TiffPredsWriter(BasePredictionWriter):
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         probas = pl_module.logits2probas(outputs.cpu())
         confs, preds = pl_module.probas2confpreds(probas)
-        for p, c, path in zip(preds, confs, batch["path"]):
-            relative = Path(path).relative_to(self.base) 
-            out_msk = self.out_path/relative        
-            self.stats['img'].append(relative)
+        for p, c, path, win in zip(preds, confs, batch["image_path"], batch["window"]):
+            r = Path(path).relative_to(self.base) 
+            co, ro, _, _ = win
+            new_rel_path = r.parent/(str(r.stem)+f'_{co}_{ro}'+r.suffix)
+            out_msk = self.out_path/new_rel_path   
+            self.stats['img'].append(new_rel_path)
             self.stats['avg_cert'].append(float(c.mean()))
             out_msk.parent.mkdir(exist_ok=True, parents=True)
             with rasterio.open(path) as img:
                 meta = img.meta
-            meta["count"] = pl_module.num_classes
-            meta["dtype"] = np.float32
+            meta["count"] = 1 #pl_module.num_classes
+            meta["dtype"] = np.uint8 #np.float32
+            meta["nodata"] = None
             with rasterio.open(out_msk, "w+", **meta) as dst:
-                dst.write(p.numpy())
+                dst.write(p.numpy()[np.newaxis,...])
                 
     def on_predict_epoch_end(self, trainer, pl_module):
         stats_df = pd.DataFrame(

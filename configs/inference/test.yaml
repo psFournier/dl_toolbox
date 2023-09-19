@@ -1,0 +1,33 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+#  - override /hydra/launcher: slurm_spiro
+  - override /paths: qdtis056z
+  - override /module: supervised
+  - override /module/network: smpunet
+  - override /trainer: gpu
+  - override /callbacks:
+      - merge_preds
+
+name: digi/test:supervised
+
+seed: 1
+ckpt: "/data/outputs/digitanie/run_sup/2023-09-18_175546/checkpoints/epoch_100.ckpt"
+        
+trainer:
+  max_time: "00:02:00:40"
+  limit_test_batches: 1.
+  
+callbacks:
+  classif_preds_writer:
+    out_path: "/data/outputs/digitanie/run_sup/2023-09-18_175546/checkpoints/epoch_100_preds"
+    base: "/data"
+    
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweep:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}   

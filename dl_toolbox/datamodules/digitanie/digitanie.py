@@ -49,12 +49,12 @@ class Digitanie(DigitanieAi4geo):
         citypath = self.data_path/f'DIGITANIE_v4/{self.city}'
         imgs = list(citypath.glob('*16bits_COG_*.tif'))
         imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
-        msks = list(citypath.glob('COS9/*.tif'))
+        msks = list(citypath.glob('COS9/*_mask.tif'))
         msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
         try:
             assert len(msks)==len(imgs)
         except AssertionError:
-            print(self.city, ' is not ok')
+            print(city, ' is not ok')
         windows = get_tiles(2048, 2048, 512)
         for i, prod in enumerate(product(windows, zip(imgs, msks))):
             win, (img, msk) = prod

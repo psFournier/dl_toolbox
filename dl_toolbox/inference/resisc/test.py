@@ -10,7 +10,7 @@ from omegaconf import DictConfig, OmegaConf
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision('high')
 
-@hydra.main(version_base="1.3", config_path="../../../configs", config_name="test.yaml")
+@hydra.main(version_base="1.3", config_path="../../../configs", config_name="default.yaml")
 def main(cfg) -> None:
     dm = Resisc(
         data_path=Path('/data'),
@@ -18,14 +18,11 @@ def main(cfg) -> None:
         sup=10,
         unsup=0,
         dataset_tf=tf.StretchToMinmax([0]*3, [255.]*3),
-        batch_size=4,
+        batch_size=16,
         num_workers=4,
         pin_memory=True,
         class_weights=None
     )
-    #dm.prepare_data()
-    #dm.setup(stage='test')
-    #dataloader = dm.val_dataloader()
     pl.seed_everything(cfg.seed)
     logger.info("\n" + OmegaConf.to_yaml(cfg))
     logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)

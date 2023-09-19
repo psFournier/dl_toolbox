@@ -80,34 +80,30 @@ class DigitanieAi4geo(LightningDataModule):
     def prepare_data(self):
         self.dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
         self.dict_val = {'IMG':[], 'MSK':[], "WIN": []}
+        self.dict_test = {'IMG':[], 'MSK':[], "WIN": []}
         for city, val_test in self.cities.items():
             citypath = self.data_path/f'DIGITANIE_v4/{city}'
             val_idx, test_idx = map(int, val_test.split('_'))
             imgs = list(citypath.glob('*16bits_COG_*.tif'))
             imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
             msks = list(citypath.glob('COS9/*_mask.tif'))
-            if len(msks) == 0:
-                msks = list(citypath.glob('COS9/*[0-9].tif'))
-            print(city, len(msks))
             msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
             try:
                 assert len(msks)==len(imgs)
             except AssertionError:
                 print(city, ' is not ok')
-            nums = range(len(imgs))
-            windows = get_tiles(2048, 2048, 512)
-            for prod in product(windows, zip(imgs, msks, nums)):
-                win, (img, msk, num) = prod
-                if num == val_idx:
-                    self.dict_val['IMG'].append(img)
-                    self.dict_val['MSK'].append(msk)
-                    self.dict_val['WIN'].append(win)
-                elif num == test_idx:
-                    pass
-                else:
-                    self.dict_train['IMG'].append(img)
-                    self.dict_train['MSK'].append(msk)
-                    self.dict_train['WIN'].append(win)
+            for i, (img, msk) in enumerate(zip(imgs,msks)):
+                for win in get_tiles(2048, 2048, 512):
+                    if i==val_idx:
+                        self.dict_val['IMG'].append(img)
+                        self.dict_val['MSK'].append(msk)
+                        self.dict_val['WIN'].append(win)  
+                    elif i==test_idx:
+                        pass
+                    else:
+                        self.dict_train['IMG'].append(img)
+                        self.dict_train['MSK'].append(msk)
+                        self.dict_train['WIN'].append(win)
         
     def setup(self, stage):
         if stage in ("fit", "validate"):
