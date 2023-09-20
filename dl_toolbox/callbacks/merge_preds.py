@@ -36,13 +36,13 @@ class MergePreds(Callback):
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         logits = outputs.cpu()
-        probas = pl_module.logits2probas(logits)
+        #probas = pl_module.logits2probas(logits)
         crops = batch["window"]
-        for proba, crop in zip(probas, crops):
+        for logit, crop in zip(logits, crops):
             co, ro, w, h = crop
             mask = torch.ones((h, w)).float()
             #mask = dist_to_edge_mask(crop_size)
-            self.merged[:, ro:ro+h, co:co+w] += (proba * mask)
+            self.merged[:, ro:ro+h, co:co+w] += (logit * mask)
             self.weights[ro:ro+h, co:co+w] += mask
 
     def on_predict_epoch_end(self, trainer, pl_module):
