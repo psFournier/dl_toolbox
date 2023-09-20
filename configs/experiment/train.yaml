@@ -26,14 +26,14 @@ datamodule:
     #unsup: 0
     num_workers: 6
     #city: ARCACHON
-    batch_size: 4
+    batch_size: 8
     
 module:
     ce_loss:
-        ignore_index: 0
+        ignore_index: -1
     dice_weight: 1
     dice_loss:
-        ignore_index: 0
+        ignore_index: -1
     network:
         encoder_weights: imagenet
             

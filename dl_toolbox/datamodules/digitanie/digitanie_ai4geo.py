@@ -120,7 +120,6 @@ class DigitanieAi4geo(LightningDataModule):
                     self.dicts[city]['tf']
                 ) for city in self.cities.keys()
             ])
-            print(len(self.train_set))
             self.val_set = ConcatDataset([
                 datasets.Digitanie(
                     self.dicts[city]['val']["IMG"],
