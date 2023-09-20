@@ -90,6 +90,7 @@ classes = enum.Enum(
     "Digitanie9Classes",
     {
         "all9": all9,
+        "all43": all43,
         "main6": main6
     }
 )

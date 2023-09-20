@@ -80,7 +80,10 @@ class DigitanieAi4geo(LightningDataModule):
     def prepare_data(self):
         self.dicts = {}
         for city, val_test in self.cities.items():
-            tf = self.dataset_tf(city=city)
+            if isinstance(self.dataset_tf, partial):
+                tf = self.dataset_tf(city=city) 
+            else:
+                tf = self.dataset_tf
             dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
             dict_val = {'IMG':[], 'MSK':[], "WIN": []}
             dict_test = {'IMG':[], 'MSK':[], "WIN": []}
@@ -88,8 +91,9 @@ class DigitanieAi4geo(LightningDataModule):
             val_idx, test_idx = map(int, val_test.split('_'))
             imgs = list(citypath.glob('*16bits_COG_*.tif'))
             imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
-            msks = list(citypath.glob('COS9/*_mask.tif'))
-            msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
+            #msks = list(citypath.glob('COS9/*_mask.tif'))
+            msks = list(citypath.glob('COS43/*[0-9].tif'))
+            msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
             for i, (img, msk) in enumerate(zip(imgs,msks)):
                 if i==val_idx:
                     for win in get_tiles(2048, 2048, 256, step_w=128):
