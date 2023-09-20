@@ -1,0 +1,11 @@
+_target_: dl_toolbox.transforms.TTA
+transforms:
+    - _target_: dl_toolbox.transforms.Hflip
+    - _target_: dl_toolbox.transforms.Vflip
+    - _target_: dl_toolbox.transforms.Transpose1
+    - _target_: dl_toolbox.transforms.Transpose2
+reverse:
+    - _target_: dl_toolbox.transforms.Hflip
+    - _target_: dl_toolbox.transforms.Vflip
+    - _target_: dl_toolbox.transforms.Transpose1
+    - _target_: dl_toolbox.transforms.Transpose2

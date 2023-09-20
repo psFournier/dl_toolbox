@@ -7,6 +7,8 @@ defaults:
   - scheduler: linear
   - loss@ce_loss: ce
   - loss@dice_loss: dice
+  - /transforms@tta: tta
+
 
 _target_: dl_toolbox.modules.CrossPseudoSupervision
 alpha_ramp:

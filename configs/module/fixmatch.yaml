@@ -6,6 +6,7 @@ defaults:
   - loss@dice_loss: dice
   - /transforms@tf: d4
   - loss@ce_loss_u: ce
+  - /transforms@tta: tta
   - _self_
 
 _target_: dl_toolbox.modules.Fixmatch

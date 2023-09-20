@@ -5,6 +5,7 @@ defaults:
   - loss@ce_loss: ce
   - loss@dice_loss: dice
   - /transforms@tf: d4
+  - /transforms@tta: tta
   - _self_
 
 _target_: dl_toolbox.modules.SelfTraining

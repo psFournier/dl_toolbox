@@ -20,6 +20,7 @@ class Supervised(pl.LightningModule):
         ce_weight,
         dice_weight,
         tf,
+        tta,
         *args,
         **kwargs
     ):
@@ -33,11 +34,15 @@ class Supervised(pl.LightningModule):
         self.ce_weight = ce_weight
         self.dice_weight = dice_weight
         self.tf = tf
-        self.train_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
-        self.val_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
-        self.test_accuracy = M.Accuracy(task='multiclass', num_classes=num_classes)
-        self.val_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
-        self.test_cm = M.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.tta = tta
+        metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':self.ce.ignore_index}
+        self.train_accuracy = M.Accuracy(**metric_args)
+        self.val_accuracy = M.Accuracy(**metric_args)
+        self.test_accuracy = M.Accuracy(**metric_args)
+        self.val_cm = M.ConfusionMatrix(**metric_args)
+        self.test_cm = M.ConfusionMatrix(**metric_args)
+        self.val_jaccard = M.JaccardIndex(**metric_args)
+        self.test_jaccard = M.JaccardIndex(**metric_args)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -82,42 +87,50 @@ class Supervised(pl.LightningModule):
         _, preds = self.probas2confpreds(self.logits2probas(logits))
         self.val_accuracy.update(preds, labels)
         self.val_cm.update(preds, labels)
+        self.val_jaccard.update(preds, labels)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
+        self.log("iou/val", self.val_jaccard.compute())
         confmat = self.val_cm.compute().detach().cpu()
         class_names = self.trainer.datamodule.class_names
-        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
         logger = self.trainer.logger
         if logger:
-            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
+            fig1 = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
+            logger.experiment.add_figure("Recall matrix", fig1, global_step=self.trainer.global_step)
+            fig2 = plot_confusion_matrix(confmat, class_names, "precision", fontsize=8)
+            logger.experiment.add_figure("Precision matrix", fig2, global_step=self.trainer.global_step)
         self.val_accuracy.reset()
+        self.val_jaccard.reset()
         self.val_cm.reset()
 
     def test_step(self, batch, batch_idx):
         xs = batch['image']
         ys = batch["label"]
         logits = self.forward(xs)
-        ce = self.ce(logits, ys)
-        self.log(f"cross_entropy/test", ce)
-        dice = self.dice(logits, ys)
-        self.log(f"dice/test", dice)
-        _, preds = self.probas2confpreds(self.logits2probas(logits))
+        if self.tta is not None:
+            auxs = [self.forward(x) for x in self.tta(xs)]
+            logits = torch.stack([logits] + self.tta.revert(auxs)).sum(dim=0)
+        probas = self.logits2probas(logits)
+        _, preds = self.probas2confpreds(probas)
         self.test_accuracy.update(preds, ys)
+        self.test_jaccard.update(preds, ys)
         self.test_cm.update(preds, ys)
         
     def on_test_epoch_end(self):
         self.log("accuracy/test", self.test_accuracy.compute())
+        self.log("iou/test", self.test_jaccard.compute())
         confmat = self.test_cm.compute().detach().cpu()
         self.test_accuracy.reset()
+        self.test_jaccard.reset()
         self.test_cm.reset()
-        #class_names = self.trainer.datamodule.class_names
-        #fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
-        #logger = self.trainer.logger
-        #if logger:
-        #    logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
-        #else:
-        #    plt.savefig('/tmp/last_conf_mat.png')
+        class_names = self.trainer.datamodule.class_names
+        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
+        logger = self.trainer.logger
+        if logger:
+            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
+        else:
+            plt.savefig('/tmp/last_conf_mat.png')
 
     def predict_step(self, batch, batch_idx):
         inputs = batch["image"]

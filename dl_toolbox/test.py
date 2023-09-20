@@ -25,7 +25,7 @@ def main(cfg: DictConfig) -> None:
     trainer = hydra.utils.instantiate(cfg.trainer)(
         callbacks=list(callbacks.values())
     )
-    trainer.validate(module, datamodule=datamodule, ckpt_path=cfg.ckpt, verbose=True)
+    trainer.test(module, datamodule=datamodule, ckpt_path=cfg.ckpt, verbose=True)
 
 if __name__ == "__main__":
     main()

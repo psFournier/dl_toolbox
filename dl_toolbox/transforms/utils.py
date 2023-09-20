@@ -8,7 +8,23 @@ class NoOp:
 
     def __call__(self, img, label=None):
         return img, label
+    
+class TTA:
+    def __init__(self, transforms, reverse):
+        self.transforms = transforms
+        self.reverse = reverse
 
+    def __call__(self, img):
+        imgs = []
+        for t in self.transforms:
+            imgs.append(t(img, None)[0])
+        return imgs
+    
+    def revert(self, imgs):
+        res = []
+        for r, img in zip(self.reverse, imgs):
+            res.append(r(img, None)[0])
+        return res
 
 class Compose:
     def __init__(self, transforms):
@@ -53,5 +69,4 @@ def rand_bbox(size, lam):
 
 def stretch_to_minmax(img, mins, maxs):
     res = (img - mins) / (maxs - mins)
-
     return torch.clip(res, 0, 1)

@@ -46,26 +46,29 @@ class Digitanie(DigitanieAi4geo):
     def prepare_data(self):
         self.dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
         self.dict_val = {'IMG':[], 'MSK':[], "WIN": []}
+        self.dict_test = {'IMG':[], 'MSK':[], "WIN": []}
         citypath = self.data_path/f'DIGITANIE_v4/{self.city}'
         imgs = list(citypath.glob('*16bits_COG_*.tif'))
         imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
         msks = list(citypath.glob('COS9/*_mask.tif'))
         msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
-        try:
-            assert len(msks)==len(imgs)
-        except AssertionError:
-            print(city, ' is not ok')
-        windows = get_tiles(2048, 2048, 512)
-        for i, prod in enumerate(product(windows, zip(imgs, msks))):
-            win, (img, msk) = prod
-            if i%100 < self.sup:
-                self.dict_train['IMG'].append(img)
-                self.dict_train['MSK'].append(msk)
-                self.dict_train['WIN'].append(win)
-            elif i%100 >= 90:
-                self.dict_val['IMG'].append(img)
-                self.dict_val['MSK'].append(msk)
-                self.dict_val['WIN'].append(win)
+        print(imgs, msks)
+        for i, (img, msk) in enumerate(zip(imgs, msks)):
+            if i<8:
+                for win in get_tiles(2048, 2048, 512):
+                    self.dict_train['IMG'].append(img)
+                    self.dict_train['MSK'].append(msk)
+                    self.dict_train['WIN'].append(win)
+            elif i==8:
+                for win in get_tiles(2048, 2048, 256, step_w=128):
+                    self.dict_val['IMG'].append(img)
+                    self.dict_val['MSK'].append(msk)
+                    self.dict_val['WIN'].append(win)
+            else:
+                for win in get_tiles(2048, 2048, 256, step_w=128):
+                    self.dict_test['IMG'].append(img)
+                    self.dict_test['MSK'].append(msk)
+                    self.dict_test['WIN'].append(win)
         if self.unsup>0:
             self.toa = next(citypath.glob('*COG.tif'))
             with rasterio.open(self.toa, 'r') as ds:
@@ -110,6 +113,12 @@ class Digitanie(DigitanieAi4geo):
     
     def val_dataloader(self):
         return self.dataloader(self.val_set)(
+            shuffle=False,
+            drop_last=False,
+        )
+    
+    def test_dataloader(self):
+        return self.dataloader(self.test_set)(
             shuffle=False,
             drop_last=False,
         )

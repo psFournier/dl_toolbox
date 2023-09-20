@@ -13,7 +13,7 @@ import rasterio.windows as windows
 import torch
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate, get_tiles
@@ -78,51 +78,70 @@ class DigitanieAi4geo(LightningDataModule):
         )
         
     def prepare_data(self):
-        self.dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
-        self.dict_val = {'IMG':[], 'MSK':[], "WIN": []}
-        self.dict_test = {'IMG':[], 'MSK':[], "WIN": []}
+        self.dicts = {}
         for city, val_test in self.cities.items():
+            tf = self.dataset_tf(city=city)
+            dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
+            dict_val = {'IMG':[], 'MSK':[], "WIN": []}
+            dict_test = {'IMG':[], 'MSK':[], "WIN": []}
             citypath = self.data_path/f'DIGITANIE_v4/{city}'
             val_idx, test_idx = map(int, val_test.split('_'))
             imgs = list(citypath.glob('*16bits_COG_*.tif'))
             imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
             msks = list(citypath.glob('COS9/*_mask.tif'))
             msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
-            try:
-                assert len(msks)==len(imgs)
-            except AssertionError:
-                print(city, ' is not ok')
             for i, (img, msk) in enumerate(zip(imgs,msks)):
-                for win in get_tiles(2048, 2048, 512):
-                    if i==val_idx:
-                        self.dict_val['IMG'].append(img)
-                        self.dict_val['MSK'].append(msk)
-                        self.dict_val['WIN'].append(win)  
-                    elif i==test_idx:
-                        pass
-                    else:
-                        self.dict_train['IMG'].append(img)
-                        self.dict_train['MSK'].append(msk)
-                        self.dict_train['WIN'].append(win)
+                if i==val_idx:
+                    for win in get_tiles(2048, 2048, 256, step_w=128):
+                        dict_val['IMG'].append(img)
+                        dict_val['MSK'].append(msk)
+                        dict_val['WIN'].append(win)  
+                elif i==test_idx:
+                    for win in get_tiles(2048, 2048, 256, step_w=128):
+                        dict_test['IMG'].append(img)
+                        dict_test['MSK'].append(msk)
+                        dict_test['WIN'].append(win)  
+                else:
+                    for win in get_tiles(2048, 2048, 512):
+                        dict_train['IMG'].append(img)
+                        dict_train['MSK'].append(msk)
+                        dict_train['WIN'].append(win)
+            self.dicts[city] = {'train': dict_train, 'val': dict_val, 'test': dict_test, 'tf': tf}
         
     def setup(self, stage):
         if stage in ("fit", "validate"):
-            self.train_set = datasets.Digitanie(
-                self.dict_train["IMG"],
-                self.dict_train["MSK"],
-                self.dict_train["WIN"],
-                self.bands,
-                self.merge,
-                transforms=self.dataset_tf,
-            )
-            self.val_set = datasets.Digitanie(
-                self.dict_val["IMG"],
-                self.dict_val["MSK"],
-                self.dict_val["WIN"],
-                self.bands,
-                self.merge,
-                transforms=self.dataset_tf,
-            )
+            self.train_set = ConcatDataset([
+                datasets.Digitanie(
+                    self.dicts[city]['train']["IMG"],
+                    self.dicts[city]['train']["MSK"],
+                    self.dicts[city]['train']["WIN"],
+                    self.bands,
+                    self.merge,
+                    self.dicts[city]['tf']
+                ) for city in self.cities.keys()
+            ])
+            print(len(self.train_set))
+            self.val_set = ConcatDataset([
+                datasets.Digitanie(
+                    self.dicts[city]['val']["IMG"],
+                    self.dicts[city]['val']["MSK"],
+                    self.dicts[city]['val']["WIN"],
+                    self.bands,
+                    self.merge,
+                    self.dicts[city]['tf']
+                ) for city in self.cities.keys()
+            ])
+        if stage in ("test"):
+            self.test_set = ConcatDataset([
+                datasets.Digitanie(
+                    self.dicts[city]['test']["IMG"],
+                    self.dicts[city]['test']["MSK"],
+                    self.dicts[city]['test']["WIN"],
+                    self.bands,
+                    self.merge,
+                    self.dicts[city]['tf']
+                ) for city in self.cities.keys()
+            ])
 
 
     def dataloader(self, dataset):
@@ -145,6 +164,12 @@ class DigitanieAi4geo(LightningDataModule):
     
     def val_dataloader(self):
         return self.dataloader(self.val_set)(
+            shuffle=False,
+            drop_last=False,
+        )
+    
+    def test_dataloader(self):
+        return self.dataloader(self.test_set)(
             shuffle=False,
             drop_last=False,
         )

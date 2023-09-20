@@ -1,4 +1,3 @@
-from .tiled import *
 from .cityscapes.cityscapes import *
 from .semcity.semcity import *
 from .resisc.resisc import *

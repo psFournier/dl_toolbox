@@ -4,8 +4,6 @@ bands: [1,2,3]
 dataset_tf:
     _target_: dl_toolbox.transforms.Compose
     transforms: 
-        - _target_: dl_toolbox.transforms.RandomCrop2
-          size: 256
         - _target_: dl_toolbox.transforms.StretchToMinmax
           mins: [0,0,0]
           maxs: [2000, 2000, 2000]

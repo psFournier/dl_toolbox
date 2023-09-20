@@ -7,7 +7,7 @@ from .utils import NoOp, OneOf
 
 
 class Vflip(torch.nn.Module):
-    def __init__(self, p=0.5):
+    def __init__(self, p=1):
         super().__init__()
         self.p = p
 
@@ -22,7 +22,7 @@ class Vflip(torch.nn.Module):
 
 
 class Hflip:
-    def __init__(self, p=0.5):
+    def __init__(self, p=1):
         super().__init__()
         self.p = p
 
@@ -37,7 +37,7 @@ class Hflip:
 
 
 class Transpose1(torch.nn.Module):
-    def __init__(self, p=0.5):
+    def __init__(self, p=1):
         super().__init__()
         self.p = p
 
@@ -52,7 +52,7 @@ class Transpose1(torch.nn.Module):
 
 
 class Transpose2(torch.nn.Module):
-    def __init__(self, p=0.5):
+    def __init__(self, p=1):
         super().__init__()
         self.p = p
 
@@ -71,7 +71,7 @@ class Transpose2(torch.nn.Module):
 
 
 class Rot90:
-    def __init__(self, p=0.5):
+    def __init__(self, p=1):
         super().__init__()
         self.p = p
 
@@ -86,7 +86,7 @@ class Rot90:
 
 
 class Rot180:
-    def __init__(self, p=0.5):
+    def __init__(self, p=1):
         super().__init__()
         self.p = p
 
@@ -101,7 +101,7 @@ class Rot180:
 
 
 class Rot270:
-    def __init__(self, p=0.5):
+    def __init__(self, p=1):
         super().__init__()
         self.p = p
 

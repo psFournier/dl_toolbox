@@ -11,7 +11,6 @@ from rasterio.windows import Window
 from torch.utils.data import Dataset
 
 import dl_toolbox.transforms as transforms
-from dl_toolbox.datasets import Tiled
 from dl_toolbox.utils import merge_labels, label
 
 
