@@ -23,7 +23,7 @@ class EfficientNet_b0(EfficientNet):
             kwargs.pop("dropout", 0.2),
             last_channel=last_channel,
             num_classes=out_channels,
-            #norm_layer=nn.Identity,
+            norm_layer=nn.InstanceNorm2d,
             **kwargs
         )
         if weights is not None:

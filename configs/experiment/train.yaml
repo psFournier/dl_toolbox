@@ -10,7 +10,7 @@ defaults:
   - override /module: supervised
   - override /module/network: smpunet
   #- override /module/network@module.network2: efficientnet
-  - override /module/scheduler: constant
+  - override /module/scheduler: linear
   - override /trainer: gpu
 
 name: digitanie_ai4geo/run_sup
@@ -36,6 +36,8 @@ module:
         ignore_index: -1
     network:
         encoder_weights: imagenet
+    scheduler:
+        total_iters: 75
             
 trainer:
   max_time: "00:04:00:40"

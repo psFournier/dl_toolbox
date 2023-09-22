@@ -14,11 +14,11 @@ class DoubleConv(nn.Module):
             mid_channels = out_channels
         self.double_conv = nn.Sequential(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(mid_channels),
-            nn.ReLU(inplace=True),
+            nn.InstanceNorm2d(mid_channels),
+            nn.LeakyReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.InstanceNorm2d(out_channels),
+            nn.LeakyReLU(inplace=True),
         )
 
     def forward(self, x):
@@ -78,11 +78,10 @@ class OutConv(nn.Module):
 
 
 class Unet(nn.Module):
-    def __init__(self, in_channels, out_channels, bilinear=False, *args, **kwargs):
+    def __init__(self, in_channels, num_classes, bilinear=False, *args, **kwargs):
         super().__init__()
         self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.out_dim = (1, 1)
+        self.out_channels = num_classes
         self.bilinear = bilinear
 
         self.inc = DoubleConv(in_channels, 64)
@@ -96,14 +95,6 @@ class Unet(nn.Module):
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, out_channels)
-
-    @classmethod
-    def add_model_specific_args(cls, parent_parser):
-        parser = ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--in_channels", type=int)
-        parser.add_argument("--out_channels", type=int)
-
-        return parser
 
     def forward(self, x):
         x1 = self.inc(x)
