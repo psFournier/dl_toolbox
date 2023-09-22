@@ -19,7 +19,7 @@ name: digitanie_ai4geo/run_sup
 # this allows you to overwrite only specified parameters
 
 seed: 1
-#ckpt: "/data/outputs/resisc/run:supervised/2023-09-10_185348/checkpoints/epoch_349.ckpt"
+#ckpt: "/data/outputs/digitanie_ai4geo/run_sup/2023-09-22_160822/checkpoints/epoch_257.ckpt"
 
 datamodule:
     bands: [1,2,3,4]
@@ -38,7 +38,7 @@ module:
         ignore_index: -1
             
 trainer:
-  max_time: "00:04:00:40"
+  max_time: "00:12:00:40"
   max_epochs: 1000
   limit_train_batches: 1.
   limit_val_batches: 1.
