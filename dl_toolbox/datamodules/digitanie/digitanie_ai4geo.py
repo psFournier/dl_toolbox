@@ -161,7 +161,11 @@ class DigitanieAi4geo(LightningDataModule):
     def train_dataloader(self):
         train_dataloaders = {}
         train_dataloaders["sup"] = self.dataloader(self.train_set)(
-            shuffle=True,
+            sample=RandomSampler(
+                self.train_set,
+                replacement=True,
+                num_samples=250
+            ),
             drop_last=True,
         )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
