@@ -8,12 +8,12 @@ import torch.nn.functional as F
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
 
-    def __init__(self, in_channels, out_channels, mid_channels=None):
+    def __init__(self, in_channels, out_channels, mid_channels=None, first_stride=1):
         super().__init__()
         if not mid_channels:
             mid_channels = out_channels
         self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, stride=first_stride, bias=False),
             nn.InstanceNorm2d(mid_channels),
             nn.LeakyReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
@@ -28,14 +28,17 @@ class DoubleConv(nn.Module):
 class Down(nn.Module):
     """Downscaling with maxpool then double conv"""
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, max_pool=False):
         super().__init__()
-        self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2), DoubleConv(in_channels, out_channels)
-        )
+        if not max_pool:
+            self.down = DoubleConv(in_channels, out_channels, first_stride=2)
+        else:
+            self.down = nn.Sequential(
+                nn.MaxPool2d(2), DoubleConv(in_channels, out_channels)
+            )
 
     def forward(self, x):
-        return self.maxpool_conv(x)
+        return self.down(x)
 
 
 class Up(nn.Module):
@@ -78,23 +81,31 @@ class OutConv(nn.Module):
 
 
 class Unet(nn.Module):
-    def __init__(self, in_channels, num_classes, bilinear=False, *args, **kwargs):
+    def __init__(
+        self,
+        in_channels,
+        num_classes,
+        bilinear=False, 
+        max_pool=False, 
+        *args, **kwargs
+    ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = num_classes
         self.bilinear = bilinear
+        self.max_pool = max_pool
 
         self.inc = DoubleConv(in_channels, 64)
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
+        self.down1 = Down(64, 128, max_pool)
+        self.down2 = Down(128, 256, max_pool)
+        self.down3 = Down(256, 512, max_pool)
         factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
+        self.down4 = Down(512, 1024 // factor, max_pool)
         self.up1 = Up(1024, 512 // factor, bilinear)
         self.up2 = Up(512, 256 // factor, bilinear)
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
-        self.outc = OutConv(64, out_channels)
+        self.outc = OutConv(64, num_classes)
 
     def forward(self, x):
         x1 = self.inc(x)

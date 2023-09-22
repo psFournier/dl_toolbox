@@ -2,5 +2,5 @@
 
 image_visu:
   _target_: dl_toolbox.callbacks.SegmentationImagesVisualisation
-  freq: 1
+  freq: 10
 

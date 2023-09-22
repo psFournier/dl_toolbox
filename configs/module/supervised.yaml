@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - optimizer: sgd
-  - scheduler: linear
+  - scheduler: poly
   - network: smpunet
   - loss@ce_loss: ce
   - loss@dice_loss: dice
@@ -10,4 +10,4 @@ defaults:
 
 _target_: dl_toolbox.modules.Supervised
 ce_weight: 1
-dice_weight: 0
+dice_weight: 1

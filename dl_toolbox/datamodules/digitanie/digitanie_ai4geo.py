@@ -97,12 +97,12 @@ class DigitanieAi4geo(LightningDataModule):
             #msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
             for i, (img, msk) in enumerate(zip(imgs,msks)):
                 if i==val_idx:
-                    for win in get_tiles(2048, 2048, 256, step_w=128):
+                    for win in get_tiles(2048, 2048, 256):
                         dict_val['IMG'].append(img)
                         dict_val['MSK'].append(msk)
                         dict_val['WIN'].append(win)  
                 elif i==test_idx:
-                    for win in get_tiles(2048, 2048, 256, step_w=128):
+                    for win in get_tiles(2048, 2048, 256):
                         dict_test['IMG'].append(img)
                         dict_test['MSK'].append(msk)
                         dict_test['WIN'].append(win)  
@@ -161,10 +161,10 @@ class DigitanieAi4geo(LightningDataModule):
     def train_dataloader(self):
         train_dataloaders = {}
         train_dataloaders["sup"] = self.dataloader(self.train_set)(
-            sample=RandomSampler(
+            sampler=RandomSampler(
                 self.train_set,
                 replacement=True,
-                num_samples=250
+                num_samples=250*self.batch_size
             ),
             drop_last=True,
         )
