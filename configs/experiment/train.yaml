@@ -13,7 +13,7 @@ defaults:
   - override /module/scheduler: poly
   - override /trainer: gpu
 
-name: digitanie_ai4geo/run_sup
+name: digitaniev4/run_sup
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -22,24 +22,22 @@ seed: 1
 #ckpt: "/data/outputs/digitanie_ai4geo/run_sup/2023-09-22_160822/checkpoints/epoch_257.ckpt"
 
 datamodule:
-    bands: [1,2,3,4]
-    dataset_tf:
-        bands: [1,2,3,4]
-    #sup: 80
     #unsup: 0
     num_workers: 6
     #city: ARCACHON
-    batch_size: 4
+    batch_size: 8
     
 module:
     ce_loss:
-        ignore_index: -1
+        ignore_index: 0
     dice_loss:
-        ignore_index: -1
+        ignore_index: 0
+    scheduler:
+        total_iters: 2000
             
 trainer:
   max_time: "00:12:00:40"
-  max_epochs: 1000
+  max_epochs: 10
   limit_train_batches: 1.
   limit_val_batches: 1.
 

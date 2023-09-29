@@ -1,14 +1,14 @@
 _target_: dl_toolbox.datamodules.DigitanieAi4geo
 data_path: ${paths.data}
-bands: [1,2,3]
+bands: [1,2,3,4]
 dataset_tf:
     _target_: dl_toolbox.transforms.NormalizeFromNpy
     _partial_: True
     npy: ${paths.data}/DIGITANIE_v4/normalisation_stats.npy
     min_p: '2'
     max_p: '995'
-    bands: [1,2,3]
-merge: all9
+    bands: [1,2,3,4]
+merge: nomenc
 batch_size: 8
 num_workers: 6
 pin_memory: False

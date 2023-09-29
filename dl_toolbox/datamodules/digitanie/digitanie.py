@@ -40,6 +40,8 @@ class Digitanie(DigitanieAi4geo):
     ):
         super().__init__(*args, **kwargs)
         self.city = city
+        if isinstance(self.dataset_tf, partial):
+            self.dataset_tf = self.dataset_tf(city=city) 
         self.sup = sup
         self.unsup = unsup
         
@@ -50,9 +52,10 @@ class Digitanie(DigitanieAi4geo):
         citypath = self.data_path/f'DIGITANIE_v4/{self.city}'
         imgs = list(citypath.glob('*16bits_COG_*.tif'))
         imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
-        msks = list(citypath.glob('COS9/*_mask.tif'))
-        msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
-        print(imgs, msks)
+        #msks = list(citypath.glob('COS9/*_mask.tif'))
+        #msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
+        msks = list(citypath.glob('COS43/*[0-9].tif'))
+        msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
         for i, (img, msk) in enumerate(zip(imgs, msks)):
             if i<8:
                 for win in get_tiles(2048, 2048, 512):
@@ -78,7 +81,32 @@ class Digitanie(DigitanieAi4geo):
             self.toa_windows = [w for w in windows if is_window_in_poly(w,city_tf,city_poly)]
         
     def setup(self, stage):
-        super().setup(stage)
+        if stage in ("fit", "validate"):
+            self.train_set = datasets.Digitanie(
+                self.dict_train["IMG"],
+                self.dict_train["MSK"],
+                self.dict_train["WIN"],
+                self.bands,
+                self.merge,
+                self.dataset_tf
+            )
+            self.val_set = datasets.Digitanie(
+                self.dict_val["IMG"],
+                self.dict_val["MSK"],
+                self.dict_val["WIN"],
+                self.bands,
+                self.merge,
+                self.dataset_tf
+            )
+        if stage in ("test"):
+            self.test_set = datasets.Digitanie(
+                self.dict_test["IMG"],
+                self.dict_test["MSK"],
+                self.dict_test["WIN"],
+                self.bands,
+                self.merge,
+                self.dataset_tf
+            )
         if stage in ("fit", "validate"):
             if self.unsup > 0:
                 self.unlabeled_set = datasets.DigitanieUnlabeledToa(

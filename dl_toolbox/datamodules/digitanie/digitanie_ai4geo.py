@@ -91,10 +91,10 @@ class DigitanieAi4geo(LightningDataModule):
             val_idx, test_idx = map(int, val_test.split('_'))
             imgs = list(citypath.glob('*16bits_COG_*.tif'))
             imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
-            msks = list(citypath.glob('COS9/*_mask.tif'))
-            msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
-            #msks = list(citypath.glob('COS43/*[0-9].tif'))
-            #msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
+            #msks = list(citypath.glob('COS9/*_mask.tif'))
+            #msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
+            msks = list(citypath.glob('COS43/*[0-9].tif'))
+            msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
             for i, (img, msk) in enumerate(zip(imgs,msks)):
                 if i==val_idx:
                     for win in get_tiles(2048, 2048, 256):

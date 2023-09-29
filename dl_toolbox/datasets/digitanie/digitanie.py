@@ -13,19 +13,6 @@ import rasterio.warp
 from shapely.geometry import box
 from rasterio.enums import Resampling
 
-all9 = [
-    label("nodata", (250, 250, 250), {0}),
-    label("bare_ground", (100, 50, 0), {1}),
-    label("low_vegetation", (0, 250, 50), {2}),
-    label("water", (0, 50, 250), {3}),
-    label("building", (250, 50, 50), {4}),
-    label("high_vegetation", (0, 100, 50), {5}),
-    label("parking", (200, 200, 200), {6}),
-    label("road", (100, 100, 100), {7}),
-    label("railways", (200, 100, 200), {8}),
-    label("swimmingpool", (50, 150, 250), {9}),
-]
-
 _all43 = [
     label("nodata", (250, 250, 250), None),
     label("construction_site", (140, 90, 100), None),
@@ -74,24 +61,27 @@ _all43 = [
 ]
 all43 = [label(l.name, l.color, {i}) for i, l in enumerate(_all43)]
           
-
-main6 = [
-    label("other", (0, 0, 0), {0, 1, 6, 9}),
-    label("low vegetation", (0, 250, 50), {2}),
-    label("high vegetation", (0, 100, 50), {5}),
-    label("water", (0, 50, 250), {3}),
-    label("building", (250, 50, 50), {4}),
-    label("road", (100, 100, 100), {7}),
-    label("railways", (200, 100, 200), {8}),
+nomenc = [
+    label("Nodata", (10,10,10), {0,37,33,35,43}),
+    label("Building", (240,0,0), {42,41,40,39}),
+    label("Swimming pool", (100,130,255), {24}),
+    label("Impervious", (130,130,130), {38,36,34,32,31,30,29,28,25}),
+    label("Construction site", (140,90,100), {1}),
+    label("Bare soil", (71,58,17), {2,3,4,5}),
+    label("Railway", (75,20,132), {27}),
+    label("Sand", (234,220,90),{6}),
+    label("Aquaculture", (11,222,189), {11}),
+    label("Natural water", (0,50,250), {21,22,23,26}),
+    label("Snow&Ice", (0,250,250), {7,20}),
+    label("High vegetation", (0,120,15), {12,13,14,15,16,17,18,19}),
+    label("Herbaceous vegetation", (140,240,118), {8,9,10})
 ]
 
-
 classes = enum.Enum(
-    "Digitanie9Classes",
+    "DigitanieClasses",
     {
-        "all9": all9,
         "all43": all43,
-        "main6": main6
+        "nomenc": nomenc
     }
 )
 

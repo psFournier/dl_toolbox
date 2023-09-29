@@ -56,7 +56,14 @@ class Supervised(pl.LightningModule):
         return logits.softmax(dim=1)
 
     def probas2confpreds(cls, probas):
-        return torch.max(probas, dim=1)        
+        return torch.max(probas, dim=1)   
+    
+    #def probas2confpreds(self, probas):
+    #    aux_confs, aux_preds = torch.max(probas[:, 1:, ...], axis=1)
+    #    cond = aux_confs > 0.6
+    #    preds = torch.where(cond, aux_preds + 1, 0)
+    #    confs = torch.where(cond, aux_confs, 1 - aux_confs)
+    #    return confs, preds
         
     def on_train_epoch_end(self):
         self.log("accuracy/train", self.train_accuracy.compute())
