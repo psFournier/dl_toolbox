@@ -23,9 +23,12 @@ seed: 1
 
 datamodule:
     #unsup: 0
-    num_workers: 6
+    num_workers: 16
     #city: ARCACHON
     batch_size: 8
+
+paths:
+    data: /work/AI4GEO/data/DATA/DATASETS
     
 module:
     ce_loss:
@@ -37,7 +40,7 @@ module:
             
 trainer:
   max_time: "00:12:00:40"
-  max_epochs: 10
+  max_epochs: 2000
   limit_train_batches: 1.
   limit_val_batches: 1.
 
