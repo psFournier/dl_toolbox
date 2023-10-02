@@ -19,10 +19,20 @@ all7 = [
     label("sport venue", (160, 30, 230), {7}),
 ]
 
+main5 = [
+    label("void", (255, 255, 255), {0}),
+    label("impervious surface", (38, 38, 38), {1,5}),
+    label("building", (238, 118, 33), {2}),
+    label("pervious surface", (34, 139, 34), {3}),
+    label("high vegetation", (0, 222, 137), {4}),
+    label("water", (0, 0, 238), {6})
+]
+
 classes = enum.Enum(
     "SemcityClasses",
     {
         "all7": all7,
+        "main5": main5
     },
 )
 

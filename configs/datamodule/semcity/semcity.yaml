@@ -13,6 +13,6 @@ dataset_tf:
           mins: [0,0,0]
           maxs: [255,255,255]
 num_workers: 6
-merge: all7
+merge: main5
 pin_memory: False
 class_weights: null

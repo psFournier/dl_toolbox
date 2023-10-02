@@ -6,14 +6,14 @@
 defaults:
 #  - override /hydra/launcher: slurm_spiro
   - override /paths: qdtis056z
-  - override /datamodule: digitanie/digitanie_ai4geo
+  - override /datamodule: digitanie/digitanie
   - override /module: supervised
   - override /module/network: unet
   #- override /module/network@module.network2: efficientnet
   - override /module/scheduler: poly
   - override /trainer: gpu
 
-name: digitaniev4/run_sup
+name: digitanie/run_sup
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -26,9 +26,13 @@ datamodule:
     num_workers: 16
     #city: ARCACHON
     batch_size: 8
+    city: TOULOUSE
+    sup: 80
+    unsup: 0
 
 paths:
-    data: /work/AI4GEO/data/DATA/DATASETS
+    #data: /work/AI4GEO/users/fournip
+    data: ${oc.env:TMPDIR}
     
 module:
     ce_loss:
@@ -36,13 +40,13 @@ module:
     dice_loss:
         ignore_index: 0
     scheduler:
-        total_iters: 2000
+        total_iters: 1200
             
 trainer:
   max_time: "00:12:00:40"
-  max_epochs: 2000
-  limit_train_batches: 1.
-  limit_val_batches: 1.
+  max_epochs: 1000
+  limit_train_batches: 5
+  limit_val_batches: 5
 
 #paths:
 #    output_dir: /data/outputs_archive

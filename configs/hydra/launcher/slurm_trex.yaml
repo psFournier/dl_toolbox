@@ -24,4 +24,5 @@ signal_delay_s: 120
 max_num_timeout: 0
 # additional_parameters: {}
 # array_parallelism: 256
-# setup: # A list of commands to run in sbatch befure running srun
+setup: 
+    - "bash /home/eh/fournip/dl_toolbox/shell/copy_digi_to_node.sh"
