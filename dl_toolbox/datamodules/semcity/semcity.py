@@ -85,7 +85,7 @@ class Semcity(LightningDataModule):
                     self.dict_val["WIN"].append(subwin)
 
     def setup(self, stage):
-        if stage in ("fit", "validate"):
+        if stage in ("fit", "validate", "test"):
             self.train_set = datasets.Semcity(
                 self.dict_train["IMG"],
                 self.dict_train["MSK"],
@@ -140,6 +140,12 @@ class Semcity(LightningDataModule):
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
     def val_dataloader(self):
+        return self.dataloader(self.val_set)(
+            shuffle=False,
+            drop_last=False,
+        )
+    
+    def test_dataloader(self):
         return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
