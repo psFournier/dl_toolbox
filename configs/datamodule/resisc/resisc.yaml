@@ -3,15 +3,18 @@ data_path: ${paths.data}
 dataset_tf:
     _target_: dl_toolbox.transforms.Compose
     transforms: 
+        - _target_: dl_toolbox.transforms.Resize
+          factors: [1]
         - _target_: dl_toolbox.transforms.RandomCrop2
           size: 256
         - _target_: dl_toolbox.transforms.StretchToMinmax
           mins: [0,0,0]
           maxs: [255,255,255]
-sup: 80
-unsup: 0
-batch_size: 8
+sup: 1
+unsup: -1
+batch_size_s: 8
+batch_size_u: 8
+steps_per_epoch: 250
 num_workers: 16
 merge: all45
 pin_memory: False
-class_weights: null

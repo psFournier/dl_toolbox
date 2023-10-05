@@ -1,19 +1,16 @@
 # @package _global_
 
-# to execute this experiment run:
-# python train.py experiment=example
-
 defaults:
 #  - override /hydra/launcher: slurm_spiro
   - override /paths: qdtis056z
-  - override /datamodule: semcity/semcity
+  - override /datamodule: resisc/resisc
   - override /module: supervised
-  - override /network@module.network: unet
+  - override /network@module.network: efficientnet
   #- override /module/network@module.network2: efficientnet
   - override /scheduler@module.scheduler: onecycle
   - override /trainer: gpu
 
-name: comparaison_qte_sup_semcity
+name: comparaison_qte_sup_resisc
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -22,28 +19,28 @@ seed: 1
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 16
+    num_workers: 6
     batch_size_s: 8
     #sup: 1
     unsup: -1
 
 paths:
-    #data: /data
+    data: /data
     #data: /work/AI4GEO/users/fournip
-    data: ${oc.env:TMPDIR}
+    #data: ${oc.env:TMPDIR}
     #data: ${oc.env:LOCALDIR}
     
 module:
     ce_loss:
-        ignore_index: 0
+        ignore_index: -1
     dice_loss:
-        ignore_index: 0
+        ignore_index: -1
             
 trainer:
   max_time: "00:12:00:40"
   max_epochs: 1000
-  limit_train_batches: 1.
-  limit_val_batches: 1.
+  limit_train_batches: 5
+  limit_val_batches: 5
 
 #paths:
 #    output_dir: /data/outputs_archive
@@ -53,12 +50,14 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      datamodule.sup: 1,2,4,8,32
+      datamodule.sup: 1
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     subdir: ${datamodule.sup}
 #  launcher:
-#    timeout_min: 10
+#    setup: 
+#        - rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /work/AI4GEO/users/fournip/SemCity-Toulouse-bench/ $TMPDIR/SemCity-Toulouse-bench/
+#        - rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" ${paths.data}/DIGITANIE_v4/ $TMPDIR/DIGITANIE_v4/
     
 callbacks:
   model_checkpoint:

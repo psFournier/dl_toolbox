@@ -16,11 +16,16 @@ from dl_toolbox.utils import label
 cls_names = ["airplane", "bridge", "commercial_area", "golf_course", "island", "mountain", "railway_station", "sea_ice", "storage_tank", "airport", "chaparral", "dense_residential", "ground_track_field", "lake", "overpass", "rectangular_farmland", "ship", "tennis_court", "baseball_diamond", "church", "desert", "harbor", "meadow", "palace", "river", "snowberg", "terrace", "basketball_court", "circular_farmland", "forest", "industrial_area", "medium_residential", "parking_lot", "roundabout", "sparse_residential", "thermal_power_station", "beach", "cloud", "freeway", "intersection", "mobile_home_park", "railway", "runway", "stadium", "wetland"]
 
 all45 = [label(name, None, {i}) for i, name in enumerate(cls_names)]
+test = [
+    label("air", None, {0, 9}),
+    label("water", None, {44})
+]
 
 classes = enum.Enum(
     "Resisc",
     {
         "all45": all45,
+        "test": test
     },
 )
 
