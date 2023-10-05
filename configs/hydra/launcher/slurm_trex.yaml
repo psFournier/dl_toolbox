@@ -26,4 +26,5 @@ max_num_timeout: 0
 # array_parallelism: 256
 setup: 
     - 'cd "${oc.env:TMPDIR}"'
-    - 'rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" /work/AI4GEO/data/DATA/DATASETS/DIGITANIE_v4/ DIGITANIE_v4/'
+    - 'rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /work/AI4GEO/users/fournip/SemCity-Toulouse-bench/ SemCity-Toulouse-bench/'
+#    - 'rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" /work/AI4GEO/data/DATA/DATASETS/DIGITANIE_v4/ DIGITANIE_v4/'
