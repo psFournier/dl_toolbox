@@ -41,8 +41,13 @@ class Supervised(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
-        scheduler = self.scheduler(optimizer=optimizer)
-        return [optimizer], [scheduler]
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": self.scheduler(optimizer=optimizer),
+                "interval": "epoch"
+            },
+        }
 
     def forward(self, x):
         return self.network(x)

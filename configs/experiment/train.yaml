@@ -24,9 +24,9 @@ seed: 1
 datamodule:
     num_workers: 4
     #city: ARCACHON
-    batch_size_s: 4
+    batch_size_s: 8
     #city: TOULOUSE
-    sup: 2
+    sup: 1
     unsup: -1
 
 paths:
@@ -42,9 +42,9 @@ module:
             
 trainer:
   max_time: "00:12:00:40"
-  max_epochs: 4
-  limit_train_batches: 5
-  limit_val_batches: 5
+  max_epochs: 1000
+  limit_train_batches: 1.
+  limit_val_batches: 1.
 
 #paths:
 #    output_dir: /data/outputs_archive

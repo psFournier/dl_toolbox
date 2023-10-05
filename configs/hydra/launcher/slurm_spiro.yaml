@@ -6,7 +6,7 @@ cpus_per_task: 8
 # gpus_per_node: 1
 gres: gpu:1
 tasks_per_node: 1
-#mem_gb: 128
+mem_gb: 128
 nodes: 1
 name: ${hydra.job.name}
 partition: gpu
@@ -14,7 +14,7 @@ partition: gpu
 qos: co_long_gpu
 export: null
 # comment: null
-constraint: v100
+#constraint: v100
 # exclude: null
 # cpus_per_gpu: null
 # gpus_per_task: null
@@ -24,4 +24,6 @@ signal_delay_s: 120
 max_num_timeout: 0
 # additional_parameters: {}
 # array_parallelism: 256
-# setup: # A list of commands to run in sbatch befure running srun
+setup: 
+    - 'cd "${TMPDIR}"'
+    - 'rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /scratchm/pfournie/data/SemCity-Toulouse-bench/ SemCity-Toulouse-bench/'
