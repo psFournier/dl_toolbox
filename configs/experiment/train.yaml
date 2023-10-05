@@ -13,7 +13,7 @@ defaults:
   - override /scheduler@module.scheduler: onecycle
   - override /trainer: gpu
 
-name: semcity/train_sup
+name: comparaison_qte_sup_semcity
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -22,17 +22,15 @@ seed: 1
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 4
-    #city: ARCACHON
+    num_workers: 16
     batch_size_s: 8
-    #city: TOULOUSE
-    sup: 1
+    #sup: 1
     unsup: -1
 
 paths:
-    data: /data
+    #data: /data
     #data: /work/AI4GEO/users/fournip
-    #data: ${oc.env:TMPDIR}
+    data: ${oc.env:TMPDIR}
     #data: ${oc.env:LOCALDIR}
     
 module:
@@ -53,12 +51,15 @@ trainer:
 hydra:
   run:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweeper:
+    params:
+      datamodule.sup: 1,2,4,8,32
   sweep:
-    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}   
-    #subdir: ${datamodule.sup}/${now:%Y-%m-%d_%H%M%S}
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+    subdir: ${datamodule.sup}
 #  launcher:
 #    timeout_min: 10
     
 callbacks:
   model_checkpoint:
-    dirpath: ${hydra:run.dir}/checkpoints
+    dirpath: ${hydra:sweep.dir}/checkpoints
