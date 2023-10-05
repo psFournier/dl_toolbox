@@ -25,5 +25,5 @@ max_num_timeout: 0
 # additional_parameters: {}
 # array_parallelism: 256
 setup: 
-    - 'cd "${TMPDIR}"'
+    - 'cd ""${oc.env:LOCALDIR}""'
     - 'rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /scratchm/pfournie/data/SemCity-Toulouse-bench/ SemCity-Toulouse-bench/'

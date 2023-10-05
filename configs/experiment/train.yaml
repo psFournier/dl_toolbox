@@ -33,6 +33,7 @@ paths:
     data: /data
     #data: /work/AI4GEO/users/fournip
     #data: ${oc.env:TMPDIR}
+    #data: ${oc.env:LOCALDIR}
     
 module:
     ce_loss:
