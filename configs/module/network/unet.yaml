@@ -1,4 +1,0 @@
-_target_: dl_toolbox.networks.Unet
-_partial_: True
-bilinear: False
-max_pool: False

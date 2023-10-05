@@ -8,27 +8,26 @@ defaults:
   - override /paths: qdtis056z
   - override /datamodule: semcity/semcity
   - override /module: supervised
-  - override /module/network: unet
+  - override /network@module.network: unet
   #- override /module/network@module.network2: efficientnet
-  - override /module/scheduler: poly
+  - override /scheduler@module.scheduler: onecycle
   - override /trainer: gpu
 
-name: semcity/test_sup
+name: semcity/train_sup
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
 seed: 1
-ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
+#ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    #unsup: 0
-    num_workers: 16
+    num_workers: 4
     #city: ARCACHON
-    batch_size: 8
+    batch_size_s: 4
     #city: TOULOUSE
-    sup: 80
-    unsup: 0
+    sup: 2
+    unsup: -1
 
 paths:
     data: /data
@@ -40,12 +39,10 @@ module:
         ignore_index: 0
     dice_loss:
         ignore_index: 0
-    scheduler:
-        total_iters: 1200
             
 trainer:
   max_time: "00:12:00:40"
-  max_epochs: 1000
+  max_epochs: 4
   limit_train_batches: 5
   limit_val_batches: 5
 

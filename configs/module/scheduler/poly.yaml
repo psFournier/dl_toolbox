@@ -1,4 +1,0 @@
-_target_: torch.optim.lr_scheduler.PolynomialLR
-_partial_: True
-power: 0.9
-total_iters: ${trainer.max_epochs}

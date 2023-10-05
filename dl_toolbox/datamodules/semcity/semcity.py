@@ -27,10 +27,11 @@ class Semcity(LightningDataModule):
         unsup,
         bands,
         dataset_tf,
-        batch_size,
+        batch_size_s,
+        batch_size_u,
+        steps_per_epoch,
         num_workers,
         pin_memory,
-        class_weights=None,
         *args,
         **kwargs
     ):
@@ -41,7 +42,9 @@ class Semcity(LightningDataModule):
         self.unsup = unsup
         self.bands = bands
         self.dataset_tf = dataset_tf
-        self.batch_size = batch_size
+        self.batch_size_s = batch_size_s
+        self.batch_size_u = batch_size_u
+        self.steps_per_epoch = steps_per_epoch
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.in_channels = len(self.bands)
@@ -49,93 +52,74 @@ class Semcity(LightningDataModule):
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
-        self.class_weights = (
-            [1.0] * self.num_classes if class_weights is None else class_weights
-        )
     
     def prepare_data(self):
-        num_img = [f'TLS_BDSD_RGB_{i:02}.tif' for i in range(1, 16)]
-        num_msk = [f'TLS_indMap_{i:02}_1.tif' for i in range(1, 16)]
-        img_dir = self.data_path/'SemCity-Toulouse-bench/img_multispec_05/TLS_BDSD_RGB'
-        msk_dir = self.data_path/'SemCity-Toulouse-bench/semantic_05/TLS_indMap'
-        imgs = [img_dir/f'{num}' for num in num_img]
-        msks = [msk_dir/f'{num}' for num in num_msk]
-        windows = get_tiles(3504, 3452, 876, 863)
-        self.dict_train = {"IMG": [], "MSK": [], "WIN": []}
-        self.dict_train_unlabeled = {"IMG": [], "MSK": [], "WIN": []}
-        self.dict_val = {"IMG": [], "MSK": [], "WIN": []}
-        for i, prod in enumerate(product(windows, zip(imgs, msks))):
-            win, (img, msk) = prod
-            if self.sup <= i%100 < self.sup + self.unsup:
-                self.dict_train_unlabeled["IMG"].append(img)
-                self.dict_train_unlabeled["WIN"].append(win)
-            if i%100 < self.sup:
-                self.dict_train["IMG"].append(img)
-                self.dict_train["MSK"].append(msk)
-                self.dict_train["WIN"].append(win)
-            elif 90 <= i%100:
-                col_off, row_off, width, height = win
-                val_tiles = get_tiles(
-                    width, height, 256, step_w=224, 
-                    col_offset=col_off, row_offset=row_off
-                )
-                for subwin in val_tiles:
-                    self.dict_val["IMG"].append(img)
-                    self.dict_val["MSK"].append(msk)
-                    self.dict_val["WIN"].append(subwin)
+        def paths(num):
+            img_dir = self.data_path/'SemCity-Toulouse-bench/img_multispec_05/TLS_BDSD_RGB'
+            msk_dir = self.data_path/'SemCity-Toulouse-bench/semantic_05/TLS_indMap'
+            return img_dir/f'TLS_BDSD_RGB_{num:02}.tif', msk_dir/f'TLS_indMap_{num:02}_1.tif'
+        self.test = [(*paths(num), t) for num in [6,11] for t in get_tiles(3504, 3452, 512, step_w=256)]
+        self.val = [(*paths(7), t) for t in get_tiles(3504, 3452, 512, step_w=256)]
+        train = [(*paths(num), t) for num in set(range(1, 17))-{6,7,11} for t in get_tiles(3504, 3452, 876, 863)]
+        self.train_s = train[::self.sup]
+        if self.unsup != -1: self.train_u = train[::self.unsup]
 
     def setup(self, stage):
-        if stage in ("fit", "validate", "test"):
-            self.train_set = datasets.Semcity(
-                self.dict_train["IMG"],
-                self.dict_train["MSK"],
-                self.dict_train["WIN"],
+        self.train_s_set = datasets.Semcity(
+            *[list(t) for t in zip(*self.train_s)],
+            self.bands,
+            self.merge,
+            transforms=self.dataset_tf
+        )
+        if self.unsup != -1:
+            self.train_u_set = datasets.Semcity(
+                *[list(t) for t in zip(*self.train_u)],
                 self.bands,
                 self.merge,
                 transforms=self.dataset_tf
             )
-            self.val_set = datasets.Semcity(
-                self.dict_val["IMG"],
-                self.dict_val["MSK"],
-                self.dict_val["WIN"],
-                self.bands,
-                self.merge,
-                transforms=self.dataset_tf
-            )
-            if self.unsup > 0:
-                self.unlabeled_set = datasets.Semcity(
-                    self.dict_train_unlabeled["IMG"],
-                    [],
-                    self.dict_train_unlabeled["WIN"],
-                    self.bands,
-                    self.merge,
-                    transforms=self.dataset_tf
-                )
+        self.val_set = datasets.Semcity(
+            *[list(t) for t in zip(*self.val)],
+            self.bands,
+            self.merge,
+            transforms=self.dataset_tf
+        )
+        self.test_set = datasets.Semcity(
+            *[list(t) for t in zip(*self.test)],
+            self.bands,
+            self.merge,
+            transforms=self.dataset_tf
+        )
                 
     def dataloader(self, dataset):
         return partial(
             DataLoader,
             dataset=dataset,
             collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory
         )
                        
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = self.dataloader(self.train_set)(
+        train_dataloaders["sup"] = self.dataloader(self.train_s_set)(
             sampler=RandomSampler(
-                self.train_set,
+                self.train_s_set,
                 replacement=True,
-                num_samples=250*self.batch_size
+                num_samples=self.steps_per_epoch*self.batch_size_s
             ),
             drop_last=True,
+            batch_size=self.batch_size_s
         )
-        if self.unsup > 0:
-            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
-                shuffle=True,
+        if self.unsup != -1:
+            train_dataloaders["unsup"] = self.dataloader(self.train_u_set)(
+                sampler=RandomSampler(
+                    self.train_u_set,
+                    replacement=True,
+                    num_samples=self.steps_per_epoch*self.batch_size_u
+                ),
                 drop_last=True,
+                batch_size=self.batch_size_u
             )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
@@ -143,10 +127,12 @@ class Semcity(LightningDataModule):
         return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
+            batch_size=self.batch_size_s
         )
     
     def test_dataloader(self):
-        return self.dataloader(self.val_set)(
+        return self.dataloader(self.test_set)(
             shuffle=False,
             drop_last=False,
+            batch_size=self.batch_size_s
         )

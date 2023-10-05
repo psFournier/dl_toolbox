@@ -1,7 +1,0 @@
-_target_: dl_toolbox.losses.DiceLoss
-_partial_: True
-log_loss: False
-from_logits: True
-smooth: 0.01
-ignore_index: -1
-eps: 0.0000001

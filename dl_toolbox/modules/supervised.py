@@ -16,9 +16,6 @@ class Supervised(pl.LightningModule):
         scheduler,
         ce_loss,
         dice_loss,
-        class_weights,
-        ce_weight,
-        dice_weight,
         tf,
         tta,
         *args,
@@ -29,10 +26,8 @@ class Supervised(pl.LightningModule):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
-        self.ce = ce_loss(weight=torch.Tensor(class_weights))
+        self.ce = ce_loss()
         self.dice = dice_loss(mode="multiclass")
-        self.ce_weight = ce_weight
-        self.dice_weight = dice_weight
         self.tf = tf
         self.tta = tta
         metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':self.ce.ignore_index}
@@ -81,7 +76,7 @@ class Supervised(pl.LightningModule):
         self.log(f"dice/train", dice)
         _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
         self.train_accuracy.update(preds, ys)
-        return self.ce_weight * ce + self.dice_weight * dice
+        return ce + dice
         
     def validation_step(self, batch, batch_idx):
         inputs = batch["image"]

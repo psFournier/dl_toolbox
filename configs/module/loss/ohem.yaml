@@ -1,5 +1,0 @@
-_target_: dl_toolbox.losses.ProbOhemCrossEntropy2d
-_partial_: True
-ignore_index: -1
-thresh: 1.
-min_kept: 1000000

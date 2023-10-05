@@ -1,5 +1,0 @@
-defaults:
-  - _self_
-  
-_target_: dl_toolbox.datasources.digitanie.Digitanie9
-_partial_: True

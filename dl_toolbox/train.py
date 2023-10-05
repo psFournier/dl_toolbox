@@ -24,7 +24,6 @@ def train(cfg: DictConfig) -> None:
         cfg.module,
         num_classes=datamodule.num_classes,
         in_channels=datamodule.in_channels,
-        class_weights=datamodule.class_weights,
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
         # _recursive_=False,
     )
