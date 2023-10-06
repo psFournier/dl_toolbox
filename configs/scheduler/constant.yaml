@@ -1,4 +1,4 @@
 _target_: torch.optim.lr_scheduler.ConstantLR
 _partial_: True
 factor: 1
-total_iters: ${trainer.max_epochs}
+total_iters: 10000

@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - /optimizer: sgd
-  - /scheduler: poly
+  - /scheduler: constant
   - /network: smpunet
   - /loss@ce_loss: ce
   - /loss@dice_loss: dice

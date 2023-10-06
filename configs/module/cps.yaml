@@ -4,7 +4,7 @@ defaults:
   - /transforms@tf: d4
   - network@network: smpunet
   - network@network2: smpunet
-  - scheduler: linear
+  - scheduler: constant
   - loss@ce_loss: ce
   - loss@dice_loss: dice
   - /transforms@tta: tta

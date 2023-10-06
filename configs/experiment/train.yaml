@@ -1,16 +1,13 @@
 # @package _global_
 
 defaults:
-#  - override /hydra/launcher: slurm_spiro
-  - override /paths: qdtis056z
   - override /datamodule: resisc/resisc
   - override /module: supervised
   - override /network@module.network: efficientnet
   #- override /module/network@module.network2: efficientnet
-  - override /scheduler@module.scheduler: onecycle
   - override /trainer: gpu
 
-name: comparaison_qte_sup_resisc
+name: comparaison_lr_mom_sup_resisc
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -20,12 +17,11 @@ seed: 1
 
 datamodule:
     num_workers: 6
-    batch_size_s: 8
-    #sup: 1
+    batch_size_s: 16
+    sup: 1
     unsup: -1
 
-paths:
-    data: /data
+#paths:
     #data: /work/AI4GEO/users/fournip
     #data: ${oc.env:TMPDIR}
     #data: ${oc.env:LOCALDIR}
@@ -37,23 +33,21 @@ module:
         ignore_index: -1
             
 trainer:
-  max_time: "00:12:00:40"
-  max_epochs: 1000
-  limit_train_batches: 5
-  limit_val_batches: 5
-
-#paths:
-#    output_dir: /data/outputs_archive
+  max_time: "00:11:00:20"
+  max_steps: 10000
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      datamodule.sup: 1
+      module.optimizer.lr: 0.01,0.005,0.001
+      module.optimizer.momentum: 0,0.9,0.99
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    subdir: ${datamodule.sup}
+    subdir: ${module.optimizer.lr}_${module.optimizer.momentum}
 #  launcher:
 #    setup: 
 #        - rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /work/AI4GEO/users/fournip/SemCity-Toulouse-bench/ $TMPDIR/SemCity-Toulouse-bench/
