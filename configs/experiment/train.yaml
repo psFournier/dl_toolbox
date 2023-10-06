@@ -1,13 +1,13 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: resisc/resisc
+  - override /datamodule: semcity/semcity
   - override /module: supervised
-  - override /network@module.network: efficientnet
+  - override /network@module.network: unet
   #- override /module/network@module.network2: efficientnet
   - override /trainer: gpu
 
-name: comparaison_prop_sup_resisc
+name: comparaison_lr_mom_unet_sup_semcity
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -17,14 +17,14 @@ seed: 1
 
 datamodule:
     num_workers: 6
-    batch_size_s: 16
+    batch_size_s: 8
     unsup: -1
     
 module:
     ce_loss:
-        ignore_index: -1
+        ignore_index: 0
     dice_loss:
-        ignore_index: -1
+        ignore_index: 0
             
 trainer:
   max_time: "00:11:00:20"
@@ -37,10 +37,11 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      datamodule.sup: 1,4,16,64
+      module.optimizer.lr: 0.01,0.005,0.001
+      module.optimizer.momentum: 0.1,0.9,0.99
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    subdir: ${datamodule.sup}
+    subdir: ${module.optimizer.lr}_${module.optimizer.momentum}
 #  launcher:
    # setup:
 #        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie

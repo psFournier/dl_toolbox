@@ -7,7 +7,6 @@ class SmpUnet(Unet):
         num_classes,
         **kwargs
     ):
-        print(kwargs)
         super().__init__(
             classes=num_classes,
             **kwargs

@@ -32,6 +32,15 @@ class Digitanie(DigitanieAi4geo):
 
     def __init__(
         self,
+        data_path,
+        merge,
+        bands,
+        dataset_tf,
+        batch_size_s,
+        batch_size_u,
+        steps_per_epoch,
+        num_workers,
+        pin_memory,
         city,
         sup,
         unsup,
