@@ -7,7 +7,7 @@ defaults:
   #- override /module/network@module.network2: efficientnet
   - override /trainer: gpu
 
-name: comparaison_lr_mom_sup_resisc
+name: comparaison_prop_sup_resisc
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -18,13 +18,7 @@ seed: 1
 datamodule:
     num_workers: 6
     batch_size_s: 16
-    sup: 1
     unsup: -1
-
-#paths:
-    #data: /work/AI4GEO/users/fournip
-    #data: ${oc.env:TMPDIR}
-    #data: ${oc.env:LOCALDIR}
     
 module:
     ce_loss:
@@ -34,7 +28,7 @@ module:
             
 trainer:
   max_time: "00:11:00:20"
-  max_steps: 10000
+  max_steps: 100000
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -43,13 +37,13 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      module.optimizer.lr: 0.01,0.005,0.001
-      module.optimizer.momentum: 0,0.9,0.99
+      datamodule.sup: 1,4,16,64
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    subdir: ${module.optimizer.lr}_${module.optimizer.momentum}
+    subdir: ${datamodule.sup}
 #  launcher:
-#    setup: 
+   # setup:
+#        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie
 #        - rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /work/AI4GEO/users/fournip/SemCity-Toulouse-bench/ $TMPDIR/SemCity-Toulouse-bench/
 #        - rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" ${paths.data}/DIGITANIE_v4/ $TMPDIR/DIGITANIE_v4/
     
