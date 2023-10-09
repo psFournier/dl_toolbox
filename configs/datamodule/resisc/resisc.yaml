@@ -1,15 +1,9 @@
+defaults:
+    - /transforms@train_tf: none
+    - /transforms@test_tf: none
+
 _target_: dl_toolbox.datamodules.Resisc
 data_path: ${paths.data}
-dataset_tf:
-    _target_: dl_toolbox.transforms.Compose
-    transforms: 
-        - _target_: dl_toolbox.transforms.Resize
-          factors: [1]
-        - _target_: dl_toolbox.transforms.RandomCrop2
-          size: 256
-        - _target_: dl_toolbox.transforms.StretchToMinmax
-          mins: [0,0,0]
-          maxs: [255,255,255]
 sup: 1
 unsup: -1
 batch_size_s: 8

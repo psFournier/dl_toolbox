@@ -1,0 +1,2 @@
+_target_: dl_toolbox.transforms.RandomCrop2
+size: 256

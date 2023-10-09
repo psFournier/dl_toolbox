@@ -26,10 +26,9 @@ module:
         ignore_index: 0
     dice_loss:
         ignore_index: 0
-    tf: test
             
 trainer:
-  max_time: "00:11:00:20"
+  max_time: "00:11:00:30"
   max_steps: 100000
   limit_train_batches: 1.
   limit_val_batches: 1.
@@ -39,10 +38,10 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      module.tf: test
+      transforms@datamodule.train_tf: crop,crop_d4,crop_color_d4
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    subdir: ${module.tf}
+    #subdir: ${datamodule.train_tf.name}
 #  launcher:
    # setup:
 #        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie

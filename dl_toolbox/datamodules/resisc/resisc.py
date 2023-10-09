@@ -18,7 +18,8 @@ class Resisc(LightningDataModule):
         merge,
         sup,
         unsup,
-        dataset_tf,
+        train_tf,
+        test_tf,
         batch_size_s,
         batch_size_u,
         steps_per_epoch,
@@ -33,7 +34,8 @@ class Resisc(LightningDataModule):
         self.merge = merge
         self.sup = sup
         self.unsup = unsup
-        self.dataset_tf = dataset_tf
+        self.train_tf = train_tf
+        self.test_tf = test_tf
         self.batch_size_s = batch_size_s
         self.batch_size_u = batch_size_u
         self.steps_per_epoch = steps_per_epoch
@@ -73,21 +75,21 @@ class Resisc(LightningDataModule):
         data_path = self.data_path/'NWPU-RESISC45'
         if stage in ['fit', 'validate']:
             self.train_s_set = Subset(
-                datasets.Resisc(data_path, self.dataset_tf, self.merge),
+                datasets.Resisc(data_path, self.train_tf, self.merge),
                 indices=self.train_s_idx,
             )
             self.val_set = Subset(
-                datasets.Resisc(data_path, self.dataset_tf, self.merge),
+                datasets.Resisc(data_path, self.test_tf, self.merge),
                 indices=self.val_idx,
             )
             if self.unsup > 0:
                 self.train_u_set = Subset(
-                    datasets.Resisc(data_path, self.dataset_tf, self.merge),
+                    datasets.Resisc(data_path, self.train_tf, self.merge),
                     indices=self.train_u_idx,
                 )
         elif stage == 'test':
             self.test_set = Subset(
-                datasets.Resisc(data_path, self.dataset_tf, self.merge),
+                datasets.Resisc(data_path, self.test_tf, self.merge),
                 indices=self.test_idx,
             )
                 

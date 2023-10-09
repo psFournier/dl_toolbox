@@ -26,7 +26,8 @@ class Semcity(LightningDataModule):
         sup,
         unsup,
         bands,
-        dataset_tf,
+        train_tf,
+        test_tf,
         batch_size_s,
         batch_size_u,
         steps_per_epoch,
@@ -41,7 +42,8 @@ class Semcity(LightningDataModule):
         self.sup = sup
         self.unsup = unsup
         self.bands = bands
-        self.dataset_tf = dataset_tf
+        self.train_tf = train_tf
+        self.test_tf = test_tf
         self.batch_size_s = batch_size_s
         self.batch_size_u = batch_size_u
         self.steps_per_epoch = steps_per_epoch
@@ -69,26 +71,26 @@ class Semcity(LightningDataModule):
             *[list(t) for t in zip(*self.train_s)],
             self.bands,
             self.merge,
-            transforms=self.dataset_tf
+            transforms=self.train_tf
         )
         if self.unsup != -1:
             self.train_u_set = datasets.Semcity(
                 *[list(t) for t in zip(*self.train_u)],
                 self.bands,
                 self.merge,
-                transforms=self.dataset_tf
+                transforms=self.train_tf
             )
         self.val_set = datasets.Semcity(
             *[list(t) for t in zip(*self.val)],
             self.bands,
             self.merge,
-            transforms=self.dataset_tf
+            transforms=self.test_tf
         )
         self.test_set = datasets.Semcity(
             *[list(t) for t in zip(*self.test)],
             self.bands,
             self.merge,
-            transforms=self.dataset_tf
+            transforms=self.test_tf
         )
                 
     def dataloader(self, dataset):
