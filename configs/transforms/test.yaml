@@ -1,0 +1,14 @@
+_target_: torchvision.transforms.v2.Compose
+transforms: 
+    - _target_: torchvision.transforms.v2.ToDtype
+      dtype: torch.uint8
+    - _target_: dl_toolbox.transforms.D4
+    - _target_: torchvision.transforms.v2.RandomResizedCrop
+      size: 256
+    - _target_: torchvision.transforms.v2.ToDtype
+      dtype: torch.float32
+    - _target_: torchvision.transforms.v2.ColorJitter
+      contrast: 0.3
+      saturation: 0.3
+      brightness: 0.3
+      hue: 0.2

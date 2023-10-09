@@ -65,7 +65,7 @@ class Resisc(DatasetFolder):
     def __getitem__(self, idx):
         path, label = self.samples[idx]
         image = self.loader(path)
-        image,_ = self.transforms(image)
+        image = self.transforms(image)
         return {
             "image": image,
             "label": torch.tensor(label),
