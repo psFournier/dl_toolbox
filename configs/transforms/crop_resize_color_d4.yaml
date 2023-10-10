@@ -2,6 +2,10 @@ _target_: dl_toolbox.transforms.Compose
 transforms: 
     - _target_: dl_toolbox.transforms.RandomCrop2
       size: 256
+    - _target_: dl_toolbox.transforms.RandomResizedCrop
+      size: 256
+      scale: [0.5,1]
+      ratio: [0.9,1.1]
     - _target_: dl_toolbox.transforms.Color
       bounds: [0.8,0.8]
     - _target_: dl_toolbox.transforms.D4

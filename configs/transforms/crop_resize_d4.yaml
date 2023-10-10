@@ -2,7 +2,7 @@ _target_: dl_toolbox.transforms.Compose
 transforms: 
     - _target_: dl_toolbox.transforms.RandomCrop2
       size: 256
-    - _target_: dl_toolbox.tranforms.RandomResizedCrop
+    - _target_: dl_toolbox.transforms.RandomResizedCrop
       size: 256
       scale: [0.5,1]
       ratio: [0.9,1.1]
