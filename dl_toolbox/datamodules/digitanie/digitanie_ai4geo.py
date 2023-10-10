@@ -76,14 +76,16 @@ class DigitanieAi4geo(LightningDataModule):
         self.class_weights = (
             [1.0] * self.num_classes if class_weights is None else class_weights
         )
+
+    def get_tf(self, tf, city):
+        if isinstance(tf, partial):
+            return tf(city)
+        else:
+            return tf
         
     def prepare_data(self):
         self.dicts = {}
         for city, val_test in self.cities.items():
-            if isinstance(self.dataset_tf, partial):
-                tf = self.dataset_tf(city=city) 
-            else:
-                tf = self.dataset_tf
             dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
             dict_val = {'IMG':[], 'MSK':[], "WIN": []}
             dict_test = {'IMG':[], 'MSK':[], "WIN": []}
@@ -111,7 +113,7 @@ class DigitanieAi4geo(LightningDataModule):
                         dict_train['IMG'].append(img)
                         dict_train['MSK'].append(msk)
                         dict_train['WIN'].append(win)
-            self.dicts[city] = {'train': dict_train, 'val': dict_val, 'test': dict_test, 'tf': tf}
+            self.dicts[city] = {'train': dict_train, 'val': dict_val, 'test': dict_test}
         
     def setup(self, stage):
         if stage in ("fit", "validate"):
@@ -122,7 +124,7 @@ class DigitanieAi4geo(LightningDataModule):
                     self.dicts[city]['train']["WIN"],
                     self.bands,
                     self.merge,
-                    self.dicts[city]['tf']
+                    get_tf(self.train_tf, city)
                 ) for city in self.cities.keys()
             ])
             self.val_set = ConcatDataset([
@@ -132,7 +134,7 @@ class DigitanieAi4geo(LightningDataModule):
                     self.dicts[city]['val']["WIN"],
                     self.bands,
                     self.merge,
-                    self.dicts[city]['tf']
+                    get_tf(self.test_tf, city)
                 ) for city in self.cities.keys()
             ])
         if stage in ("test"):
@@ -143,7 +145,7 @@ class DigitanieAi4geo(LightningDataModule):
                     self.dicts[city]['test']["WIN"],
                     self.bands,
                     self.merge,
-                    self.dicts[city]['tf']
+                    get_tf(self.test_tf, city)
                 ) for city in self.cities.keys()
             ])
 
