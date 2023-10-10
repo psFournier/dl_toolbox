@@ -38,7 +38,7 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      transforms@datamodule.train_tf: crop,crop_resize_color_d4
+      transforms@datamodule.train_tf: crop,crop_d4,crop_resize_color_d4
       seed: 1,2,3
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
