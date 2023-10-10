@@ -32,7 +32,8 @@ class NormalizeFromNpy:
     def __init__(self, npy, min_p, max_p, bands, city):
         stats = np.load(npy, allow_pickle=True).item()
         city_stats = stats[city.title()]
-        mins = [city_stats[f'perc_{min_p}'][i-1] for i in bands]
+        #mins = [city_stats[f'perc_{min_p}'][i-1] for i in bands]
+        mins = [0. for _ in bands]
         maxs = [city_stats[f'perc_{max_p}'][i-1] for i in bands]
         means = [city_stats[f'mean_clip{max_p}'][i-1] for i in bands]
         stds = [city_stats[f'std_clip{max_p}'][i-1] for i in bands]

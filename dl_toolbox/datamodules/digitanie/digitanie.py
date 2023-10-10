@@ -32,15 +32,6 @@ class Digitanie(DigitanieAi4geo):
 
     def __init__(
         self,
-        data_path,
-        merge,
-        bands,
-        dataset_tf,
-        batch_size_s,
-        batch_size_u,
-        steps_per_epoch,
-        num_workers,
-        pin_memory,
         city,
         sup,
         unsup,
@@ -48,16 +39,11 @@ class Digitanie(DigitanieAi4geo):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.city = city
-        if isinstance(self.dataset_tf, partial):
-            self.dataset_tf = self.dataset_tf(city=city) 
+        self.city = city.title()
         self.sup = sup
         self.unsup = unsup
         
     def prepare_data(self):
-        self.dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
-        self.dict_val = {'IMG':[], 'MSK':[], "WIN": []}
-        self.dict_test = {'IMG':[], 'MSK':[], "WIN": []}
         citypath = self.data_path/f'DIGITANIE_v4/{self.city}'
         imgs = list(citypath.glob('*16bits_COG_*.tif'))
         imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
@@ -65,24 +51,12 @@ class Digitanie(DigitanieAi4geo):
         #msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
         msks = list(citypath.glob('COS43/*[0-9].tif'))
         msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
-        for i, (img, msk) in enumerate(zip(imgs, msks)):
-            if i<8:
-                for win in get_tiles(2048, 2048, 512):
-                    self.dict_train['IMG'].append(img)
-                    self.dict_train['MSK'].append(msk)
-                    self.dict_train['WIN'].append(win)
-            elif i==8:
-                for win in get_tiles(2048, 2048, 256, step_w=128):
-                    self.dict_val['IMG'].append(img)
-                    self.dict_val['MSK'].append(msk)
-                    self.dict_val['WIN'].append(win)
-            else:
-                for win in get_tiles(2048, 2048, 256, step_w=128):
-                    self.dict_test['IMG'].append(img)
-                    self.dict_test['MSK'].append(msk)
-                    self.dict_test['WIN'].append(win)
-        if self.unsup>0:
-            self.toa = next(citypath.glob('*COG.tif'))
+        pairs = zip(imgs,msks)
+        self.test = [(i,m,w) for i,m in pairs[:2] for w in get_tiles(2048,2048,512,step_w=256)]
+        self.val = [(i,m,w) for i,m in pairs[2:3] for w in get_tiles(2048,2048,512,step_w=256)]
+        self.train_s = [(i,m,w) for i,m in pairs[3:] for w in get_tiles(2048,2048,512)]
+        if self.unsup != -1: 
+            self.toa = next(citypath.glob('*COG.tif'))        
             with rasterio.open(self.toa, 'r') as ds:
                 city_tf = ds.transform
                 windows = [w[1] for w in ds.block_windows()]
@@ -97,7 +71,7 @@ class Digitanie(DigitanieAi4geo):
                 self.dict_train["WIN"],
                 self.bands,
                 self.merge,
-                self.dataset_tf
+                self.get_tf(self.train_tf, self.city)
             )
             self.val_set = datasets.Digitanie(
                 self.dict_val["IMG"],
@@ -105,7 +79,7 @@ class Digitanie(DigitanieAi4geo):
                 self.dict_val["WIN"],
                 self.bands,
                 self.merge,
-                self.dataset_tf
+                self.get_tf(self.test_tf, self.city)
             )
         if stage in ("test"):
             self.test_set = datasets.Digitanie(
@@ -114,14 +88,14 @@ class Digitanie(DigitanieAi4geo):
                 self.dict_test["WIN"],
                 self.bands,
                 self.merge,
-                self.dataset_tf
+                self.get_tf(self.test_tf, self.city)
             )
         if stage in ("fit", "validate"):
             if self.unsup > 0:
                 self.unlabeled_set = datasets.DigitanieUnlabeledToa(
                     toa=self.toa,
                     bands=[1,2,3],
-                    transforms=self.dataset_tf,
+                    transforms=self.get_tf(self.train_tf, self.city),
                     windows=self.toa_windows
                 )
                 

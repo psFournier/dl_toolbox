@@ -52,7 +52,8 @@ class DigitanieAi4geo(LightningDataModule):
         data_path,
         merge,
         bands,
-        dataset_tf,
+        train_tf,
+        test_tf,
         batch_size,
         num_workers,
         pin_memory,
@@ -64,7 +65,8 @@ class DigitanieAi4geo(LightningDataModule):
         self.data_path = Path(data_path)
         self.merge = merge
         self.bands = bands
-        self.dataset_tf = dataset_tf
+        self.train_tf = train_tf
+        self.test_tf = test_tf
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
@@ -79,7 +81,7 @@ class DigitanieAi4geo(LightningDataModule):
 
     def get_tf(self, tf, city):
         if isinstance(tf, partial):
-            return tf(city)
+            return tf(city=city)
         else:
             return tf
         
@@ -124,7 +126,7 @@ class DigitanieAi4geo(LightningDataModule):
                     self.dicts[city]['train']["WIN"],
                     self.bands,
                     self.merge,
-                    get_tf(self.train_tf, city)
+                    self.get_tf(self.train_tf, city)
                 ) for city in self.cities.keys()
             ])
             self.val_set = ConcatDataset([
@@ -134,7 +136,7 @@ class DigitanieAi4geo(LightningDataModule):
                     self.dicts[city]['val']["WIN"],
                     self.bands,
                     self.merge,
-                    get_tf(self.test_tf, city)
+                    self.get_tf(self.test_tf, city)
                 ) for city in self.cities.keys()
             ])
         if stage in ("test"):
@@ -145,7 +147,7 @@ class DigitanieAi4geo(LightningDataModule):
                     self.dicts[city]['test']["WIN"],
                     self.bands,
                     self.merge,
-                    get_tf(self.test_tf, city)
+                    self.get_tf(self.test_tf, city)
                 ) for city in self.cities.keys()
             ])
 
