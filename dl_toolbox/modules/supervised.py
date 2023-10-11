@@ -30,7 +30,8 @@ class Supervised(pl.LightningModule):
         self.dice = dice_loss(mode="multilabel")
         self.batch_tf = batch_tf
         self.tta = tta
-        metric_args = {'task':'multilabel', 'num_classes':num_classes, 'ignore_index':self.ce.ignore_index}
+        print(num_classes)
+        metric_args = {'task':'multiclass', 'num_classes':num_classes, 'num_labels': num_classes, 'ignore_index':self.ce.ignore_index}
         self.train_accuracy = M.Accuracy(**metric_args)
         self.val_accuracy = M.Accuracy(**metric_args)
         self.test_accuracy = M.Accuracy(**metric_args)
@@ -70,7 +71,7 @@ class Supervised(pl.LightningModule):
         self.train_accuracy.reset()
         
     def one_hot(self, y):
-        return F.one_hot(a.unsqueeze(1)).transpose(1,-1).squeeze()
+        return F.one_hot(y.unsqueeze(1), self.num_classes).transpose(1,-1).squeeze().float()
     
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
@@ -82,8 +83,8 @@ class Supervised(pl.LightningModule):
         self.log(f"cross_entropy/train", ce)
         dice = self.dice(logits_xs, ys)
         self.log(f"dice/train", dice)
-        _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
-        self.train_accuracy.update(preds, ys)
+        #_, preds = self.probas2confpreds(self.logits2probas(logits_xs))
+        #self.train_accuracy.update(preds, batch["label"])
         return ce + dice
         
     def validation_step(self, batch, batch_idx):
@@ -95,9 +96,9 @@ class Supervised(pl.LightningModule):
         dice = self.dice(logits_xs, ys)
         self.log(f"dice/val", dice)
         _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
-        self.val_accuracy.update(preds, ys)
-        self.val_cm.update(preds, ys)
-        self.val_jaccard.update(preds, ys)
+        self.val_accuracy.update(preds, batch["label"])
+        self.val_cm.update(preds, batch["label"])
+        self.val_jaccard.update(preds, batch["label"])
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
@@ -123,9 +124,9 @@ class Supervised(pl.LightningModule):
             logits_xs = torch.stack([logits_xs] + self.tta.revert(auxs)).sum(dim=0)
         probas = self.logits2probas(logits_xs)
         _, preds = self.probas2confpreds(probas)
-        self.test_accuracy.update(preds, ys)
-        self.test_jaccard.update(preds, ys)
-        self.test_cm.update(preds, ys)
+        self.test_accuracy.update(preds, batch["label"])
+        self.test_jaccard.update(preds, batch["label"])
+        self.test_cm.update(preds, batch["label"])
         
     def on_test_epoch_end(self):
         self.log("accuracy/test", self.test_accuracy.compute())

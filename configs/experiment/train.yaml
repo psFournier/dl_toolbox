@@ -24,9 +24,9 @@ transforms@datamodule.train_tf: crop_color_d4
     
 module:
     ce_loss:
-        ignore_index: 0
+        ignore_index: -1
     dice_loss:
-        ignore_index: 0
+        ignore_index: -1
             
 trainer:
   max_time: "00:11:00:30"
@@ -39,7 +39,7 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      transforms@module.batch_tf: mixup
+      transforms@module.batch_tf: mixup, none
       seed: 1
       datamodule.sup: 1,4
   sweep:
