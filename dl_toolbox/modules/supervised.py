@@ -30,7 +30,6 @@ class Supervised(pl.LightningModule):
         self.dice = dice_loss(mode="multilabel")
         self.batch_tf = batch_tf
         self.tta = tta
-        print(num_classes)
         metric_args = {'task':'multiclass', 'num_classes':num_classes, 'num_labels': num_classes, 'ignore_index':self.ce.ignore_index}
         self.train_accuracy = M.Accuracy(**metric_args)
         self.val_accuracy = M.Accuracy(**metric_args)
@@ -66,12 +65,12 @@ class Supervised(pl.LightningModule):
     #    confs = torch.where(cond, aux_confs, 1 - aux_confs)
     #    return confs, preds
         
-    def on_train_epoch_end(self):
-        self.log("accuracy/train", self.train_accuracy.compute())
-        self.train_accuracy.reset()
+    #def on_train_epoch_end(self):
+    #    self.log("accuracy/train", self.train_accuracy.compute())
+    #    self.train_accuracy.reset()
         
     def one_hot(self, y):
-        return F.one_hot(y.unsqueeze(1), self.num_classes).transpose(1,-1).squeeze().float()
+        return F.one_hot(y.unsqueeze(1), self.num_classes).transpose(1,-1).squeeze(-1).float()
     
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]

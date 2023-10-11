@@ -18,6 +18,7 @@ def train(cfg: DictConfig) -> None:
     tensorboard = pl.loggers.TensorBoardLogger(
         ".", "", "", log_graph=True, default_hp_metric=False
     )
+    csv = pl.loggers.csv_logs.CSVLogger(".", "", "")
     
     datamodule = hydra.utils.instantiate(cfg.datamodule)
     module = hydra.utils.instantiate(
@@ -29,12 +30,13 @@ def train(cfg: DictConfig) -> None:
     )
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     trainer = hydra.utils.instantiate(cfg.trainer)(
-        logger=tensorboard, 
+        logger=[tensorboard,csv], #tensorboard should be first 
         callbacks=list(callbacks.values())
     )
     
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
     trainer.validate(module, datamodule=datamodule)
+    trainer.test(module, datamodule=datamodule, verbose=True)
 
 if __name__ == "__main__":
     train()
