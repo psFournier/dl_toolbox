@@ -1,6 +1,6 @@
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
+import torch.nn.functional as F
 import torchmetrics as M
 import matplotlib.pyplot as plt
 from dl_toolbox.utils import plot_confusion_matrix
@@ -16,7 +16,7 @@ class Supervised(pl.LightningModule):
         scheduler,
         ce_loss,
         dice_loss,
-        tf,
+        batch_tf,
         tta,
         *args,
         **kwargs
@@ -27,10 +27,10 @@ class Supervised(pl.LightningModule):
         self.scheduler = scheduler
         self.num_classes = num_classes
         self.ce = ce_loss()
-        self.dice = dice_loss(mode="multiclass")
-        self.tf = tf
+        self.dice = dice_loss(mode="multilabel")
+        self.batch_tf = batch_tf
         self.tta = tta
-        metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':self.ce.ignore_index}
+        metric_args = {'task':'multilabel', 'num_classes':num_classes, 'ignore_index':self.ce.ignore_index}
         self.train_accuracy = M.Accuracy(**metric_args)
         self.val_accuracy = M.Accuracy(**metric_args)
         self.test_accuracy = M.Accuracy(**metric_args)
@@ -68,12 +68,15 @@ class Supervised(pl.LightningModule):
     def on_train_epoch_end(self):
         self.log("accuracy/train", self.train_accuracy.compute())
         self.train_accuracy.reset()
+        
+    def one_hot(self, y):
+        return F.one_hot(a.unsqueeze(1)).transpose(1,-1).squeeze()
     
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
         xs = batch["image"]
-        ys = batch["label"]
-        xs, ys = self.tf(xs, ys)
+        ys = self.one_hot(batch["label"])
+        xs, ys = self.batch_tf(xs, ys)
         logits_xs = self.network(xs)
         ce = self.ce(logits_xs, ys)
         self.log(f"cross_entropy/train", ce)
@@ -84,17 +87,17 @@ class Supervised(pl.LightningModule):
         return ce + dice
         
     def validation_step(self, batch, batch_idx):
-        inputs = batch["image"]
-        labels = batch["label"]
-        logits = self.forward(inputs)
-        ce = self.ce(logits, labels)
+        xs = batch["image"]
+        ys = self.one_hot(batch["label"])
+        logits_xs = self.forward(xs)
+        ce = self.ce(logits_xs, ys)
         self.log(f"cross_entropy/val", ce)
-        dice = self.dice(logits, labels)
+        dice = self.dice(logits_xs, ys)
         self.log(f"dice/val", dice)
-        _, preds = self.probas2confpreds(self.logits2probas(logits))
-        self.val_accuracy.update(preds, labels)
-        self.val_cm.update(preds, labels)
-        self.val_jaccard.update(preds, labels)
+        _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
+        self.val_accuracy.update(preds, ys)
+        self.val_cm.update(preds, ys)
+        self.val_jaccard.update(preds, ys)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
@@ -112,13 +115,13 @@ class Supervised(pl.LightningModule):
         self.val_cm.reset()
 
     def test_step(self, batch, batch_idx):
-        xs = batch['image']
-        ys = batch["label"]
-        logits = self.forward(xs)
+        xs = batch["image"]
+        ys = self.one_hot(batch["label"])
+        logits_xs = self.forward(xs)
         if self.tta is not None:
             auxs = [self.forward(x) for x in self.tta(xs)]
-            logits = torch.stack([logits] + self.tta.revert(auxs)).sum(dim=0)
-        probas = self.logits2probas(logits)
+            logits_xs = torch.stack([logits_xs] + self.tta.revert(auxs)).sum(dim=0)
+        probas = self.logits2probas(logits_xs)
         _, preds = self.probas2confpreds(probas)
         self.test_accuracy.update(preds, ys)
         self.test_jaccard.update(preds, ys)
@@ -140,6 +143,6 @@ class Supervised(pl.LightningModule):
             plt.savefig('/tmp/last_conf_mat.png')
 
     def predict_step(self, batch, batch_idx):
-        inputs = batch["image"]
-        logits = self.forward(inputs)
-        return logits
+        xs = batch["image"]
+        logits_xs = self.forward(xs)
+        return logits_xs

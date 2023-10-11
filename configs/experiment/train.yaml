@@ -7,7 +7,7 @@ defaults:
   #- override /module/network@module.network2: efficientnet
   - override /trainer: gpu
 
-name: comparaison_aug_unet_semcity
+name: comparaison_mixup_unet_semcity
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -16,10 +16,11 @@ name: comparaison_aug_unet_semcity
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 10
+    num_workers: 16
     batch_size_s: 8
     unsup: -1
-    sup: 4
+    
+transforms@datamodule.train_tf: crop_color_d4
     
 module:
     ce_loss:
@@ -38,8 +39,9 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      transforms@datamodule.train_tf: crop,crop_d4,crop_resize_color_d4
-      seed: 1,2,3
+      transforms@module.batch_tf: mixup
+      seed: 1
+      datamodule.sup: 1,4
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${datamodule.train_tf.name}
