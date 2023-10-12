@@ -75,29 +75,29 @@ class Supervised(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
         xs = batch["image"]
-        ys = self.one_hot(batch["label"])
-        xs, ys = self.batch_tf(xs, ys)
+        ys = batch["label"]
+        ys_o = self.one_hot(ys)
+        xs, ys_o = self.batch_tf(xs, ys_o)
         logits_xs = self.network(xs)
-        ce = self.ce(logits_xs, ys)
+        ce = self.ce(logits_xs, ys_o)
         self.log(f"cross_entropy/train", ce)
-        dice = self.dice(logits_xs, ys)
+        dice = self.dice(logits_xs, ys_o)
         self.log(f"dice/train", dice)
-        #_, preds = self.probas2confpreds(self.logits2probas(logits_xs))
-        #self.train_accuracy.update(preds, batch["label"])
         return ce + dice
         
     def validation_step(self, batch, batch_idx):
         xs = batch["image"]
-        ys = self.one_hot(batch["label"])
+        ys = batch["label"]
+        ys_o = self.one_hot(ys)
         logits_xs = self.forward(xs)
-        ce = self.ce(logits_xs, ys)
+        ce = self.ce(logits_xs, ys_o)
         self.log(f"cross_entropy/val", ce)
-        dice = self.dice(logits_xs, ys)
+        dice = self.dice(logits_xs, ys_o)
         self.log(f"dice/val", dice)
         _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
-        self.val_accuracy.update(preds, batch["label"])
-        self.val_cm.update(preds, batch["label"])
-        self.val_jaccard.update(preds, batch["label"])
+        self.val_accuracy.update(preds, ys)
+        self.val_cm.update(preds, ys)
+        self.val_jaccard.update(preds, ys)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
@@ -116,16 +116,17 @@ class Supervised(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         xs = batch["image"]
-        ys = self.one_hot(batch["label"])
+        ys = batch["label"]
+        ys_o = self.one_hot(ys)
         logits_xs = self.forward(xs)
         if self.tta is not None:
             auxs = [self.forward(x) for x in self.tta(xs)]
             logits_xs = torch.stack([logits_xs] + self.tta.revert(auxs)).sum(dim=0)
         probas = self.logits2probas(logits_xs)
         _, preds = self.probas2confpreds(probas)
-        self.test_accuracy.update(preds, batch["label"])
-        self.test_jaccard.update(preds, batch["label"])
-        self.test_cm.update(preds, batch["label"])
+        self.test_accuracy.update(preds, ys)
+        self.test_jaccard.update(preds, ys)
+        self.test_cm.update(preds, ys)
         
     def on_test_epoch_end(self):
         self.log("accuracy/test", self.test_accuracy.compute())

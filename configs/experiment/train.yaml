@@ -1,13 +1,13 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: semcity/semcity
+  - override /datamodule: resisc/resisc
   - override /module: supervised
-  - override /network@module.network: unet
+  - override /network@module.network: efficientnet
   #- override /module/network@module.network2: efficientnet
   - override /trainer: gpu
 
-name: comparaison_mixup_unet_semcity
+name: comparaison_mixup_effnet_resisc
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -16,11 +16,9 @@ name: comparaison_mixup_unet_semcity
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 16
-    batch_size_s: 8
+    num_workers: 10
+    batch_size_s: 32
     unsup: -1
-    
-transforms@datamodule.train_tf: crop_color_d4
     
 module:
     ce_loss:
@@ -30,7 +28,7 @@ module:
             
 trainer:
   max_time: "00:11:00:30"
-  max_steps: 100000
+  max_steps: 500000
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -39,9 +37,10 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      transforms@module.batch_tf: none,mixup
-      seed: 1
-      datamodule.sup: 1,4
+      transforms@module.batch_tf: none, mixup
+      transforms@datamodule.train_tf: crop_d4
+      seed: 4,5
+      datamodule.sup: 1
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${datamodule.train_tf.name}
