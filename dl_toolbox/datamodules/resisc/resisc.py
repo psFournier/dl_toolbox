@@ -54,7 +54,7 @@ class Resisc(LightningDataModule):
         n_idxs = sum([len(label.values)*700 for label in self.classes])
         self.test_idx = [i for i in range(n_idxs) if i%700<70]
         self.val_idx = [i for i in range(n_idxs) if 70<=i%700<100]
-        train_idx = [i for i in range(n_idxs) if 100<i%700]
+        train_idx = [i for i in range(n_idxs) if 100<=i%700]
         self.train_s_idx = train_idx[::self.sup]
         if self.unsup != -1: self.train_u_idx = train_idx[::self.unsup]   
 #        self.test_idx = [700*n+i for l in self.classes for n, v in enumerate(l.values) for i in range(100)]
