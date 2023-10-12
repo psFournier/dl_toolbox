@@ -42,7 +42,7 @@ class MeanTeacher(Supervised):
         self.log("Ema", self.ema)
 
     def training_step(self, batch, batch_idx):
-        sup_loss = super().training_step()
+        sup_loss = super().training_step(batch, batch_idx)
         unsup_inputs = batch["unsup"]["image"]
         unsup_inputs_1, _ = self.consistency_tf(unsup_inputs)
         unsup_inputs_2, _ = self.consistency_tf(unsup_inputs)

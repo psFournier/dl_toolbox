@@ -18,6 +18,8 @@ name: comparaison_mt_effnet_resisc
 datamodule:
     num_workers: 10
     batch_size_s: 32
+    batch_size_u: 32
+    pin_memory: true
     sup: 4
     unsup: 1
             
@@ -33,7 +35,7 @@ hydra:
   sweeper:
     params:
       seed: 4,5
-      module.alpha_ramp.val: 0,0.1,1
+      module.alpha_ramp.val: 0.,0.1,1.
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${datamodule.train_tf.name}
