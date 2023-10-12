@@ -1,5 +1,5 @@
 defaults:
-    - /transforms@train_tf: none
+    - /transforms@train_tf: d4
     - /transforms@test_tf: none
 
 _target_: dl_toolbox.datamodules.Resisc

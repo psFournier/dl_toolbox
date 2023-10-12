@@ -17,7 +17,7 @@ class MeanTeacher(Supervised):
         alpha_ramp,
         teacher,
         consistency_loss,
-        consistency_aug,
+        consistency_tf,
         ema_ramp,
         *args,
         **kwargs
@@ -29,7 +29,7 @@ class MeanTeacher(Supervised):
         )
         self.alpha_ramp = alpha_ramp
         self.consistency_loss = consistency_loss
-        self.consistency_aug = consistency_aug
+        self.consistency_tf = consistency_tf
         self.ema_ramp = ema_ramp
 
     def forward(self, x):
@@ -42,26 +42,16 @@ class MeanTeacher(Supervised):
         self.log("Ema", self.ema)
 
     def training_step(self, batch, batch_idx):
-        batch, unsup_batch = batch["sup"], batch["unsup"]
-        xs = batch["image"]
-        ys = batch["label"]
-        xs, ys = self.tf(xs, ys)
-        logits_xs = self.student(xs)
-        ce = self.ce(logits_xs, ys)
-        self.log(f"cross_entropy/train", ce)
-        dice = self.dice(logits_xs, ys)
-        self.log(f"dice/train", dice)
-        _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
-        self.train_accuracy.update(preds, ys)
-        unsup_inputs = unsup_batch["image"]
-        unsup_inputs_1, _ = self.consistency_aug(unsup_inputs)
-        unsup_inputs_2, _ = self.consistency_aug(unsup_inputs)
+        sup_loss = super().training_step()
+        unsup_inputs = batch["unsup"]["image"]
+        unsup_inputs_1, _ = self.consistency_tf(unsup_inputs)
+        unsup_inputs_2, _ = self.consistency_tf(unsup_inputs)
         with torch.no_grad():
             teacher_logits = self.teacher(unsup_inputs_1)
         student_logits = self.student(unsup_inputs_2)
-        consistency_loss = self.consistency_loss(student_logits, teacher_logits)
-        self.log("Consistency loss", consistency_loss)
-        return self.ce_weight * ce + self.dice_weight * dice + self.alpha * consistency_loss
+        consistency = self.consistency_loss(student_logits, teacher_logits)
+        self.log("consistency/train", consistency)
+        return sup_loss + self.alpha * consistency
 
     def on_train_batch_end(self, outputs, batch, batch_idx):
         ema = min(1.0 - 1.0 / float(self.global_step + 1), self.ema)

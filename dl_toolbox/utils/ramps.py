@@ -22,6 +22,13 @@ def sigm_ramp(current, start, end, start_val, end_val):
     else:
         return end_val
 
+class ConstantRamp:
+    def __init__(self, val):
+        self.val = val
+
+    def __call__(self, current):
+        return self.val
+
 
 class LinearRamp:
     def __init__(self, start, end, start_val, end_val):
