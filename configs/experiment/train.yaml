@@ -7,7 +7,7 @@ defaults:
 #  - override /network@module.network2: efficientnet
   - override /trainer: gpu
 
-name: comparaison_mixmatch_effnet_resisc
+name: comparaison_semisup_effnet_resisc
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -16,29 +16,30 @@ name: comparaison_mixmatch_effnet_resisc
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 4
-    batch_size_s: 4
-    batch_size_u: 4
+    num_workers: 10
+    batch_size_s: 16
+    batch_size_u: 16
     pin_memory: true
-    sup: 4
+    sup: 8
     unsup: 1
     
 module:
     dice_loss: null
             
 trainer:
-  max_time: "00:00:00:59"
+  max_time: "00:23:00:59"
   max_steps: 200000
-  limit_train_batches: 5
-  limit_val_batches: 5
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      seed: 4
-      module.alpha_ramp.val: 1.
+      seed: 1
+      module: cps, mixmatch, fixmatch, mt
+      module.alpha_ramp.val: 0.,1.
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${datamodule.train_tf.name}
