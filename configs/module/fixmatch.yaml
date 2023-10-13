@@ -18,7 +18,7 @@ alpha_ramp:
 ce_loss_u:
     reduction: none
 weak_tf:
-    bounds: [0.8, 0.8]
+    bounds: [0.8, 1.2]
 strong_tf:
     bounds: [0.5, 1.5]
 threshold: 0.95

@@ -2,12 +2,12 @@
 
 defaults:
   - override /datamodule: resisc/resisc
-  - override /module: fixmatch
+  - override /module: mixmatch
   - override /network@module.network: efficientnet
-#  - override /network@module.teacher: efficientnet
+#  - override /network@module.network2: efficientnet
   - override /trainer: gpu
 
-name: comparaison_fm_effnet_resisc
+name: comparaison_mixmatch_effnet_resisc
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -17,8 +17,8 @@ name: comparaison_fm_effnet_resisc
 
 datamodule:
     num_workers: 4
-    batch_size_s: 16
-    batch_size_u: 16
+    batch_size_s: 4
+    batch_size_u: 4
     pin_memory: true
     sup: 4
     unsup: 1
