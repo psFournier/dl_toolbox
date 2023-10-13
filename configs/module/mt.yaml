@@ -1,5 +1,4 @@
 defaults:
-  - _self_
   - /optimizer: sgd
   - /scheduler: constant
   - /network: smpunet
@@ -10,6 +9,7 @@ defaults:
   - /network@teacher: smpunet
   - /loss@consistency_loss: mse
   - /transforms@consistency_tf: color
+  - _self_
 
 _target_: dl_toolbox.modules.MeanTeacher
 alpha_ramp:

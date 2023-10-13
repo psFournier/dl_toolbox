@@ -1,5 +1,5 @@
 _target_: dl_toolbox.losses.DiceLoss
-_partial_: True
+mode: multilabel
 log_loss: False
 from_logits: True
 smooth: 0.01

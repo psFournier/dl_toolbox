@@ -1,33 +1,24 @@
 defaults:
-  - optimizer: sgd
-  - network: smpunet
-  - scheduler: constant
-  - loss@ce_loss: ce
-  - loss@dice_loss: dice
-  - /transforms@tf: d4
-  - loss@ce_loss_u: ce
+  - /optimizer: sgd
+  - /scheduler: constant
+  - /network: smpunet
+  - /loss@ce_loss: ce
+  - /loss@dice_loss: dice
+  - /transforms@batch_tf: none
   - /transforms@tta: tta
+  - /loss@ce_loss_u: ce
+  - /transforms@weak_tf: color
+  - /transforms@strong_tf: color
   - _self_
 
 _target_: dl_toolbox.modules.Fixmatch
 alpha_ramp:
-    _target_: dl_toolbox.utils.SigmoidRamp
-    start: 0
-    end: 50
-    start_val: 0.1
-    end_val: 0.1
-ce_weight: 1
-dice_weight: 0
+    _target_: dl_toolbox.utils.ConstantRamp
+    val: 0.1
 ce_loss_u:
     reduction: none
 weak_tf:
-    _target_: dl_toolbox.transforms.Compose
-    transforms: 
-        - _target_: dl_toolbox.transforms.Color
-          bounds: [0.9, 0.9]
+    bounds: [0.8, 0.8]
 strong_tf:
-    _target_: dl_toolbox.transforms.Compose
-    transforms: 
-        - _target_: dl_toolbox.transforms.Color
-          bounds: [0.5, 0.5]
+    bounds: [0.5, 1.5]
 threshold: 0.95

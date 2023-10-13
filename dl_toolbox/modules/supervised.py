@@ -26,8 +26,8 @@ class Supervised(pl.LightningModule):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
-        self.ce = ce_loss()
-        self.dice = dice_loss(mode="multilabel")
+        self.ce = ce_loss
+        self.dice = dice_loss
         self.batch_tf = batch_tf
         self.tta = tta
         metric_args = {'task':'multiclass', 'num_classes':num_classes, 'num_labels': num_classes, 'ignore_index':self.ce.ignore_index}
@@ -81,8 +81,10 @@ class Supervised(pl.LightningModule):
         logits_xs = self.network(xs)
         ce = self.ce(logits_xs, ys_o)
         self.log(f"cross_entropy/train", ce)
-        dice = self.dice(logits_xs, ys_o)
-        self.log(f"dice/train", dice)
+        dice = 0
+        if self.dice is not None: 
+            dice = self.dice(logits_xs, ys_o)
+            self.log(f"dice/train", dice)
         return ce + dice
         
     def validation_step(self, batch, batch_idx):
@@ -92,8 +94,9 @@ class Supervised(pl.LightningModule):
         logits_xs = self.forward(xs)
         ce = self.ce(logits_xs, ys_o)
         self.log(f"cross_entropy/val", ce)
-        dice = self.dice(logits_xs, ys_o)
-        self.log(f"dice/val", dice)
+        if self.dice is not None: 
+            dice = self.dice(logits_xs, ys_o)
+            self.log(f"dice/val", dice)
         _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
         self.val_accuracy.update(preds, ys)
         self.val_cm.update(preds, ys)
@@ -119,9 +122,15 @@ class Supervised(pl.LightningModule):
         ys = batch["label"]
         ys_o = self.one_hot(ys)
         logits_xs = self.forward(xs)
+        ce = self.ce(logits_xs, ys_o)
+        self.log(f"cross_entropy/test", ce)
+        if self.dice is not None: 
+            dice = self.dice(logits_xs, ys_o)
+            self.log(f"dice/test", dice)
+        _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
         if self.tta is not None:
             auxs = [self.forward(x) for x in self.tta(xs)]
-            logits_xs = torch.stack([logits_xs] + self.tta.revert(auxs)).sum(dim=0)
+            logits_xs = torch.stack([logits_xs] + self.tta.revert(xs, auxs)).sum(dim=0)
         probas = self.logits2probas(logits_xs)
         _, preds = self.probas2confpreds(probas)
         self.test_accuracy.update(preds, ys)

@@ -20,10 +20,10 @@ class TTA:
             imgs.append(t(img, None)[0])
         return imgs
     
-    def revert(self, imgs):
+    def revert(self, img, msks):
         res = []
-        for r, img in zip(self.reverse, imgs):
-            res.append(r(img, None)[0])
+        for r, msk in zip(self.reverse, msks):
+            res.append(r(img, msk)[1])
         return res
 
 class Compose:
