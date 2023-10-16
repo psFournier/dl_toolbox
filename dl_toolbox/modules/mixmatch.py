@@ -33,15 +33,15 @@ class Mixmatch(Supervised):
         sup_loss = super().training_step(batch, batch_idx)      
         # Mixmatch
         xu = batch["unsup"]["image"]
-        xu_weaks = [self.weak_tf(xu, None)[0] for _ in range(4)]
+        xu_weaks = [self.weak_tf(xu, None)[0] for _ in range(2)]
         xu_weak = torch.vstack(xu_weaks)
         with torch.no_grad():
             logits_xu_weak = self.network(xu_weak)
-            chunks = torch.stack(torch.chunk(logits_xu_weak, chunks=4))
+            chunks = torch.stack(torch.chunk(logits_xu_weak, chunks=2))
             probs_xu_weak = self.logits2probas(chunks.sum(dim=0))
             probs_xu_weak = probs_xu_weak ** (1.0 / self.temp)
             yu_sharp = probs_xu_weak / probs_xu_weak.sum(dim=1, keepdim=True)
-        yu = yu_sharp.repeat([4] + [1] * (len(yu_sharp.shape) - 1)) 
+        yu = yu_sharp.repeat([2] + [1] * (len(yu_sharp.shape) - 1)) 
     
         xs = batch["sup"]["image"]
         ys = batch["sup"]["label"]

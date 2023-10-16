@@ -43,13 +43,12 @@ class MeanTeacher(Supervised):
 
     def training_step(self, batch, batch_idx):
         sup_loss = super().training_step(batch, batch_idx)
-        unsup_inputs = batch["unsup"]["image"]
-        unsup_inputs_1, _ = self.consistency_tf(unsup_inputs)
-        unsup_inputs_2, _ = self.consistency_tf(unsup_inputs)
+        xu = batch["unsup"]["image"]
         with torch.no_grad():
-            teacher_logits = self.teacher(unsup_inputs_1)
-        student_logits = self.student(unsup_inputs_2)
-        consistency = self.consistency_loss(student_logits, teacher_logits)
+            yu_t = self.teacher(xu)
+        aug_xu, aug_yu_t = self.consistency_tf(xu, yu_t)
+        logits_aug_xu = self.student(aug_xu)
+        consistency = self.consistency_loss(logits_aug_xu, aug_yu_t)
         self.log("consistency/train", consistency)
         return sup_loss + self.alpha * consistency
 

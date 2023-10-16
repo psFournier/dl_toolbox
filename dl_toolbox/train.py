@@ -4,6 +4,7 @@ import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
 import torch
+from torchsummary import summary
 
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision('high')
@@ -28,6 +29,8 @@ def train(cfg: DictConfig) -> None:
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
         # _recursive_=False,
     )
+    #summary(module.network, (3, 512, 512))
+
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     trainer = hydra.utils.instantiate(cfg.trainer)(
         logger=[tensorboard,csv], #tensorboard should be first 
