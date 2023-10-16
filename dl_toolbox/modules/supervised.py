@@ -30,7 +30,7 @@ class Supervised(pl.LightningModule):
         self.dice = dice_loss
         self.batch_tf = batch_tf
         self.tta = tta
-        metric_args = {'task':'multiclass', 'num_classes':num_classes, 'num_labels': num_classes, 'ignore_index':self.ce.ignore_index}
+        metric_args = {'task':'multiclass', 'num_classes':num_classes, 'num_labels': num_classes}#, 'ignore_index':self.ce.ignore_index}
         self.train_accuracy = M.Accuracy(**metric_args)
         self.val_accuracy = M.Accuracy(**metric_args)
         self.test_accuracy = M.Accuracy(**metric_args)
