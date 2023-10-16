@@ -1,36 +1,35 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: resisc/resisc
-  - override /module: mixmatch
-  - override /network@module.network: efficientnet
+  - override /datamodule: semcity/semcity
+  - override /module: supervised
+  - override /network@module.network: smpunet
 #  - override /network@module.network2: efficientnet
   - override /trainer: gpu
 
-name: comparaison_mixmatch_effnet_resisc
+name: cutmix_smpunet_semcity
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-#seed: 1
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 16
+    num_workers: 1
     batch_size_s: 16
-    batch_size_u: 16
+    #batch_size_u: 16
     pin_memory: true
-    sup: 8
-    unsup: 1
+    sup: 1
+    #unsup: 1
     
 module:
     dice_loss: null
             
 trainer:
-  max_time: "00:11:30:59"
+  max_time: "00:00:00:59"
   max_steps: 200000
-  limit_train_batches: 1.
-  limit_val_batches: 1.
+  limit_train_batches: 5
+  limit_val_batches: 5
     
 hydra:
   run:
@@ -38,7 +37,8 @@ hydra:
   sweeper:
     params:
       seed: 1
-      module.alpha_ramp.val: 0.,0.1,1.
+      #module.alpha_ramp.val: 0.
+      transforms@module.batch_tf: cutmix
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${datamodule.train_tf.name}
