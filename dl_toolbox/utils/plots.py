@@ -29,6 +29,10 @@ def plot_confusion_matrix(cm, class_names, norm, fontsize=8):
         sum_lin = torch.sum(cm, dim=0, keepdim=True)
         cm = torch.nan_to_num(cm / sum_lin, nan=0.0, posinf=0.0, neginf=0.0).numpy()
         ax.set_title("Precision matrix")
+        
+    else:
+        cm = torch.nan_to_num(cm, nan=0.0, posinf=0.0, neginf=0.0).numpy()
+        ax.set_title("Confusion matrix")
 
     ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
     ax.set_xticks(tick_marks, class_names, rotation=90, fontsize=fontsize)

@@ -106,16 +106,18 @@ class Supervised(pl.LightningModule):
         self.log("accuracy/val", self.val_accuracy.compute())
         self.log("iou/val", self.val_jaccard.compute())
         confmat = self.val_cm.compute().detach().cpu()
-        class_names = self.trainer.datamodule.class_names
-        logger = self.trainer.logger
-        if logger:
-            fig1 = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
-            logger.experiment.add_figure("Recall matrix", fig1, global_step=self.trainer.global_step)
-            fig2 = plot_confusion_matrix(confmat, class_names, "precision", fontsize=8)
-            logger.experiment.add_figure("Precision matrix", fig2, global_step=self.trainer.global_step)
         self.val_accuracy.reset()
         self.val_jaccard.reset()
         self.val_cm.reset()
+        class_names = self.trainer.datamodule.class_names
+        logger = self.trainer.logger
+        fs = 12 - 2*(self.num_classes//10)
+        fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
+        try:
+            logger.experiment.add_figure("confmat", fig, global_step=self.trainer.global_step)
+        except:
+            pass
+
 
     def test_step(self, batch, batch_idx):
         xs = batch["image"]
@@ -145,12 +147,13 @@ class Supervised(pl.LightningModule):
         self.test_jaccard.reset()
         self.test_cm.reset()
         class_names = self.trainer.datamodule.class_names
-        fig = plot_confusion_matrix(confmat, class_names, "recall", fontsize=8)
         logger = self.trainer.logger
-        if logger:
-            logger.experiment.add_figure("Recall matrix", fig, global_step=self.trainer.global_step)
-        else:
-            plt.savefig('/tmp/last_conf_mat.png')
+        fs = 12 - 2*(self.num_classes//10)
+        fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
+        try:
+            logger.experiment.add_figure("confmat", fig, global_step=self.trainer.global_step)
+        except:
+            pass
 
     def predict_step(self, batch, batch_idx):
         xs = batch["image"]

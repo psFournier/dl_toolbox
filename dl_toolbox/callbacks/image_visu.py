@@ -67,7 +67,7 @@ class SegmentationImagesVisualisation(pl.Callback):
             final_grid = torch.cat(grids, dim=1)
 
             trainer.logger.experiment.add_image(
-                f"Images/{prefix}_batch0_part_{idx}",
+                f"{prefix}_Images/batch0_part_{idx}",
                 final_grid,
                 global_step=trainer.global_step,
             )
