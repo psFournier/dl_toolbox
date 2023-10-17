@@ -1,14 +1,14 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: semcity/semcity
-  - override /module: supervised
+  - override /datamodule: resisc/resisc
+  - override /module: mt
   - override /scheduler@module.scheduler: multistep
-  - override /network@module.network: smpunet
-#  - override /network@module.teacher: smpunet
+  - override /network@module.network: efficientnet
+  - override /network@module.teacher: efficientnet
   - override /trainer: gpu
 
-name: sup_semcity
+name: mt_resisc
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -16,9 +16,9 @@ name: sup_semcity
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 4
-    batch_size_s: 4
-    batch_size_u: 8
+    num_workers: 10
+    batch_size_s: 32
+    batch_size_u: 32
     pin_memory: true
     steps_per_epoch: 250
     #sup: 1
@@ -40,10 +40,10 @@ hydra:
   sweeper:
     params:
       seed: 1
-      datamodule.sup: 1,4,16
-      transforms@datamodule.train_tf: crop_d4,crop_color_d4,crop_resize_color_d4
-      #module.alpha_ramp.val: 0.
-      #transforms@module.consistency_tf: cutmix
+      datamodule.sup: 16
+      #transforms@module.batch_tf: none,mixup
+      module.alpha_ramp.val: 0.1,0.5,1,5
+      transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${datamodule.train_tf.name}
