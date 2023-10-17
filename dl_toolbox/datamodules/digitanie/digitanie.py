@@ -33,28 +33,22 @@ class Digitanie(DigitanieAi4geo):
     def __init__(
         self,
         city,
-        sup,
-        unsup,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.city = city.title()
-        self.sup = sup
-        self.unsup = unsup
         
     def prepare_data(self):
         citypath = self.data_path/f'DIGITANIE_v4/{self.city}'
         imgs = list(citypath.glob('*16bits_COG_*.tif'))
         imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
-        #msks = list(citypath.glob('COS9/*_mask.tif'))
-        #msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
         msks = list(citypath.glob('COS43/*[0-9].tif'))
         msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
-        pairs = zip(imgs,msks)
+        pairs = list(zip(imgs,msks))
         self.test = [(i,m,w) for i,m in pairs[:2] for w in get_tiles(2048,2048,512,step_w=256)]
         self.val = [(i,m,w) for i,m in pairs[2:3] for w in get_tiles(2048,2048,512,step_w=256)]
-        self.train_s = [(i,m,w) for i,m in pairs[3:] for w in get_tiles(2048,2048,512)]
+        self.train_s = [(i,m,w) for i,m in pairs[3:] for w in get_tiles(2048,2048,512)][::self.sup]
         if self.unsup != -1: 
             self.toa = next(citypath.glob('*COG.tif'))        
             with rasterio.open(self.toa, 'r') as ds:
@@ -64,61 +58,61 @@ class Digitanie(DigitanieAi4geo):
             self.toa_windows = [w for w in windows if is_window_in_poly(w,city_tf,city_poly)]
         
     def setup(self, stage):
-        if stage in ("fit", "validate"):
-            self.train_set = datasets.Digitanie(
-                self.dict_train["IMG"],
-                self.dict_train["MSK"],
-                self.dict_train["WIN"],
-                self.bands,
-                self.merge,
-                self.get_tf(self.train_tf, self.city)
+        self.train_s_set = datasets.Digitanie(
+            *[list(t) for t in zip(*self.train_s)],
+            self.bands,
+            self.merge,
+            transforms=self.get_tf(self.train_tf, self.city)
+        )
+        if self.unsup != -1:
+            self.train_u_set = datasets.DigitanieUnlabeledToa(
+                toa=self.toa,
+                bands=[1,2,3],
+                transforms=self.get_tf(self.train_tf, self.city),
+                windows=self.toa_windows[::self.unsup]
             )
-            self.val_set = datasets.Digitanie(
-                self.dict_val["IMG"],
-                self.dict_val["MSK"],
-                self.dict_val["WIN"],
-                self.bands,
-                self.merge,
-                self.get_tf(self.test_tf, self.city)
-            )
-        if stage in ("test"):
-            self.test_set = datasets.Digitanie(
-                self.dict_test["IMG"],
-                self.dict_test["MSK"],
-                self.dict_test["WIN"],
-                self.bands,
-                self.merge,
-                self.get_tf(self.test_tf, self.city)
-            )
-        if stage in ("fit", "validate"):
-            if self.unsup > 0:
-                self.unlabeled_set = datasets.DigitanieUnlabeledToa(
-                    toa=self.toa,
-                    bands=[1,2,3],
-                    transforms=self.get_tf(self.train_tf, self.city),
-                    windows=self.toa_windows
-                )
+        self.val_set = datasets.Digitanie(
+            *[list(t) for t in zip(*self.val)],
+            self.bands,
+            self.merge,
+            transforms=self.get_tf(self.test_tf, self.city)
+        )
+        self.test_set = datasets.Digitanie(
+            *[list(t) for t in zip(*self.test)],
+            self.bands,
+            self.merge,
+            transforms=self.get_tf(self.test_tf, self.city)
+        )
                 
     def dataloader(self, dataset):
         return partial(
             DataLoader,
             dataset=dataset,
             collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory
         )
                        
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = self.dataloader(self.train_set)(
-            shuffle=True,
+        train_dataloaders["sup"] = self.dataloader(self.train_s_set)(
+            sampler=RandomSampler(
+                self.train_s_set,
+                replacement=True,
+                num_samples=self.steps_per_epoch*self.batch_size_s
+            ),
             drop_last=True,
+            batch_size=self.batch_size_s
         )
-        if self.unsup > 0:
-            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
-                shuffle=True,
+        if self.unsup != -1:
+            train_dataloaders["unsup"] = self.dataloader(self.train_u_set)(
+                sampler=RandomSampler(
+                    self.train_u_set,
+                    replacement=True,
+                    num_samples=self.steps_per_epoch*self.batch_size_u
+                ),
                 drop_last=True,
+                batch_size=self.batch_size_u
             )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
@@ -126,10 +120,12 @@ class Digitanie(DigitanieAi4geo):
         return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
+            batch_size=self.batch_size_s
         )
     
     def test_dataloader(self):
         return self.dataloader(self.test_set)(
             shuffle=False,
             drop_last=False,
+            batch_size=self.batch_size_s
         )

@@ -51,23 +51,30 @@ class DigitanieAi4geo(LightningDataModule):
         self,
         data_path,
         merge,
+        sup,
+        unsup,
         bands,
         train_tf,
         test_tf,
-        batch_size,
+        batch_size_s,
+        batch_size_u,
+        steps_per_epoch,
         num_workers,
         pin_memory,
-        class_weights=None,
         *args,
         **kwargs
     ):
         super().__init__()
         self.data_path = Path(data_path)
         self.merge = merge
+        self.sup = sup #unused
+        self.unsup = unsup #unused
         self.bands = bands
         self.train_tf = train_tf
         self.test_tf = test_tf
-        self.batch_size = batch_size
+        self.batch_size_s = batch_size_s
+        self.batch_size_u = batch_size_u
+        self.steps_per_epoch = steps_per_epoch
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.in_channels = len(self.bands)
@@ -75,9 +82,6 @@ class DigitanieAi4geo(LightningDataModule):
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
-        self.class_weights = (
-            [1.0] * self.num_classes if class_weights is None else class_weights
-        )
 
     def get_tf(self, tf, city):
         if isinstance(tf, partial):
@@ -95,18 +99,16 @@ class DigitanieAi4geo(LightningDataModule):
             val_idx, test_idx = map(int, val_test.split('_'))
             imgs = list(citypath.glob('*16bits_COG_*.tif'))
             imgs = sorted(imgs, key=lambda x: int(x.stem.split('_')[-1]))
-            #msks = list(citypath.glob('COS9/*_mask.tif'))
-            #msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-2]))
             msks = list(citypath.glob('COS43/*[0-9].tif'))
             msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
             for i, (img, msk) in enumerate(zip(imgs,msks)):
                 if i==val_idx:
-                    for win in get_tiles(2048, 2048, 256):
+                    for win in get_tiles(2048, 2048, 512):
                         dict_val['IMG'].append(img)
                         dict_val['MSK'].append(msk)
                         dict_val['WIN'].append(win)  
                 elif i==test_idx:
-                    for win in get_tiles(2048, 2048, 256):
+                    for win in get_tiles(2048, 2048, 512):
                         dict_test['IMG'].append(img)
                         dict_test['MSK'].append(msk)
                         dict_test['WIN'].append(win)  
@@ -157,7 +159,6 @@ class DigitanieAi4geo(LightningDataModule):
             DataLoader,
             dataset=dataset,
             collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory
         )
@@ -168,9 +169,10 @@ class DigitanieAi4geo(LightningDataModule):
             sampler=RandomSampler(
                 self.train_set,
                 replacement=True,
-                num_samples=250*self.batch_size
+                num_samples=self.steps_per_epoch*self.batch_size_s
             ),
             drop_last=True,
+            batch_size=self.batch_size_s
         )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
@@ -178,10 +180,12 @@ class DigitanieAi4geo(LightningDataModule):
         return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
+            batch_size=self.batch_size_s
         )
     
     def test_dataloader(self):
         return self.dataloader(self.test_set)(
             shuffle=False,
             drop_last=False,
+            batch_size=self.batch_size_s
         )
