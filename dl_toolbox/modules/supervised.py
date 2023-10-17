@@ -34,10 +34,14 @@ class Supervised(pl.LightningModule):
         self.train_accuracy = M.Accuracy(**metric_args)
         self.val_accuracy = M.Accuracy(**metric_args)
         self.test_accuracy = M.Accuracy(**metric_args)
-        self.val_cm = M.ConfusionMatrix(**metric_args)
-        self.test_cm = M.ConfusionMatrix(**metric_args)
+        self.val_cm = M.ConfusionMatrix(**metric_args, normalize='all')
+        self.test_cm = M.ConfusionMatrix(**metric_args, normalize='all')
         self.val_jaccard = M.JaccardIndex(**metric_args)
         self.test_jaccard = M.JaccardIndex(**metric_args)
+        self.val_ece = M.CalibrationError(**metric_args)
+        self.test_ece = M.CalibrationError(**metric_args)
+        self.val_mce = M.CalibrationError(**metric_args, norm='max')
+        self.test_mce = M.CalibrationError(**metric_args, norm='max')
 
     def configure_optimizers(self):
         optimizer = self.optimizer(params=self.parameters())
@@ -97,24 +101,31 @@ class Supervised(pl.LightningModule):
         if self.dice is not None: 
             dice = self.dice(logits_xs, ys_o)
             self.log(f"dice/val", dice)
-        _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
+        probs = self.logits2probas(logits_xs)
+        _, preds = self.probas2confpreds(probs)
         self.val_accuracy.update(preds, ys)
         self.val_cm.update(preds, ys)
         self.val_jaccard.update(preds, ys)
+        self.val_ece.update(probs, ys)
+        self.val_mce.update(probs, ys)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
         self.log("iou/val", self.val_jaccard.compute())
+        self.log("ece/val", self.val_ece.compute())
+        self.log("mce/val", self.val_mce.compute())
         confmat = self.val_cm.compute().detach().cpu()
         self.val_accuracy.reset()
         self.val_jaccard.reset()
         self.val_cm.reset()
+        self.val_ece.reset()
+        self.val_mce.reset()
         class_names = self.trainer.datamodule.class_names
         logger = self.trainer.logger
         fs = 12 - 2*(self.num_classes//10)
         fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
         try:
-            logger.experiment.add_figure("confmat", fig, global_step=self.trainer.global_step)
+            logger.experiment.add_figure("confmat/val", fig, global_step=self.trainer.global_step)
         except:
             pass
 
@@ -129,29 +140,34 @@ class Supervised(pl.LightningModule):
         if self.dice is not None: 
             dice = self.dice(logits_xs, ys_o)
             self.log(f"dice/test", dice)
-        _, preds = self.probas2confpreds(self.logits2probas(logits_xs))
         if self.tta is not None:
             auxs = [self.forward(x) for x in self.tta(xs)]
             logits_xs = torch.stack([logits_xs] + self.tta.revert(xs, auxs)).sum(dim=0)
-        probas = self.logits2probas(logits_xs)
-        _, preds = self.probas2confpreds(probas)
+        probs = self.logits2probas(logits_xs)
+        _, preds = self.probas2confpreds(probs)
         self.test_accuracy.update(preds, ys)
         self.test_jaccard.update(preds, ys)
         self.test_cm.update(preds, ys)
+        self.test_ece.update(probs, ys)
+        self.test_mce.update(probs, ys)
         
     def on_test_epoch_end(self):
         self.log("accuracy/test", self.test_accuracy.compute())
         self.log("iou/test", self.test_jaccard.compute())
+        self.log("ece/test", self.test_ece.compute())
+        self.log("mce/test", self.test_mce.compute())
         confmat = self.test_cm.compute().detach().cpu()
         self.test_accuracy.reset()
         self.test_jaccard.reset()
         self.test_cm.reset()
+        self.test_ece.reset()
+        self.test_mce.reset()
         class_names = self.trainer.datamodule.class_names
         logger = self.trainer.logger
         fs = 12 - 2*(self.num_classes//10)
         fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
         try:
-            logger.experiment.add_figure("confmat", fig, global_step=self.trainer.global_step)
+            logger.experiment.add_figure("confmat/test", fig, global_step=self.trainer.global_step)
         except:
             pass
 

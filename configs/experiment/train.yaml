@@ -16,8 +16,8 @@ name: sup_semcity
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 16
-    batch_size_s: 16
+    num_workers: 4
+    batch_size_s: 4
     batch_size_u: 8
     pin_memory: true
     steps_per_epoch: 250
