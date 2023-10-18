@@ -46,6 +46,7 @@ class Digitanie(DigitanieAi4geo):
         msks = list(citypath.glob('COS43/*[0-9].tif'))
         msks = sorted(msks, key=lambda x: int(x.stem.split('_')[-1]))
         pairs = list(zip(imgs,msks))
+        print(pairs)
         self.test = [(i,m,w) for i,m in pairs[:2] for w in get_tiles(2048,2048,512,step_w=256)]
         self.val = [(i,m,w) for i,m in pairs[2:3] for w in get_tiles(2048,2048,512,step_w=256)]
         self.train_s = [(i,m,w) for i,m in pairs[3:] for w in get_tiles(2048,2048,512)][::self.sup]
