@@ -20,7 +20,8 @@ digitanie_polygons = {
             [630504, 4940913],
             [629473, 4959797],
         ]
-    ),
+    ), #not defined properly
+    
 
     'BIARRITZ' : P(
         [
