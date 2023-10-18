@@ -37,7 +37,7 @@ class Digitanie(DigitanieAi4geo):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.city = city.title()
+        self.city = city.upper()
         
     def prepare_data(self):
         citypath = self.data_path/f'DIGITANIE_v4/{self.city}'
