@@ -24,7 +24,6 @@ class Cutmix:
                 idx, ..., bbx1:bbx2, bby1:bby2
             ]
         else:
-            print(idx)
             cutmix_targets = lam * target_batch + (1 - lam) * target_batch[idx, :]
 
         all_inputs = torch.vstack([input_batch, cutmix_inputs])
