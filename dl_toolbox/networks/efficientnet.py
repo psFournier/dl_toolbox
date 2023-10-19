@@ -26,15 +26,17 @@ class EfficientNet_b0(EfficientNet):
             norm_layer=norm_layer,
             **kwargs
         )
+
         if weights is not None:
             self.load_state_dict(
                 weights.get_state_dict(progress=True)
             )
+            
             # switching head for num_class and init
-            head = nn.Linear(
-                1280, num_classes
-            )  # 1280 comes from 4 * lastconv_input_channels=320 in efficientnet_b0
+            head = nn.Linear(1280, num_classes)  
             self.classifier[-1] = head
             init_range = 1.0 / math.sqrt(num_classes)
             nn.init.uniform_(head.weight, -init_range, init_range)
             nn.init.zeros_(head.bias)
+            
+        self.feature_extractor = self.features

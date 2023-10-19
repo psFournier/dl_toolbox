@@ -17,7 +17,7 @@ def train(cfg: DictConfig) -> None:
     logging.getLogger("lightning.pytorch").setLevel(logging.ERROR)
     # Let hydra manage directory outputs
     tensorboard = pl.loggers.TensorBoardLogger(
-        ".", "", "", log_graph=True, default_hp_metric=False
+        ".", "", "", default_hp_metric=False
     )
     csv = pl.loggers.csv_logs.CSVLogger(".", "", "")
     
@@ -29,7 +29,7 @@ def train(cfg: DictConfig) -> None:
         # Don't instantiate optimizer submodules with hydra, let `configure_optimizers()` do it
         # _recursive_=False,
     )
-    #summary(module.network, (3, 512, 512))
+    #summary(module.network, (3, 512, 512), depth=4)
 
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     trainer = hydra.utils.instantiate(cfg.trainer)(

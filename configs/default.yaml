@@ -13,6 +13,7 @@ defaults:
       - early_stopping
       #- swa
       - lr_monitor
+      - feature_ft
   - paths: qdtis056z
   - trainer: gpu
   - hydra: default

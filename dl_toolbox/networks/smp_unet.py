@@ -11,3 +11,4 @@ class SmpUnet(Unet):
             classes=num_classes,
             **kwargs
         )
+        self.feature_extractor = self.encoder.get_stages()

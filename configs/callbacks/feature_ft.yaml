@@ -1,0 +1,6 @@
+feature_ft:
+    _target_: dl_toolbox.callbacks.FeatureFt
+    do_finetune: false
+    unfreeze_at_epoch: 10
+    train_bn: true
+
