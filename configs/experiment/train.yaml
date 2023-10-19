@@ -7,8 +7,8 @@ defaults:
   - override /network@module.network: smpunet
 #  - override /network@module.teacher: efficientnet
   - override /trainer: gpu
-
-name: sup_semcity
+  - override /transforms@datamodule.train_tf: crop_d4
+  - override /transforms@module.batch_tf: none
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -16,47 +16,52 @@ name: sup_semcity
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    num_workers: 6
+    num_workers: 10
     batch_size_s: 16
     batch_size_u: 2
     pin_memory: true
     steps_per_epoch: 250
-    #sup: 1
+    sup: 16
     unsup: 1
     
 module:
     dice_loss: null
+    optimizer:
+        lr: 0.001
+    scheduler:
+        milestones: [40]
+    network:
+        #weights: IMAGENET1K_V1
+        encoder_weights: imagenet
+
+callbacks.feature_ft.do_finetune: false
+
+name: semcity_${datamodule.sup}_unet_pre_no_ft
             
 trainer:
   max_time: "00:11:30:59"
   #max_steps: 200000
-  max_epochs: 15
-  limit_train_batches: 1
-  limit_val_batches: 1
+  max_epochs: 50
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      seed: 1
-      datamodule.sup: 30
-      module.network.encoder_weights: imagenet #IMAGENET1K_V1
-      transforms@datamodule.train_tf: crop_resize_color_d4
-      transforms@module.batch_tf: cutmix
-      callbacks.feature_ft.do_finetune: false
+      seed: 1,2,3
+      module.optimizer.lr: 0.01,0.001,0.0001
       #module.alpha_ramp.val: 0.1,0.5,1,5
       #transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    #subdir: ${datamodule.train_tf.name}
+    subdir: seed_${seed}_lr_${module.optimizer.lr}
 #  launcher:
    # setup:
 #        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie
 #        - rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /work/AI4GEO/users/fournip/SemCity-Toulouse-bench/ $TMPDIR/SemCity-Toulouse-bench/
 #        - rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" ${paths.data}/DIGITANIE_v4/ $TMPDIR/DIGITANIE_v4/
     
-callbacks:
-    model_checkpoint:
-        dirpath: ${hydra:sweep.dir}/checkpoints*
+callbacks.model_checkpoint.dirpath: ${hydra:sweep.dir}/checkpoints
     

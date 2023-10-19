@@ -49,6 +49,7 @@ def plot_confusion_matrix(cm, class_names, norm, fontsize=8):
             labels[i, j],
             fontsize=fontsize,
             horizontalalignment="center",
+            verticalalignment="center",
             color=color,
         )
     ax.set_ylabel("True label", fontsize=fontsize)

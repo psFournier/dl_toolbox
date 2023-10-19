@@ -123,7 +123,7 @@ class Digitanie(Dataset):
                 label = file.read(window=window, out_dtype=np.uint8)
             label = merge_labels(label, self.merges)
             label = torch.from_numpy(label).long()
-        image, label = self.transforms(img=image, label=label)
+        image, label = self.transforms(image, label)
         return {
             "image": image,
             "label": None if label is None else label.squeeze(),
