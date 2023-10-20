@@ -161,3 +161,6 @@ outputs/
 # Local files
 local/
 bin/
+
+# Experiment setting
+configs/experiment/

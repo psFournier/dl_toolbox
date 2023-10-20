@@ -1,0 +1,273 @@
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  launcher:
+    _target_: hydra._internal.core_plugins.basic_launcher.BasicLauncher
+  sweeper:
+    _target_: hydra._internal.core_plugins.basic_sweeper.BasicSweeper
+    max_batch_size: null
+    params: null
+  help:
+    app_name: ${hydra.job.name}
+    header: '${hydra.help.app_name} is powered by Hydra.
+
+      '
+    footer: 'Powered by Hydra (https://hydra.cc)
+
+      Use --hydra-help to view Hydra specific help
+
+      '
+    template: '${hydra.help.header}
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (group=option)
+
+
+      $APP_CONFIG_GROUPS
+
+
+      == Config ==
+
+      Override anything in the config (foo.bar=value)
+
+
+      $CONFIG
+
+
+      ${hydra.help.footer}
+
+      '
+  hydra_help:
+    template: 'Hydra (${hydra.runtime.version})
+
+      See https://hydra.cc for more info.
+
+
+      == Flags ==
+
+      $FLAGS_HELP
+
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (For example, append hydra/job_logging=disabled
+      to command line)
+
+
+      $HYDRA_CONFIG_GROUPS
+
+
+      Use ''--cfg hydra'' to Show the Hydra config.
+
+      '
+    hydra_help: ???
+  hydra_logging:
+    version: 1
+    formatters:
+      colorlog:
+        (): colorlog.ColoredFormatter
+        format: '[%(cyan)s%(asctime)s%(reset)s][%(purple)sHYDRA%(reset)s] %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: colorlog
+        stream: ext://sys.stdout
+    root:
+      level: INFO
+      handlers:
+      - console
+    disable_existing_loggers: false
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+      colorlog:
+        (): colorlog.ColoredFormatter
+        format: '[%(cyan)s%(asctime)s%(reset)s][%(blue)s%(name)s%(reset)s][%(log_color)s%(levelname)s%(reset)s]
+          - %(message)s'
+        log_colors:
+          DEBUG: purple
+          INFO: green
+          WARNING: yellow
+          ERROR: red
+          CRITICAL: red
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: colorlog
+        stream: ext://sys.stdout
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers:
+      - console
+      - file
+    disable_existing_loggers: false
+  env: {}
+  mode: MULTIRUN
+  searchpath: []
+  callbacks: {}
+  output_subdir: .hydra
+  overrides:
+    hydra:
+    - hydra.mode=MULTIRUN
+    task:
+    - paths=qdtis056z
+    - +experiment=pred
+  job:
+    name: predict
+    chdir: true
+    override_dirname: +experiment=pred,paths=qdtis056z
+    id: ???
+    num: ???
+    config_name: default_pred.yaml
+    env_set: {}
+    env_copy: []
+    config:
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        exclude_keys: []
+  runtime:
+    version: 1.3.2
+    version_base: '1.3'
+    cwd: /d/pfournie/dl_toolbox
+    config_sources:
+    - path: hydra.conf
+      schema: pkg
+      provider: hydra
+    - path: /d/pfournie/dl_toolbox/configs
+      schema: file
+      provider: main
+    - path: hydra_plugins.hydra_colorlog.conf
+      schema: pkg
+      provider: hydra-colorlog
+    - path: ''
+      schema: structured
+      provider: schema
+    output_dir: ???
+    choices:
+      experiment: pred
+      hydra: default
+      trainer: gpu
+      paths: qdtis056z
+      callbacks@preds_writer: classif_preds_writer
+      module: supervised
+      transforms@module.tta: tta
+      transforms@module.batch_tf: none
+      loss@module.dice_loss: dice
+      loss@module.ce_loss: ce
+      network@module.network: smpunet
+      scheduler@module.scheduler: multistep
+      optimizer@module.optimizer: sgd
+      datamodule: semcity/semcity
+      transforms@datamodule.test_tf: none
+      transforms@datamodule.train_tf: none
+      hydra/env: default
+      hydra/callbacks: null
+      hydra/job_logging: colorlog
+      hydra/hydra_logging: colorlog
+      hydra/hydra_help: default
+      hydra/help: default
+      hydra/sweeper: basic
+      hydra/launcher: basic
+      hydra/output: default
+  verbose: false
+ckpt: /data/outputs/semcity_16_unet_pre/2023-10-20_174320/checkpoints/last.ckpt
+seed: 1
+datamodule:
+  train_tf:
+    _target_: dl_toolbox.transforms.NoOp
+  test_tf:
+    _target_: dl_toolbox.transforms.ImagenetNormalize
+  _target_: dl_toolbox.datamodules.Semcity
+  data_path: ${paths.data}
+  sup: 16
+  unsup: -1
+  batch_size_s: 32
+  batch_size_u: 2
+  steps_per_epoch: 250
+  bands:
+  - 1
+  - 2
+  - 3
+  num_workers: 6
+  merge: main5
+  pin_memory: true
+module:
+  _target_: dl_toolbox.modules.Supervised
+  optimizer:
+    _target_: torch.optim.SGD
+    _partial_: true
+    lr: 0.01
+    momentum: 0.9
+    weight_decay: 0.0005
+    nesterov: true
+  scheduler:
+    _target_: torch.optim.lr_scheduler.MultiStepLR
+    _partial_: true
+    milestones:
+    - 50
+    gamma: 0.1
+  network:
+    _target_: dl_toolbox.networks.SmpUnet
+    _partial_: true
+    encoder_name: efficientnet-b0
+    encoder_weights: null
+  ce_loss:
+    _target_: torch.nn.CrossEntropyLoss
+    ignore_index: -1
+    reduction: mean
+  dice_loss: null
+  batch_tf:
+    _target_: dl_toolbox.transforms.NoOp
+  tta:
+    _target_: dl_toolbox.transforms.TTA
+    transforms:
+    - _target_: dl_toolbox.transforms.Hflip
+    - _target_: dl_toolbox.transforms.Vflip
+    - _target_: dl_toolbox.transforms.Transpose1
+    - _target_: dl_toolbox.transforms.Transpose2
+    reverse:
+    - _target_: dl_toolbox.transforms.Hflip
+    - _target_: dl_toolbox.transforms.Vflip
+    - _target_: dl_toolbox.transforms.Transpose1
+    - _target_: dl_toolbox.transforms.Transpose2
+preds_writer:
+  classif_preds_writer:
+    _target_: dl_toolbox.callbacks.TiffPredsWriter
+    out_path: /data/outputs/semcity_16_unet_pre/2023-10-20_174320/checkpoints/last
+    base: ${datamodule.data_path}
+callbacks:
+  model_summary:
+    _target_: pytorch_lightning.callbacks.ModelSummary
+    max_depth: 4
+paths:
+  data: /data
+  output_dir: /data/outputs
+  code: /d/pfournie/dl_toolbox
+trainer:
+  _target_: pytorch_lightning.Trainer
+  _partial_: true
+  default_root_dir: ${hydra:run.dir}
+  min_epochs: 1
+  max_steps: 1000000
+  max_epochs: 100
+  limit_train_batches: 1.0
+  limit_val_batches: 1.0
+  num_sanity_val_steps: 0
+  accelerator: gpu
+  devices: 1
+  check_val_every_n_epoch: 1
+  log_every_n_steps: ${datamodule.steps_per_epoch}
+  deterministic: false
+  max_time: 00:11:30:59
+name: pred_semcity_${datamodule.sup}

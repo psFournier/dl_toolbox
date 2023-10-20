@@ -64,6 +64,9 @@ class Semcity(LightningDataModule):
         self.val = [(*paths(7), t) for t in get_tiles(3504, 3452, 512, step_w=256)]
         train = [(*paths(num), t) for num in set(range(1, 17))-{6,7,11} for t in get_tiles(3504, 3452, 876, 863)]
         self.train_s = train[::self.sup]
+        train_copy = train.copy()
+        del train_copy[::self.sup]
+        self.predict = self.test + self.val + train_copy
         if self.unsup != -1: self.train_u = train[::self.unsup]
 
     def setup(self, stage):
@@ -88,6 +91,12 @@ class Semcity(LightningDataModule):
         )
         self.test_set = datasets.Semcity(
             *[list(t) for t in zip(*self.test)],
+            self.bands,
+            self.merge,
+            transforms=self.test_tf
+        )
+        self.predict_set = datasets.Semcity(
+            *[list(t) for t in zip(*self.predict)],
             self.bands,
             self.merge,
             transforms=self.test_tf
@@ -134,6 +143,13 @@ class Semcity(LightningDataModule):
     
     def test_dataloader(self):
         return self.dataloader(self.test_set)(
+            shuffle=False,
+            drop_last=False,
+            batch_size=self.batch_size_s
+        )
+    
+    def predict_dataloader(self):
+        return self.dataloader(self.predict_set)(
             shuffle=False,
             drop_last=False,
             batch_size=self.batch_size_s

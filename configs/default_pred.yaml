@@ -1,0 +1,16 @@
+# @package _global_
+
+# specify here default configuration
+# order of defaults determines the order in which configs override each other
+defaults:
+  - _self_
+  - datamodule: resisc
+  - module: supervised
+  - callbacks:
+      - model_summary
+  - paths: qdtis056z
+  - trainer: gpu
+  - hydra: default
+
+ckpt: ???
+seed: 1

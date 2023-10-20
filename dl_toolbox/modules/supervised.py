@@ -171,6 +171,9 @@ class Supervised(pl.LightningModule):
     def predict_step(self, batch, batch_idx):
         xs = batch["image"]
         logits_xs = self.forward(xs)
+        if self.tta is not None:
+            auxs = [self.forward(x) for x in self.tta(xs)]
+            logits_xs = torch.stack([logits_xs] + self.tta.revert(xs, auxs)).sum(dim=0)
         return logits_xs
 
 

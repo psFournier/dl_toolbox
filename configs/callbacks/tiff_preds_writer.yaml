@@ -1,0 +1,5 @@
+classif_preds_writer:
+  _target_: dl_toolbox.callbacks.ClassifPredsWriter
+  out_path: ???
+  base: ???
+

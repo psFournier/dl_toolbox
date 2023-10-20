@@ -12,18 +12,17 @@ class SelfTraining(Supervised):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-
-        self.weak_tf = self.tf
         self.strong_tf = strong_tf
 
     def forward(self, x):
-        return self.network(x)
+        return self.network.forward(x)
 
     def training_step(self, batch, batch_idx):
         batch, pseudosup_batch = batch["sup"], batch["pseudosup"]
         xs = batch["image"]
         ys = batch["label"]
-        xs_weak, ys_weak = self.weak_tf(xs, ys)
+        ys_o = self.one_hot(ys)
+        xs, ys_o = self.batch_tf(xs, ys_o)
         # ST    
         x_pl = pseudosup_batch["image"]
         prob_y_pl = pseudosup_batch["label"]
