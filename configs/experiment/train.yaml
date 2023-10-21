@@ -17,11 +17,11 @@ defaults:
 
 datamodule:
     city: TOULOUSE
-    num_workers: 6
-    batch_size_s: 8
+    num_workers: 10
+    batch_size_s: 16
     batch_size_u: 2
     pin_memory: true
-    steps_per_epoch: 250
+    steps_per_epoch: 50
     sup: 16
     unsup: -1
     norm_per_city: true
@@ -34,36 +34,33 @@ datamodule:
     
 module:
     dice_loss: null
-    optimizer:
-        lr: 0.01
     scheduler:
-        milestones: [50]
+        milestones: [10,20,30]
     network:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
 
 callbacks:
     feature_ft:
-        do_finetune: true
-        unfreeze_at_epoch: 75
+        unfreeze_at_epoch: 40
 
-name: semcity_${datamodule.sup}_unet_pre
+name: digitanie_${datamodule.sup}_unet_pre
             
 trainer:
   max_time: "00:11:30:59"
   #max_steps: 200000
-  max_epochs: 5
-  limit_train_batches: 1
-  limit_val_batches: 1
+  max_epochs: 50
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      seed: 1
-      module.optimizer.lr: 0.01
-      callbacks.feature_ft.do_finetune: true
+      seed: 1,2,3
+      module.optimizer.lr: 0.01,0.001,0.0001
+      callbacks.feature_ft.do_finetune: false,true
       #module.alpha_ramp.val: 0.1,0.5,1,5
       #transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:
