@@ -1,5 +1,5 @@
 defaults:
-    - /transforms@train_tf: crop_d4
+    - /transforms@train_tf: none
     - /transforms@test_tf: none
     
 _target_: dl_toolbox.datamodules.Digitanie
@@ -11,7 +11,7 @@ batch_size_u: 8
 steps_per_epoch: 250
 bands: [1,2,3]
 num_workers: 6
-merge: nomenc
+merge: main5
 pin_memory: False
 city: TOULOUSE
 norm_per_city: true

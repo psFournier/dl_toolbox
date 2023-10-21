@@ -5,6 +5,7 @@ defaults:
   - override /module: supervised
   - override /scheduler@module.scheduler: multistep
   - override /network@module.network: smpunet
+  - override /loss@module.dice_loss: dice
   - override /trainer: gpu
   - override /transforms@datamodule.train_tf: none
   - override /transforms@datamodule.test_tf: none
@@ -21,8 +22,8 @@ datamodule:
     batch_size_s: 16
     batch_size_u: 2
     pin_memory: true
-    steps_per_epoch: 50
-    sup: 16
+    steps_per_epoch: 10
+    sup: 1
     unsup: -1
     norm_per_city: true
     train_tf:
@@ -33,16 +34,15 @@ datamodule:
             - _target_: dl_toolbox.transforms.D4
     
 module:
-    dice_loss: null
     scheduler:
-        milestones: [10,20,30]
+        milestones: [40]
     network:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
 
 callbacks:
     feature_ft:
-        unfreeze_at_epoch: 40
+        unfreeze_at_epoch: 25
 
 name: digitanie_${datamodule.sup}_unet_pre
             
@@ -58,7 +58,7 @@ hydra:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
   sweeper:
     params:
-      seed: 1,2,3
+      seed: 1
       module.optimizer.lr: 0.01,0.001,0.0001
       callbacks.feature_ft.do_finetune: false,true
       #module.alpha_ramp.val: 0.1,0.5,1,5

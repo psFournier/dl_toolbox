@@ -25,7 +25,7 @@ _all43 = [
     label("field", (235, 255, 6), 8),
     label("sport_vegetation", (190, 215, 165), 9),
     label("grassland", (140, 240, 118), 10),
-    label("aquaculture", (11, 222, 189), 1),
+    label("aquaculture", (11, 222, 189), 11),
     label("hedge", (119, 211, 0), 12),
     label("shrub", (113, 184, 48), 13),
     label("vegetation", (0, 210, 50), 14),
@@ -72,6 +72,15 @@ nomenc = [
     label("Snow&Ice", (0,250,250), {7,20}),
     label("High vegetation", (0,120,15), {12,13,14,15,16,17,18,19}),
     label("Herbaceous vegetation", (140,240,118), {8,9,10})
+]
+
+main5 = [
+    label("void", (255, 255, 255), {0,43}),
+    label("impervious surface", (38, 38, 38), {38,36,34,32,31,30,29,28,25}),
+    label("building", (238, 118, 33), {42,41,40,39,38,37}),
+    label("pervious surface", (34, 139, 34), {1,2,3,4,5,6,7,8,9,10,33,27,35}),
+    label("high vegetation", (0, 222, 137), {12,13,14,15,16,17,18,19}),
+    label("water", (0, 0, 238), {11,20,21,22,23,24,26})
 ]
 
 classes = enum.Enum(
