@@ -16,3 +16,4 @@ strong_tf:
     transforms: 
         - _target_: dl_toolbox.transforms.Color
           bounds: [0.5, 0.5]
+metric_ignore_index: null

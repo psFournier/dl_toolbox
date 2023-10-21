@@ -18,8 +18,8 @@ defaults:
 
 datamodule:
     city: TOULOUSE
-    num_workers: 10
-    batch_size_s: 16
+    num_workers: 5
+    batch_size_s: 8
     batch_size_u: 2
     pin_memory: true
     steps_per_epoch: 10
@@ -39,6 +39,7 @@ module:
     network:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
+    metric_ignore_index: 0
 
 callbacks:
     feature_ft:
@@ -59,8 +60,8 @@ hydra:
   sweeper:
     params:
       seed: 1
-      module.optimizer.lr: 0.01,0.001,0.0001
-      callbacks.feature_ft.do_finetune: false,true
+      module.optimizer.lr: 0.01
+      callbacks.feature_ft.do_finetune: true
       #module.alpha_ramp.val: 0.1,0.5,1,5
       #transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:

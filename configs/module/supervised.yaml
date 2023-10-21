@@ -9,3 +9,4 @@ defaults:
   - /transforms@tta: tta
 
 _target_: dl_toolbox.modules.Supervised
+metric_ignore_index: null

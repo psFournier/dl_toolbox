@@ -10,6 +10,7 @@ defaults:
   - _self_
   
 _target_: dl_toolbox.modules.CrossPseudoSupervision
+metric_ignore_index: null
 alpha_ramp:
     _target_: dl_toolbox.utils.ConstantRamp
     val: 0.1
