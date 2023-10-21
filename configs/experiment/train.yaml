@@ -18,8 +18,8 @@ defaults:
 
 datamodule:
     city: TOULOUSE
-    num_workers: 5
-    batch_size_s: 8
+    num_workers: 10
+    batch_size_s: 16
     batch_size_u: 2
     pin_memory: true
     steps_per_epoch: 10
@@ -35,22 +35,23 @@ datamodule:
     
 module:
     scheduler:
-        milestones: [40]
+        milestones: [80]
     network:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
     metric_ignore_index: 0
 
+
 callbacks:
     feature_ft:
-        unfreeze_at_epoch: 25
+        unfreeze_at_epoch: 90
 
-name: digitanie_${datamodule.sup}_unet_pre
+name: digitanie_${datamodule.sup}_unet_noft
             
 trainer:
   max_time: "00:11:30:59"
   #max_steps: 200000
-  max_epochs: 50
+  max_epochs: 100
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -60,13 +61,14 @@ hydra:
   sweeper:
     params:
       seed: 1
-      module.optimizer.lr: 0.01
-      callbacks.feature_ft.do_finetune: true
+      module.optimizer.lr: 0.01,0.001,0.0001
+      module.optimizer.momentum: 0.8,0.9,0.95
+      callbacks.feature_ft.do_finetune: false
       #module.alpha_ramp.val: 0.1,0.5,1,5
       #transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    subdir: seed_${seed}_lr_${module.optimizer.lr}_ft_${callbacks.feature_ft.do_finetune}
+    subdir: seed_${seed}_lr_${module.optimizer.lr}_${module.optimizer.momentum}
 #  launcher:
    # setup:
 #        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie

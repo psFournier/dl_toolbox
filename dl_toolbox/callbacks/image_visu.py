@@ -89,3 +89,13 @@ class SegmentationImagesVisualisation(pl.Callback):
             self.display_batch(
                 trainer.datamodule.class_colors, trainer, pl_module, batch, prefix="Val"
             )
+            
+    def on_test_batch_end(
+        self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx
+    ) -> None:
+        """Called when the validation batch ends."""
+
+        if batch_idx <= 1:
+            self.display_batch(
+                trainer.datamodule.class_colors, trainer, pl_module, batch, prefix="Test"
+            )
