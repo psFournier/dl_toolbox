@@ -87,7 +87,8 @@ classes = enum.Enum(
     "DigitanieClasses",
     {
         "all43": all43,
-        "nomenc": nomenc
+        "nomenc": nomenc,
+        "main5": main5
     }
 )
 
