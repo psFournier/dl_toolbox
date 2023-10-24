@@ -47,7 +47,7 @@ class MeanTeacher(Supervised):
         with torch.no_grad():
             yu_t = self.teacher.forward(self.norm(xu))
         aug_xu, aug_yu_t = self.consistency_tf(xu, yu_t)
-        logits_aug_xu = self.student(aug_xu)
+        logits_aug_xu = self.student.forward(self.norm(aug_xu))
         consistency = self.consistency_loss(logits_aug_xu, aug_yu_t)
         self.log("consistency/train", consistency)
         return sup_loss + self.alpha * consistency

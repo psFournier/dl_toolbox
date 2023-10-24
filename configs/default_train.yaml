@@ -11,7 +11,7 @@ defaults:
       - model_checkpoint
       - model_summary
       - early_stopping
-      - swa
+      #- swa
       - lr_monitor
       - feature_ft
   - paths: qdtis056z
