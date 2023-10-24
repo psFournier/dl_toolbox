@@ -6,6 +6,7 @@ defaults:
   - /loss@dice_loss: dice
   - /transforms@batch_tf: none
   - /transforms@tta: tta
+  - /transforms@norm: imagenet_norm
   - /network@network2: smpunet
   - _self_
   

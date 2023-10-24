@@ -1,5 +1,4 @@
 defaults:
-  - _self_
   - /optimizer: sgd
   - /scheduler: constant
   - /network: smpunet
@@ -8,6 +7,8 @@ defaults:
   - /transforms@batch_tf: none
   - /transforms@tta: tta
   - /transforms@norm: imagenet_norm
+  - _self_
+
 
 _target_: dl_toolbox.modules.Supervised
 metric_ignore_index: null

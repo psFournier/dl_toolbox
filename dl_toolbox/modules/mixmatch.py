@@ -23,7 +23,7 @@ class Mixmatch(Supervised):
         self.temp = temperature
 
     def forward(self, x):
-        return self.network(x)
+        return self.network.forward(self.norm(x))
 
     def on_train_epoch_start(self):
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)
@@ -36,7 +36,7 @@ class Mixmatch(Supervised):
         xu_weaks = [self.weak_tf(xu, None)[0] for _ in range(2)]
         xu_weak = torch.vstack(xu_weaks)
         with torch.no_grad():
-            logits_xu_weak = self.network(xu_weak)
+            logits_xu_weak = self.forward(xu_weak)
             chunks = torch.stack(torch.chunk(logits_xu_weak, chunks=2))
             probs_xu_weak = self.logits2probas(chunks.sum(dim=0))
             probs_xu_weak = probs_xu_weak ** (1.0 / self.temp)
@@ -55,8 +55,8 @@ class Mixmatch(Supervised):
         b_s = ys.shape[0]
         xs_mix, ys_mix = self.mix_tf(xs, ys_o, x_perm[:b_s], y_perm[:b_s])
         xu_mix, yu_mix = self.mix_tf(xu_weak, yu, x_perm[b_s:], y_perm[b_s:])
-        logits_xs_mix = self.network(xs_mix)
-        logits_xu_mix = self.network(xu_mix)
+        logits_xs_mix = self.forward(xs_mix)
+        logits_xu_mix = self.forward(xu_mix)
         ce_s = self.ce(logits_xs_mix, ys_mix)
         self.log("mixmatch ce sup/train", ce_s)
         ce_u = self.ce(logits_xu_mix, yu_mix)

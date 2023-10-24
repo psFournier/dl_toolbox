@@ -6,6 +6,7 @@ defaults:
   - loss@dice_loss: dice
   - /transforms@tf: d4
   - /transforms@tta: tta
+  - /transforms@norm: imagenet_norm
   - _self_
 
 _target_: dl_toolbox.modules.SelfTraining

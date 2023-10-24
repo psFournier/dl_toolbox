@@ -15,7 +15,7 @@ class SelfTraining(Supervised):
         self.strong_tf = strong_tf
 
     def forward(self, x):
-        return self.network.forward(x)
+        return self.network.forward(self.norm(x))
 
     def training_step(self, batch, batch_idx):
         batch, pseudosup_batch = batch["sup"], batch["pseudosup"]
@@ -30,11 +30,13 @@ class SelfTraining(Supervised):
         x_pl_strong, y_pl_strong = self.strong_tf(x_pl, y_pl)
         x = torch.vstack((xs_weak, x_pl_strong))
         y = torch.vstack((ys_weak, y_pl_strong))
-        logits_x = self.network(x)
+        logits_x = self.forward(x)
         ce = self.ce(logits_x, y)
         self.log(f"cross_entropy/train", ce)
-        dice = self.dice(logits_x, y)
-        self.log(f"dice/train", dice)
+        dice = 0
+        if self.dice is not None: 
+            dice = self.dice(logits_x, ys_o)
+            self.log(f"dice/train", dice)
         _, preds = self.probas2confpreds(self.logits2probas(logits_x))
         self.train_accuracy.update(preds, y)
-        return self.ce_weight * ce + self.dice_weight * dice
+        return ce + dice

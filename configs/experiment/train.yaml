@@ -2,10 +2,10 @@
 
 defaults:
   - override /datamodule: resisc/resisc
-  - override /module: mt
+  - override /module: cps
   - override /scheduler@module.scheduler: multistep
   - override /network@module.network: efficientnet
-  - override /network@module.teacher: efficientnet
+  - override /network@module.network2: efficientnet
   - override /trainer: gpu
   - override /transforms@datamodule.to_0_1: to_0_1
   - override /transforms@datamodule.train_tf: none

@@ -6,6 +6,7 @@ defaults:
   - /loss@dice_loss: dice
   - /transforms@batch_tf: none
   - /transforms@tta: tta
+  - /transforms@norm: imagenet_norm
   - /loss@ce_loss_u: ce
   - /transforms@weak_tf: color
   - /transforms@mix_tf: mixup2

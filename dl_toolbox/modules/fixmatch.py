@@ -23,7 +23,7 @@ class Fixmatch(Supervised):
         self.threshold = threshold
         
     def forward(self, x):
-        return self.network(x)
+        return self.network.forward(self.norm(x))
 
     def on_train_epoch_start(self):
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)
@@ -36,11 +36,11 @@ class Fixmatch(Supervised):
         xu_weak, _ = self.weak_tf(xu, None)
         xu_strong, _ = self.strong_tf(xu, None)
         with torch.no_grad():
-            logits_xu_weak = self.network(xu_weak)
+            logits_xu_weak = self.forward(xu_weak)
             probs_xu_weak = self.logits2probas(logits_xu_weak)
             conf_xu_weak, pl_xu_weak = self.probas2confpreds(probs_xu_weak)
             certain_xu_weak = conf_xu_weak.ge(self.threshold).float()
-        logits_xu_strong = self.network(xu_strong)
+        logits_xu_strong = self.forward(xu_strong)
         xu_ce = self.ce_u(logits_xu_strong, pl_xu_weak)
         certain_xu_weak_sum = torch.sum(certain_xu_weak) + 1e-5
         consistency = torch.sum(certain_xu_weak * xu_ce) / certain_xu_weak_sum

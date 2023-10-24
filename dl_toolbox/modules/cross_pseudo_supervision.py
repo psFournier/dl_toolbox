@@ -25,7 +25,7 @@ class CrossPseudoSupervision(Supervised):
         self.alpha_ramp = alpha_ramp
 
     def forward(self, x):
-        return self.network1(x)
+        return self.network1.forward(self.norm(x))
 
     def on_train_epoch_start(self):
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)
@@ -35,8 +35,8 @@ class CrossPseudoSupervision(Supervised):
         sup_loss = super().training_step(batch, batch_idx)      
         #CPS
         unsup_inputs = batch["unsup"]["image"]
-        unsup_logits_1 = self.network1(unsup_inputs)
-        unsup_logits_2 = self.network2(unsup_inputs)
+        unsup_logits_1 = self.network1.forward(self.norm(unsup_inputs))
+        unsup_logits_2 = self.network2.forward(self.norm(unsup_inputs))
         with torch.no_grad():
             _, unsup_pl_2 = torch.max(unsup_logits_2, dim=1)
             _, unsup_pl_1 = torch.max(unsup_logits_1, dim=1)
