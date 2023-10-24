@@ -7,6 +7,7 @@ defaults:
   - /transforms@batch_tf: none
   - /transforms@tta: tta
   - /transforms@norm: imagenet_norm
+  - /transforms@cutmix: cutmix
   - /network@network2: smpunet
   - _self_
   
