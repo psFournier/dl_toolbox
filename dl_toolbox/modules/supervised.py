@@ -21,6 +21,7 @@ class Supervised(pl.LightningModule):
         batch_tf,
         tta,
         metric_ignore_index,
+        norm,
         *args,
         **kwargs
     ):
@@ -33,6 +34,7 @@ class Supervised(pl.LightningModule):
         self.dice = dice_loss
         self.batch_tf = batch_tf
         self.tta = tta
+        self.norm = norm
         metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
         self.train_accuracy = M.Accuracy(**metric_args)
         self.val_accuracy = M.Accuracy(**metric_args)
@@ -63,7 +65,7 @@ class Supervised(pl.LightningModule):
         }
 
     def forward(self, x):
-        return self.network.forward(x)
+        return self.network.forward(self.norm(x))
 
     def logits2probas(cls, logits):
         return logits.softmax(dim=1)

@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, RandomSampler, ConcatDataset, Subset
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate
+from dl_toolbox.transforms import Compose, NoOp
 
 
 class Resisc(LightningDataModule):
@@ -18,6 +19,7 @@ class Resisc(LightningDataModule):
         merge,
         sup,
         unsup,
+        to_0_1,
         train_tf,
         test_tf,
         batch_size_s,
@@ -34,6 +36,7 @@ class Resisc(LightningDataModule):
         self.merge = merge
         self.sup = sup
         self.unsup = unsup
+        self.to_0_1 = to_0_1
         self.train_tf = train_tf
         self.test_tf = test_tf
         self.batch_size_s = batch_size_s
@@ -73,25 +76,31 @@ class Resisc(LightningDataModule):
 
     def setup(self, stage):
         data_path = self.data_path/'NWPU-RESISC45'
-        if stage in ['fit', 'validate']:
-            self.train_s_set = Subset(
-                datasets.Resisc(data_path, self.train_tf, self.merge),
-                indices=self.train_s_idx,
+        self.train_s_set = Subset(
+            datasets.Resisc(
+                data_path,Compose([self.to_0_1, self.train_tf]), self.merge
+            ),
+            indices=self.train_s_idx,
+        )
+        self.val_set = Subset(
+            datasets.Resisc(
+                data_path, Compose([self.to_0_1, self.test_tf]), self.merge
+            ),
+            indices=self.val_idx,
+        )
+        if self.unsup > 0:
+            self.train_u_set = Subset(
+                datasets.Resisc(
+                    data_path, Compose([self.to_0_1, NoOp()]), self.merge
+                ),
+                indices=self.train_u_idx,
             )
-            self.val_set = Subset(
-                datasets.Resisc(data_path, self.test_tf, self.merge),
-                indices=self.val_idx,
-            )
-            if self.unsup > 0:
-                self.train_u_set = Subset(
-                    datasets.Resisc(data_path, self.train_tf, self.merge),
-                    indices=self.train_u_idx,
-                )
-        elif stage == 'test':
-            self.test_set = Subset(
-                datasets.Resisc(data_path, self.test_tf, self.merge),
-                indices=self.test_idx,
-            )
+        self.test_set = Subset(
+            datasets.Resisc(
+                data_path, Compose([self.to_0_1, self.test_tf]), self.merge
+            ),
+            indices=self.test_idx,
+        )
                 
     def dataloader(self, dataset):
         return partial(

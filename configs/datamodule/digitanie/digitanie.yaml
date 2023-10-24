@@ -1,4 +1,5 @@
 defaults:
+    - /transforms@to_0_1: none
     - /transforms@train_tf: none
     - /transforms@test_tf: none
     
@@ -14,4 +15,3 @@ num_workers: 6
 merge: main5
 pin_memory: False
 city: TOULOUSE
-norm_per_city: true

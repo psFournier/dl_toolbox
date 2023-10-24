@@ -21,6 +21,7 @@ import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate, get_tiles
 from .digi_polygons import digitanie_polygons
 from .digitanie_ai4geo import DigitanieAi4geo
+from dl_toolbox.transforms import NoOp
 
 
 def is_window_in_poly(w, tf, p):
@@ -68,7 +69,7 @@ class Digitanie(DigitanieAi4geo):
             self.train_u_set = datasets.DigitanieUnlabeledToa(
                 toa=self.toa,
                 bands=[1,2,3],
-                transforms=self.get_tf(self.train_tf, self.city),
+                transforms=self.get_tf(NoOp(), self.city),
                 windows=self.toa_windows[::self.unsup]
             )
         self.val_set = datasets.Digitanie(

@@ -1,0 +1,3 @@
+_target_: dl_toolbox.transforms.To_0_1
+mins: [0,0,0]
+maxs: [255,255,255]

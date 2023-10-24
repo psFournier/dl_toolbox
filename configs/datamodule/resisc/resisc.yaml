@@ -1,4 +1,5 @@
 defaults:
+    - /transforms@to_0_1: to_0_1
     - /transforms@train_tf: d4
     - /transforms@test_tf: none
 

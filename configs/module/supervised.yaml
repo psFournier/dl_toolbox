@@ -7,6 +7,7 @@ defaults:
   - /loss@dice_loss: dice
   - /transforms@batch_tf: none
   - /transforms@tta: tta
+  - /transforms@norm: imagenet_norm
 
 _target_: dl_toolbox.modules.Supervised
 metric_ignore_index: null

@@ -1,12 +1,13 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: digitanie/digitanie
-  - override /module: supervised
+  - override /datamodule: resisc/resisc
+  - override /module: mt
   - override /scheduler@module.scheduler: multistep
-  - override /network@module.network: smpunet
-  - override /loss@module.dice_loss: dice
+  - override /network@module.network: efficientnet
+  - override /network@module.teacher: efficientnet
   - override /trainer: gpu
+  - override /transforms@datamodule.to_0_1: to_0_1
   - override /transforms@datamodule.train_tf: none
   - override /transforms@datamodule.test_tf: none
   - override /transforms@module.batch_tf: none
@@ -17,41 +18,43 @@ defaults:
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    city: TOULOUSE
-    num_workers: 10
-    batch_size_s: 16
-    batch_size_u: 2
+    #city: TOULOUSE
+    num_workers: 5
+    batch_size_s: 4
+    batch_size_u: 4
     pin_memory: true
     steps_per_epoch: 10
     sup: 1
-    unsup: -1
-    norm_per_city: true
+    unsup: 1
     train_tf:
         _target_: dl_toolbox.transforms.Compose
         transforms: 
             - _target_: dl_toolbox.transforms.RandomCrop2
               size: 256
             - _target_: dl_toolbox.transforms.D4
+            - _target_: dl_toolbox.transforms.Color
+              bounds: [0.6,1.4]
     
 module:
     scheduler:
         milestones: [80]
     network:
-        #weights: IMAGENET1K_V1
-        encoder_weights: imagenet
+        weights: IMAGENET1K_V1
+        #encoder_weights: imagenet
     metric_ignore_index: 0
+    dice_loss: null
 
 
 callbacks:
     feature_ft:
         unfreeze_at_epoch: 90
 
-name: digitanie_${datamodule.sup}_unet_noft
+name: toulouse_${datamodule.sup}_sup
             
 trainer:
   max_time: "00:11:30:59"
   #max_steps: 200000
-  max_epochs: 100
+  max_epochs: 10
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -61,9 +64,9 @@ hydra:
   sweeper:
     params:
       seed: 1
-      module.optimizer.lr: 0.01,0.001,0.0001
-      module.optimizer.momentum: 0.8,0.9,0.95
-      callbacks.feature_ft.do_finetune: false
+      module.optimizer.lr: 0.01
+      module.optimizer.momentum: 0.9
+      callbacks.feature_ft.do_finetune: true
       #module.alpha_ramp.val: 0.1,0.5,1,5
       #transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:

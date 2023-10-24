@@ -33,7 +33,7 @@ class MeanTeacher(Supervised):
         self.ema_ramp = ema_ramp
 
     def forward(self, x):
-        return self.student(x)
+        return self.student.forward(self.norm(x))
 
     def on_train_epoch_start(self):
         self.alpha = self.alpha_ramp(self.trainer.current_epoch)
@@ -45,7 +45,7 @@ class MeanTeacher(Supervised):
         sup_loss = super().training_step(batch, batch_idx)
         xu = batch["unsup"]["image"]
         with torch.no_grad():
-            yu_t = self.teacher(xu)
+            yu_t = self.teacher.forward(self.norm(xu))
         aug_xu, aug_yu_t = self.consistency_tf(xu, yu_t)
         logits_aug_xu = self.student(aug_xu)
         consistency = self.consistency_loss(logits_aug_xu, aug_yu_t)

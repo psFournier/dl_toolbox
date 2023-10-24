@@ -69,7 +69,8 @@ class Semcity(Dataset):
         window = Window(*win)
         with rasterio.open(img, "r") as file:
             image = file.read(window=window, out_dtype=np.float32, indexes=self.bands)
-        image = torch.from_numpy(image)/255.
+        #image = torch.from_numpy(image)/255.
+        image = torch.from_numpy(image)
         label = None
         if self.msks:
             #msk = self.msks[idx // len(self.crops)]

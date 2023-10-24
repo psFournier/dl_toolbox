@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate, get_tiles
-from dl_toolbox.transforms import Compose, NormalizeFromNpy
+from dl_toolbox.transforms import Compose
 
 
 class DigitanieAi4geo(LightningDataModule):
@@ -55,9 +55,9 @@ class DigitanieAi4geo(LightningDataModule):
         sup,
         unsup,
         bands,
+        to_0_1,
         train_tf,
         test_tf,
-        norm_per_city,
         batch_size_s,
         batch_size_u,
         steps_per_epoch,
@@ -72,6 +72,7 @@ class DigitanieAi4geo(LightningDataModule):
         self.sup = sup #unused
         self.unsup = unsup #unused
         self.bands = bands
+        self.to_0_1 = to_0_1
         self.train_tf = train_tf
         self.test_tf = test_tf
         self.batch_size_s = batch_size_s
@@ -84,19 +85,13 @@ class DigitanieAi4geo(LightningDataModule):
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
-        self.norm_per_city = norm_per_city
-        if norm_per_city:
-            self.norm=partial(
-                NormalizeFromNpy,
-                npy=self.data_path/'DIGITANIE_v4/normalisation_stats.npy',
-                min_p=2, max_p=995, bands=[1,2,3]
-            )
+        self.npy_stats = self.data_path/'DIGITANIE_v4/normalisation_stats.npy'
 
     def get_tf(self, tf, city):
-        if self.norm_per_city:
-            return Compose([self.norm(city=city), tf])
+        if isinstance(self.to_0_1, partial):
+            return Compose([self.to_0_1(npy=self.npy_stats, city=city), tf])
         else:
-            return tf
+            return Compose([self.to_0_1(), tf])    
         
     def prepare_data(self):
         self.dicts = {}

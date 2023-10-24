@@ -15,6 +15,8 @@ from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate, get_tiles
+from dl_toolbox.transforms import Compose, NoOp
+
 
 
 class Semcity(LightningDataModule):
@@ -26,6 +28,7 @@ class Semcity(LightningDataModule):
         sup,
         unsup,
         bands,
+        to_0_1,
         train_tf,
         test_tf,
         batch_size_s,
@@ -42,6 +45,7 @@ class Semcity(LightningDataModule):
         self.sup = sup
         self.unsup = unsup
         self.bands = bands
+        self.to_0_1 = to_0_1
         self.train_tf = train_tf
         self.test_tf = test_tf
         self.batch_size_s = batch_size_s
@@ -62,44 +66,47 @@ class Semcity(LightningDataModule):
             return img_dir/f'TLS_BDSD_RGB_{num:02}.tif', msk_dir/f'TLS_indMap_{num:02}_1.tif'
         self.test = [(*paths(num), t) for num in [6,11] for t in get_tiles(3504, 3452, 512, step_w=256)]
         self.val = [(*paths(7), t) for t in get_tiles(3504, 3452, 512, step_w=256)]
-        train = [(*paths(num), t) for num in set(range(1, 17))-{6,7,11} for t in get_tiles(3504, 3452, 876, 863)]
+        train_tiles = set(range(1, 17))-{6,7,11}
+        train = [(*paths(num), t) for num in train_tiles for t in get_tiles(3504, 3452, 876, 863)]
         self.train_s = train[::self.sup]
         train_copy = train.copy()
         del train_copy[::self.sup]
         self.predict = self.test + self.val + train_copy
-        if self.unsup != -1: self.train_u = train[::self.unsup]
+        if self.unsup != -1:
+            train_u = [(*paths(num), t) for num in train_tiles for t in get_tiles(3504, 3452, 512, 512)]
+            self.train_u = train_u[::self.unsup]
 
     def setup(self, stage):
         self.train_s_set = datasets.Semcity(
             *[list(t) for t in zip(*self.train_s)],
             self.bands,
             self.merge,
-            transforms=self.train_tf
+            transforms=Compose([self.to_0_1, self.train_tf])
         )
         if self.unsup != -1:
             self.train_u_set = datasets.Semcity(
                 *[list(t) for t in zip(*self.train_u)],
                 self.bands,
                 self.merge,
-                transforms=self.train_tf
+                transforms=Compose([self.to_0_1, NoOp()])
             )
         self.val_set = datasets.Semcity(
             *[list(t) for t in zip(*self.val)],
             self.bands,
             self.merge,
-            transforms=self.test_tf
+            transforms=Compose([self.to_0_1, self.test_tf])
         )
         self.test_set = datasets.Semcity(
             *[list(t) for t in zip(*self.test)],
             self.bands,
             self.merge,
-            transforms=self.test_tf
+            transforms=Compose([self.to_0_1, self.test_tf])
         )
         self.predict_set = datasets.Semcity(
             *[list(t) for t in zip(*self.predict)],
             self.bands,
             self.merge,
-            transforms=self.test_tf
+            transforms=Compose([self.to_0_1, self.test_tf])
         )
                 
     def dataloader(self, dataset):

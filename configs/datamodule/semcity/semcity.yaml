@@ -1,11 +1,12 @@
 defaults:
+    - /transforms@to_0_1: to_0_1
     - /transforms@train_tf: crop
     - /transforms@test_tf: none
 
 _target_: dl_toolbox.datamodules.Semcity
 data_path: ${paths.data}
 sup: 1
-unsup: -1
+unsup: 1
 batch_size_s: 8
 batch_size_u: 8
 steps_per_epoch: 250

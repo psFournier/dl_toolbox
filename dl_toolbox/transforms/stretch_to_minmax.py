@@ -7,7 +7,7 @@ from .utils import stretch_to_minmax
 import torchvision.transforms.functional as F
 
 
-class StretchToMinmax:
+class To_0_1:
     def __init__(self, mins, maxs):
         self.mins = torch.Tensor(mins).reshape((-1, 1, 1))
         self.maxs = torch.Tensor(maxs).reshape((-1, 1, 1))
@@ -16,11 +16,24 @@ class StretchToMinmax:
         img = stretch_to_minmax(img, self.mins, self.maxs)
         return img, label
     
-class StretchToMinmaxFromCsv:
+class To_0_1_fromCsv:
     def __init__(self, csv, min_p, max_p, bands):
         stats = pd.read_csv(csv, index_col=0)
         mins = [stats[min_p].loc[f'band_{i}'] for i in bands]
         maxs = [stats[max_p].loc[f'band_{i}'] for i in bands]
+        self.mins = torch.Tensor(mins).reshape((-1, 1, 1))
+        self.maxs = torch.Tensor(maxs).reshape((-1, 1, 1))
+
+    def __call__(self, img, label=None):
+        img = stretch_to_minmax(img, self.mins, self.maxs)
+        return img, label
+
+class To_0_1_fromNpy:
+    def __init__(self, npy, bands, city):
+        stats = np.load(npy, allow_pickle=True).item()
+        city_stats = stats[city.title()]
+        mins = [0. for _ in bands]
+        maxs = [city_stats[f'perc_995'][i-1] for i in bands]
         self.mins = torch.Tensor(mins).reshape((-1, 1, 1))
         self.maxs = torch.Tensor(maxs).reshape((-1, 1, 1))
 
