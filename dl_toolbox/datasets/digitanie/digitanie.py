@@ -60,35 +60,37 @@ _all43 = [
     label("pipeline", (35, 85, 85), 43)
 ]
 all43 = [label(l.name, l.color, {i}) for i, l in enumerate(_all43)]
-          
-nomenc = [
-    label("Nodata", (10,10,10), {0,37,33,35,43,27}),
-    label("Building", (240,0,0), {42,41,40,39}),
-    label("Swimming pool", (100,130,255), {24}),
-    label("Impervious", (130,130,130), {38,36,34,32,31,30,29,28,25}),
-    label("Bare soil", (71,58,17), {1,2,3,4,5,6}),
-    label("Aquaculture", (11,222,189), {11}),
-    label("Natural water", (0,50,250), {21,22,23,26}),
-    label("Snow&Ice", (0,250,250), {7,20}),
-    label("High vegetation", (0,120,15), {12,13,14,15,16,17,18,19}),
-    label("Herbaceous vegetation", (140,240,118), {8,9,10})
-]
 
 main5 = [
-    label("void", (255, 255, 255), {0,43}),
-    label("impervious surface", (38, 38, 38), {38,36,34,32,31,30,29,28,25}),
-    label("building", (238, 118, 33), {42,41,40,39,38,37}),
+    label("void", (255, 255, 255), {0,43,37,34,36,31}),
+    label("impervious surface", (38, 38, 38), {32,30,29,28,25}),
+    label("building", (238, 118, 33), {42,41,40,39,38}),
     label("pervious surface", (34, 139, 34), {1,2,3,4,5,6,7,8,9,10,33,27,35}),
     label("high vegetation", (0, 222, 137), {12,13,14,15,16,17,18,19}),
     label("water", (0, 0, 238), {11,20,21,22,23,24,26})
 ]
 
+main4 = [
+    label("void", (255, 255, 255), {0,43,11,20,21,22,23,24,26,37,34,36,31}),
+    label("impervious surface", (38, 38, 38), {38,32,30,29,28,25}),
+    label("building", (238, 118, 33), {42,41,40,39,38}),
+    label("pervious surface", (34, 139, 34), {1,2,3,4,5,6,7,8,9,10,33,27,35}),
+    label("high vegetation", (0, 222, 137), {12,13,14,15,16,17,18,19}),
+]
+
+building = [
+    label("void", (255, 255, 255), set(range(44))-{42,41,40,39,38}),
+    label("building", (238, 118, 33), {42,41,40,39,38})
+]
+
+    
 classes = enum.Enum(
     "DigitanieClasses",
     {
         "all43": all43,
-        "nomenc": nomenc,
-        "main5": main5
+        "main5": main5,
+        "main4": main4,
+        "building": building
     }
 )
 

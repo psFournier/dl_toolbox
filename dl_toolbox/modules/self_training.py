@@ -14,9 +14,6 @@ class SelfTraining(Supervised):
         super().__init__(*args, **kwargs)
         self.strong_tf = strong_tf
 
-    def forward(self, x):
-        return self.network.forward(self.norm(x))
-
     def training_step(self, batch, batch_idx):
         batch, pseudosup_batch = batch["sup"], batch["pseudosup"]
         xs = batch["image"]

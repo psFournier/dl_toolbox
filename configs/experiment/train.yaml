@@ -2,16 +2,16 @@
 
 defaults:
   - override /datamodule: digitanie/digitanie
-  - override /module: cps
+  - override /module: mt
   - override /scheduler@module.scheduler: multistep
   - override /network@module.network: smpunet
-  - override /network@module.network2: smpunet
+  - override /network@module.teacher: smpunet
   - override /trainer: gpu
   - override /transforms@datamodule.to_0_1: to_0_1_per_city
   - override /transforms@datamodule.train_tf: crop_d4
   - override /transforms@datamodule.test_tf: none
   - override /transforms@module.batch_tf: none
-  - override /transforms@module.cutmix: none
+  - override /transforms@module.consistency_tf: color
   - override /transforms@module.norm: imagenet_norm
 
 
@@ -22,9 +22,10 @@ defaults:
 
 datamodule:
     city: TOULOUSE
-    num_workers: 10
-    batch_size_s: 8
-    batch_size_u: 8
+    merge: building
+    num_workers: 5
+    batch_size_s: 4
+    batch_size_u: 4
     pin_memory: true
     steps_per_epoch: 10
     sup: 1
@@ -42,16 +43,16 @@ module:
     metric_ignore_index: 0
     #dice_loss: null
 
-#callbacks:
-#    feature_ft:
-#        unfreeze_at_epoch: 100
+callbacks:
+    feature_ft:
+        do_finetune: false
 
-name: toulouse_${datamodule.sup}_cps_noft
+name: toulouse_mt_color
             
 trainer:
   max_time: "00:11:30:59"
   #max_steps: 200000
-  max_epochs: 150
+  max_epochs: 200
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -61,13 +62,12 @@ hydra:
   sweeper:
     params:
       seed: 1
-      callbacks.feature_ft.do_finetune: false
       module.alpha_ramp.val: 0.1
-      transforms@module.cutmix: none
+      module.ema_ramp.val: 0.9
       #transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    subdir: alpha_${module.alpha_ramp.val}_${transforms@module.cutmix}
+    subdir: alpha_${module.alpha_ramp.val}_ema_${module.ema_ramp.val}
 #  launcher:
    # setup:
 #        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie
