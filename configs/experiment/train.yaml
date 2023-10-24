@@ -11,7 +11,7 @@ defaults:
   - override /transforms@datamodule.train_tf: crop_d4
   - override /transforms@datamodule.test_tf: none
   - override /transforms@module.batch_tf: none
-  - override /transforms@module.cps_tf: crop
+  - override /transforms@module.cutmix: none
   - override /transforms@module.norm: imagenet_norm
 
 
@@ -22,9 +22,9 @@ defaults:
 
 datamodule:
     city: TOULOUSE
-    num_workers: 10
-    batch_size_s: 16
-    batch_size_u: 16
+    num_workers: 5
+    batch_size_s: 4
+    batch_size_u: 4
     pin_memory: true
     steps_per_epoch: 10
     sup: 1
@@ -63,7 +63,7 @@ hydra:
     params:
       seed: 1
       callbacks.feature_ft.do_finetune: false
-      module.alpha_ramp.val: 0.1,0.5,1,5
+      module.alpha_ramp.val: 0.1
       #transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}

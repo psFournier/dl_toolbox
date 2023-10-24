@@ -39,9 +39,9 @@ class CrossPseudoSupervision(Supervised):
         xu = batch["unsup"]["image"]
         with torch.no_grad():
             yu1 = self.network1.forward(self.norm(xu))
-            yu1 = torch.max(yu1, dim=1)
+            _, yu1 = torch.max(yu1, dim=1)
             yu2 = self.network2.forward(self.norm(xu))
-            yu2 = torch.max(yu2, dim=1)
+            _, yu2 = torch.max(yu2, dim=1)
         xu1, yu1 = self.cutmix(xu, yu1)
         xu2, yu2 = self.cutmix(xu, yu2)
         logits_xu1 = self.network1.forward(self.norm(xu1))
