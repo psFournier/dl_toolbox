@@ -22,9 +22,9 @@ defaults:
 
 datamodule:
     city: TOULOUSE
-    num_workers: 5
-    batch_size_s: 4
-    batch_size_u: 4
+    num_workers: 10
+    batch_size_s: 8
+    batch_size_u: 8
     pin_memory: true
     steps_per_epoch: 10
     sup: 1
@@ -42,10 +42,9 @@ module:
     metric_ignore_index: 0
     #dice_loss: null
 
-
-callbacks:
-    feature_ft:
-        unfreeze_at_epoch: 100
+#callbacks:
+#    feature_ft:
+#        unfreeze_at_epoch: 100
 
 name: toulouse_${datamodule.sup}_cps_noft
             
@@ -64,10 +63,11 @@ hydra:
       seed: 1
       callbacks.feature_ft.do_finetune: false
       module.alpha_ramp.val: 0.1
+      transforms@module.cutmix: none
       #transforms@module.consistency_tf: cutmix,color,crop_resize
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    subdir: alpha_${module.alpha_ramp.val}
+    subdir: alpha_${module.alpha_ramp.val}_${transforms@module.cutmix}
 #  launcher:
    # setup:
 #        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie
