@@ -1,8 +1,8 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: digitanie/digitanie_pseudosup
-  - override /module: selftraining
+  - override /datamodule: digitanie/digitanie
+  - override /module: supervised
   - override /scheduler@module.scheduler: multistep
   - override /network@module.network: smpunet
   - override /trainer: gpu
@@ -20,14 +20,15 @@ defaults:
 datamodule:
     city: TOULOUSE
     merge: building
-    num_workers: 5
-    batch_size_s: 4
+    num_workers: 6
+    batch_size_s: 16
     batch_size_u: 4
     pin_memory: true
     steps_per_epoch: 10
     sup: 1
     unsup: -1
-    pl_dir: /data/outputs/toulouse_sup_building/2023-10-25_110725/checkpoints/last
+    #pl_dir: /data/outputs/toulouse_sup_building/2023-10-25_110725/checkpoints/last
+    #thresh: 100
     
 module:
     scheduler:
@@ -45,11 +46,11 @@ callbacks:
     feature_ft:
         do_finetune: false
 
-name: "toulouse_pseudosup_building"
+name: "toulouse_sup_building"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 20
+  max_epochs: 100
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -59,7 +60,6 @@ hydra:
   sweeper:
     params:
       seed: 1
-      
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}
