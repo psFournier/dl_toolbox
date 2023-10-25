@@ -6,12 +6,14 @@ import pandas as pd
 import rasterio
 import torch
 from pytorch_lightning.callbacks import BasePredictionWriter
+import rasterio.windows as W
 
 
 class TiffPredsWriter(BasePredictionWriter):
     def __init__(self, out_path, base):
         super().__init__(write_interval="batch")
         self.out_path = Path(out_path)
+        self.out_path.mkdir(parents=False, exist_ok=False)
         self.base = Path(base)
         self.stats = {'img':[], 'avg_cert': []}
 
@@ -31,6 +33,8 @@ class TiffPredsWriter(BasePredictionWriter):
             meta["count"] = 1 #pl_module.num_classes
             meta["dtype"] = np.uint8 #np.float32
             meta["nodata"] = None
+            meta["width"], meta["height"] = tuple(p.shape)
+            meta["transform"] = W.transform(W.Window(*win), meta["transform"])
             with rasterio.open(out_msk, "w+", **meta) as dst:
                 dst.write(p.numpy()[np.newaxis,...])
                 

@@ -50,13 +50,13 @@ class Digitanie(DigitanieAi4geo):
         self.test = [(i,m,w) for i,m in pairs[:2] for w in get_tiles(2048,2048,512,step_w=256)]
         self.val = [(i,m,w) for i,m in pairs[2:3] for w in get_tiles(2048,2048,512,step_w=256)]
         self.train_s = [(i,m,w) for i,m in pairs[3:] for w in get_tiles(2048,2048,512)][::self.sup]
-        if self.unsup != -1: 
-            self.toa = next(citypath.glob('*COG.tif'))        
-            with rasterio.open(self.toa, 'r') as ds:
-                city_tf = ds.transform
-                windows = [w[1] for w in ds.block_windows()]
-            city_poly = digitanie_polygons[self.city]
-            self.toa_windows = [w for w in windows if is_window_in_poly(w,city_tf,city_poly)]
+        self.toa = next(citypath.glob('*COG.tif'))        
+        with rasterio.open(self.toa, 'r') as ds:
+            city_tf = ds.transform
+            windows = [w[1] for w in ds.block_windows()]
+        city_poly = digitanie_polygons[self.city]
+        self.toa_windows = [w for w in windows if is_window_in_poly(w,city_tf,city_poly)]
+        print(len(self.toa_windows))
         
     def setup(self, stage):
         self.train_s_set = datasets.Digitanie(
@@ -83,6 +83,12 @@ class Digitanie(DigitanieAi4geo):
             self.bands,
             self.merge,
             transforms=self.get_tf(self.test_tf, self.city)
+        )
+        self.predict_set = datasets.DigitanieUnlabeledToa(
+            toa=self.toa,
+            bands=[1,2,3],
+            transforms=self.get_tf(NoOp(), self.city),
+            windows=self.toa_windows
         )
                 
     def dataloader(self, dataset):
@@ -126,6 +132,13 @@ class Digitanie(DigitanieAi4geo):
     
     def test_dataloader(self):
         return self.dataloader(self.test_set)(
+            shuffle=False,
+            drop_last=False,
+            batch_size=self.batch_size_s
+        )
+
+    def predict_dataloader(self):
+        return self.dataloader(self.predict_set)(
             shuffle=False,
             drop_last=False,
             batch_size=self.batch_size_s

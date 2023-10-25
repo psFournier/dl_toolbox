@@ -28,11 +28,17 @@ main5 = [
     label("water", (0, 0, 238), {6})
 ]
 
+building = [
+    label("void", (255, 255, 255), {0,1,3,4,5,6,7}),
+    label("building", (238, 118, 33), {2})
+]
+
 classes = enum.Enum(
     "SemcityClasses",
     {
         "all7": all7,
-        "main5": main5
+        "main5": main5,
+        "building": building
     },
 )
 

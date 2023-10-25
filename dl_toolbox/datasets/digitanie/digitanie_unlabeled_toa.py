@@ -37,4 +37,10 @@ class DigitanieUnlabeledToa(Digitanie):
             image = file.read(window=window, out_dtype=np.float32, indexes=self.bands)
         image = torch.from_numpy(image).float()
         image, label = self.transforms(img=image, label=None)
-        return {"image": image, "label": None}
+        return {
+            "image": image,
+            "label": None,
+            "image_path": self.toa,
+            "window": window.flatten(),
+            "label_path": None
+        }

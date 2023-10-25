@@ -99,6 +99,7 @@ class DigitanieAi4geo(LightningDataModule):
             dict_train = {'IMG':[], 'MSK':[], "WIN":[]}
             dict_val = {'IMG':[], 'MSK':[], "WIN": []}
             dict_test = {'IMG':[], 'MSK':[], "WIN": []}
+            dict_predict = {'IMG':[], 'MSK':[], "WIN": []}
             citypath = self.data_path/f'DIGITANIE_v4/{city}'
             val_idx, test_idx = map(int, val_test.split('_'))
             imgs = list(citypath.glob('*16bits_COG_*.tif'))
@@ -116,46 +117,57 @@ class DigitanieAi4geo(LightningDataModule):
                         dict_test['IMG'].append(img)
                         dict_test['MSK'].append(msk)
                         dict_test['WIN'].append(win)  
+                        dict_predict['IMG'].append(img)
+                        dict_predict['MSK'].append(msk)
+                        dict_predict['WIN'].append(win)  
                 else:
                     for win in get_tiles(2048, 2048, 512):
                         dict_train['IMG'].append(img)
                         dict_train['MSK'].append(msk)
                         dict_train['WIN'].append(win)
-            self.dicts[city] = {'train': dict_train, 'val': dict_val, 'test': dict_test}
+            self.dicts[city] = {'train': dict_train, 'val': dict_val, 'test': dict_test, 'predict': dict_predict}
         
     def setup(self, stage):
-        if stage in ("fit", "validate"):
-            self.train_set = ConcatDataset([
-                datasets.Digitanie(
-                    self.dicts[city]['train']["IMG"],
-                    self.dicts[city]['train']["MSK"],
-                    self.dicts[city]['train']["WIN"],
-                    self.bands,
-                    self.merge,
-                    self.get_tf(self.train_tf, city)
-                ) for city in self.cities.keys()
-            ])
-            self.val_set = ConcatDataset([
-                datasets.Digitanie(
-                    self.dicts[city]['val']["IMG"],
-                    self.dicts[city]['val']["MSK"],
-                    self.dicts[city]['val']["WIN"],
-                    self.bands,
-                    self.merge,
-                    self.get_tf(self.test_tf, city)
-                ) for city in self.cities.keys()
-            ])
-        if stage in ("test"):
-            self.test_set = ConcatDataset([
-                datasets.Digitanie(
-                    self.dicts[city]['test']["IMG"],
-                    self.dicts[city]['test']["MSK"],
-                    self.dicts[city]['test']["WIN"],
-                    self.bands,
-                    self.merge,
-                    self.get_tf(self.test_tf, city)
-                ) for city in self.cities.keys()
-            ])
+        self.train_set = ConcatDataset([
+            datasets.Digitanie(
+                self.dicts[city]['train']["IMG"],
+                self.dicts[city]['train']["MSK"],
+                self.dicts[city]['train']["WIN"],
+                self.bands,
+                self.merge,
+                self.get_tf(self.train_tf, city)
+            ) for city in self.cities.keys()
+        ])
+        self.val_set = ConcatDataset([
+            datasets.Digitanie(
+                self.dicts[city]['val']["IMG"],
+                self.dicts[city]['val']["MSK"],
+                self.dicts[city]['val']["WIN"],
+                self.bands,
+                self.merge,
+                self.get_tf(self.test_tf, city)
+            ) for city in self.cities.keys()
+        ])
+        self.test_set = ConcatDataset([
+            datasets.Digitanie(
+                self.dicts[city]['test']["IMG"],
+                self.dicts[city]['test']["MSK"],
+                self.dicts[city]['test']["WIN"],
+                self.bands,
+                self.merge,
+                self.get_tf(self.test_tf, city)
+            ) for city in self.cities.keys()
+        ])
+        self.predict_set = ConcatDataset([
+            datasets.Digitanie(
+                self.dicts[city]['predict']["IMG"],
+                self.dicts[city]['predict']["MSK"],
+                self.dicts[city]['predict']["WIN"],
+                self.bands,
+                self.merge,
+                self.get_tf(self.test_tf, city)
+            ) for city in self.cities.keys()
+        ])
 
 
     def dataloader(self, dataset):
@@ -189,6 +201,13 @@ class DigitanieAi4geo(LightningDataModule):
     
     def test_dataloader(self):
         return self.dataloader(self.test_set)(
+            shuffle=False,
+            drop_last=False,
+            batch_size=self.batch_size_s
+        )
+    
+    def predict_dataloader(self):
+        return self.dataloader(self.predict_set)(
             shuffle=False,
             drop_last=False,
             batch_size=self.batch_size_s
