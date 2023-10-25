@@ -9,6 +9,5 @@ defaults:
   - /transforms@norm: imagenet_norm
   - _self_
 
-
 _target_: dl_toolbox.modules.Supervised
 metric_ignore_index: null

@@ -7,12 +7,10 @@ from .supervised import Supervised
 class SelfTraining(Supervised):
     def __init__(
         self,
-        strong_tf,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.strong_tf = strong_tf
 
     def training_step(self, batch, batch_idx):
         batch, pseudosup_batch = batch["sup"], batch["pseudosup"]
@@ -22,18 +20,15 @@ class SelfTraining(Supervised):
         xs, ys_o = self.batch_tf(xs, ys_o)
         # ST    
         x_pl = pseudosup_batch["image"]
-        prob_y_pl = pseudosup_batch["label"]
-        _, y_pl = torch.max(prob_y_pl, dim=1)
-        x_pl_strong, y_pl_strong = self.strong_tf(x_pl, y_pl)
-        x = torch.vstack((xs_weak, x_pl_strong))
-        y = torch.vstack((ys_weak, y_pl_strong))
+        y_pl = pseudosup_batch["label"]
+        y_pl_o = self.one_hot(y_pl)
+        x = torch.vstack((xs, x_pl))
+        y = torch.vstack((ys_o, y_pl_o))
         logits_x = self.forward(x)
         ce = self.ce(logits_x, y)
         self.log(f"cross_entropy/train", ce)
         dice = 0
         if self.dice is not None: 
-            dice = self.dice(logits_x, ys_o)
+            dice = self.dice(logits_x, y)
             self.log(f"dice/train", dice)
-        _, preds = self.probas2confpreds(self.logits2probas(logits_x))
-        self.train_accuracy.update(preds, y)
         return ce + dice

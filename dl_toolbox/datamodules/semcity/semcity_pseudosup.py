@@ -1,6 +1,5 @@
-from .utils import flair_gather_data
 import pandas as pd
-from .flair import Semcity
+from .semcity import Semcity
 import dl_toolbox.datasets as datasets
 from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader, RandomSampler

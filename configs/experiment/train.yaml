@@ -1,8 +1,8 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: digitanie/digitanie
-  - override /module: supervised
+  - override /datamodule: digitanie/digitanie_pseudosup
+  - override /module: selftraining
   - override /scheduler@module.scheduler: multistep
   - override /network@module.network: smpunet
   - override /trainer: gpu
@@ -27,6 +27,7 @@ datamodule:
     steps_per_epoch: 10
     sup: 1
     unsup: -1
+    pl_dir: /data/outputs/toulouse_sup_building/2023-10-25_110725/checkpoints/last
     
 module:
     scheduler:
@@ -34,9 +35,9 @@ module:
     network:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
-    network1:
-        #weights: IMAGENET1K_V1
-        encoder_weights: imagenet
+    #network1:
+    #    #weights: IMAGENET1K_V1
+    #    encoder_weights: imagenet
     metric_ignore_index: 0
     #dice_loss: null
 
@@ -44,7 +45,7 @@ callbacks:
     feature_ft:
         do_finetune: false
 
-name: "toulouse_sup_building"
+name: "toulouse_pseudosup_building"
             
 trainer:
   max_time: "00:11:30:59"
