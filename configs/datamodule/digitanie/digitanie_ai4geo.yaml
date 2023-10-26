@@ -6,7 +6,8 @@ _target_: dl_toolbox.datamodules.DigitanieAi4geo
 data_path: ${paths.data}
 bands: [1,2,3]
 merge: main5
-batch_size: 8
+batch_size_s: 8
+batch_size_u: 8
 num_workers: 6
 pin_memory: False
 steps_per_epoch: 250

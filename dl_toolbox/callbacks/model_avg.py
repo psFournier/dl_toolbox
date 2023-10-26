@@ -176,7 +176,8 @@ class StochasticWeightAveraging(Callback):
         if trainer.current_epoch == self.swa_end + 1:
             # Transfer weights from average model to pl_module
             assert self._average_model is not None
-            self.transfer_weights(self._average_model, pl_module)
+            if self._initialized:
+                self.transfer_weights(self._average_model, pl_module)
 
             # Reset BatchNorm for update
             self.reset_batch_norm_and_save_state(pl_module)
@@ -226,7 +227,8 @@ class StochasticWeightAveraging(Callback):
         elif trainer.current_epoch - 1 == self.swa_end:
             # Last SWA epoch. Transfer weights from average model to pl_module
             assert self._average_model is not None
-            self.transfer_weights(self._average_model, pl_module)
+            if self._initialized:
+                self.transfer_weights(self._average_model, pl_module)
 
     @staticmethod
     def transfer_weights(src_pl_module: "pl.LightningModule", dst_pl_module: "pl.LightningModule") -> None:

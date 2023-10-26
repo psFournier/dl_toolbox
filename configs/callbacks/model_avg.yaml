@@ -1,4 +1,4 @@
-swa:
+model_avg:
   #_target_: pytorch_lightning.callbacks.StochasticWeightAveraging
   _target_: dl_toolbox.callbacks.StochasticWeightAveraging
   #swa_lrs: 0.05
