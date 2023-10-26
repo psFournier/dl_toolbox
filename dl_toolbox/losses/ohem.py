@@ -28,7 +28,6 @@ class ProbOhemCrossEntropy2d(_Loss):
         valid_mask = target.ne(self.ignore_index)
         target = target * valid_mask.long()
         num_valid = valid_mask.sum()
-        print(num_valid)
 
         prob = F.softmax(pred, dim=1)
         prob = (prob.transpose(0, 1)).reshape(c, -1)
