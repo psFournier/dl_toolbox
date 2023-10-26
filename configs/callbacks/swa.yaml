@@ -2,8 +2,8 @@ swa:
   #_target_: pytorch_lightning.callbacks.StochasticWeightAveraging
   _target_: dl_toolbox.callbacks.StochasticWeightAveraging
   #swa_lrs: 0.05
-  swa_epoch_start: 0.9
-  avg_every_n_epochs: 1
+  swa_epoch_start: 100
+  avg_every_n_epochs: 10
   #annealing_epochs: 10
   #annealing_strategy: cos
   avg_fn: null

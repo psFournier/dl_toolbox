@@ -3,7 +3,7 @@
 defaults:
   - override /datamodule: digitanie/digitanie_ai4geo
   - override /module: supervised
-  - override /scheduler@module.scheduler: multistep
+  - override /scheduler@module.scheduler: swa
   - override /network@module.network: smpunet
   - override /trainer: gpu
   - override /transforms@datamodule.to_0_1: to_0_1_per_city
@@ -20,7 +20,7 @@ defaults:
 datamodule:
     #city: TOULOUSE
     merge: main5
-    num_workers: 16
+    num_workers: 6
     batch_size_s: 16
     batch_size_u: 4
     pin_memory: true
@@ -31,8 +31,6 @@ datamodule:
     #thresh: 100
     
 module:
-    scheduler:
-        milestones: [1000]
     network:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
@@ -45,14 +43,17 @@ module:
 callbacks:
     feature_ft:
         do_finetune: false
+    swa:
+        swa_epoch_start: 5
+        avg_every_n_epochs: 5
 
 name: "digi_sup_main5"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 100
-  limit_train_batches: 1.
-  limit_val_batches: 1.
+  max_epochs: 20
+  limit_train_batches: 1
+  limit_val_batches: 1
     
 hydra:
   run:
@@ -60,7 +61,7 @@ hydra:
   sweeper:
     params:
       seed: 1
-      transforms@datamodule.train_tf: crop_d4, crop_color_d4, crop_resize_d4
+      transforms@datamodule.train_tf: crop_d4
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}

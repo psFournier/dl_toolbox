@@ -145,10 +145,12 @@ class StochasticWeightAveraging(Callback):
             # virtually increase max_epochs to perform batch norm update on latest epoch.
             assert trainer.fit_loop.max_epochs is not None
             trainer.fit_loop.max_epochs += 1
-            
-        n = pl_module.num_classes
-        d = pl_module.device
-        self.acc = M.Accuracy(task='multiclass', num_classes=n).to(d)
+        
+        print(self.swa_start)
+        print(self.swa_end)
+        #n = pl_module.num_classes
+        #d = pl_module.device
+        #self.acc = M.Accuracy(task='multiclass', num_classes=n).to(d)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if (not self._initialized) and (self.swa_start <= trainer.current_epoch <= self.swa_end):
@@ -162,9 +164,12 @@ class StochasticWeightAveraging(Callback):
                 self.n_averaged = torch.tensor(self._init_n_averaged, dtype=torch.long, device=pl_module.device)
         
         #
-        if (self.swa_start <= trainer.current_epoch <= self.swa_end) and (
+        
+        print(trainer.current_epoch)
+        print(trainer.lr_scheduler_configs[0].scheduler.optimizer.param_groups[0]["lr"])
+        if (self.swa_start < trainer.current_epoch-1) and (
             trainer.current_epoch > self._latest_update_epoch
-        ) and ((trainer.current_epoch - self.swa_start - 2) % self._avg_every_n == 0):
+        ) and ((trainer.current_epoch-1 - self.swa_start) % self._avg_every_n == 0):
             assert self.n_averaged is not None
             assert self._average_model is not None
             print('averaging at epoch ', trainer.current_epoch)
@@ -189,12 +194,12 @@ class StochasticWeightAveraging(Callback):
             assert isinstance(trainer.fit_loop.max_batches, int), "Iterable-style datasets are not supported"
             trainer.accumulate_grad_batches = trainer.fit_loop.max_batches
             
-    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
-        super().on_train_batch_start(trainer, pl_module, batch, batch_idx)
-        if (self.swa_start <= trainer.current_epoch <= self.swa_end):
-            batch = batch['sup']
-            x, y = batch["image"], batch['label']
-            swa_logits = self._average_model(x)
+    #def on_train_batch_start(self, trainer, pl_module, batch, batch_idx):
+    #    super().on_train_batch_start(trainer, pl_module, batch, batch_idx)
+    #    if (self.swa_start <= trainer.current_epoch <= self.swa_end):
+    #        batch = batch['sup']
+    #        x, y = batch["image"], batch['label']
+    #        swa_logits = self._average_model(x)
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", *args: Any) -> None:
         trainer.fit_loop._skip_backward = False

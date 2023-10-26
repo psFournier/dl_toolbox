@@ -22,10 +22,13 @@ class SwaLR:
             return (1+math.cos(math.pi*p*p))/2
         
     def __call__(self, i):
-        if i<0:
-            return self.cycle_max
-            #p = i/self.start_swa
-            #return self.end_lr + self.t(p) * (self.start_lr - self.end_lr)
-        else:
-            p = (i%self.cycle_len)/(self.cycle_len-1)
-            return self.cycle_min + self.t(p) * (self.cycle_max - self.cycle_min)
+        i = i%self.cycle_len
+        p = i / (self.cycle_len-1)
+        return self.cycle_min + self.t(p) * (self.cycle_max - self.cycle_min)
+        #if i<0:
+        #    return self.cycle_max
+        #    #p = i/self.start_swa
+        #    #return self.end_lr + self.t(p) * (self.start_lr - self.end_lr)
+        #else:
+        #    p = (i%self.cycle_len)/(self.cycle_len-1)
+        #    return self.cycle_min + self.t(p) * (self.cycle_max - self.cycle_min)
