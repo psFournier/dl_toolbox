@@ -60,7 +60,7 @@ hydra:
   sweeper:
     params:
       seed: 1
-      transforms@datamodule.train_tf: crop_d4, crop_color_4, crop_resize_d4
+      transforms@datamodule.train_tf: crop_d4, crop_color_d4, crop_resize_d4
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}

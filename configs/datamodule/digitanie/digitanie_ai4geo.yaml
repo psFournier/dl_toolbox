@@ -9,3 +9,6 @@ merge: main5
 batch_size: 8
 num_workers: 6
 pin_memory: False
+steps_per_epoch: 250
+sup: 1
+unsup: -1
