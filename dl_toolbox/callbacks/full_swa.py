@@ -146,8 +146,6 @@ class StochasticWeightAveraging(Callback):
             assert trainer.fit_loop.max_epochs is not None
             trainer.fit_loop.max_epochs += 1
         
-        print(self.swa_start)
-        print(self.swa_end)
         #n = pl_module.num_classes
         #d = pl_module.device
         #self.acc = M.Accuracy(task='multiclass', num_classes=n).to(d)
@@ -165,8 +163,6 @@ class StochasticWeightAveraging(Callback):
         
         #
         
-        print(trainer.current_epoch)
-        print(trainer.lr_scheduler_configs[0].scheduler.optimizer.param_groups[0]["lr"])
         if (self.swa_start < trainer.current_epoch-1) and (
             trainer.current_epoch > self._latest_update_epoch
         ) and ((trainer.current_epoch-1 - self.swa_start) % self._avg_every_n == 0):

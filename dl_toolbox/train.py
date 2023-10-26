@@ -39,7 +39,7 @@ def train(cfg: DictConfig) -> None:
     )
     
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
-    trainer.test(module, datamodule=datamodule, verbose=True)
+    trainer.validate(module, datamodule=datamodule)
 
 if __name__ == "__main__":
     train()

@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: digitanie/digitanie_ai4geo
+  - override /datamodule: digitanie/digitanie
   - override /module: supervised
   - override /scheduler@module.scheduler: swa
   - override /network@module.network: smpunet
@@ -18,19 +18,25 @@ defaults:
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    #city: TOULOUSE
+    city: TOULOUSE
     merge: main5
     num_workers: 6
     batch_size_s: 16
     batch_size_u: 4
     pin_memory: true
-    steps_per_epoch: 150
+    steps_per_epoch: 7
     sup: 1
     unsup: -1
     #pl_dir: /data/outputs/toulouse_sup_building/2023-10-25_110725/checkpoints/last
     #thresh: 100
-    
+
 module:
+    scheduler:
+        milestones: [100]
+        schedulers:
+            swa:
+                lr_lambda:
+                    cycle_len: 30
     network:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
@@ -40,20 +46,21 @@ module:
     metric_ignore_index: 0
     #dice_loss: null
 
+
 callbacks:
     feature_ft:
         do_finetune: false
     swa:
-        swa_epoch_start: 5
-        avg_every_n_epochs: 5
+        swa_epoch_start: 100
+        avg_every_n_epochs: 30
 
 name: "digi_sup_main5"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 20
-  limit_train_batches: 1
-  limit_val_batches: 1
+  max_epochs: 220
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:

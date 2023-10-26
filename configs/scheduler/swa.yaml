@@ -1,14 +1,15 @@
-milestones: [5]
-schedulers: 
-    - _target_: torch.optim.lr_scheduler.ConstantLR
-      _partial_: True
-      _recursive_: True
-      factor: 1
-    - _target_: torch.optim.lr_scheduler.LambdaLR
-      _partial_: True
-      lr_lambda: 
-          _target_: dl_toolbox.schedulers.SwaLR
-          cycle_len: 5
-          cycle_min: 0.5
-          cycle_max: 1
-          mode: cos 
+milestones: [50]
+schedulers:
+    constant:
+        _target_: torch.optim.lr_scheduler.ConstantLR
+        _partial_: True
+        factor: 1
+    swa:
+        _target_: torch.optim.lr_scheduler.LambdaLR
+        _partial_: True
+        lr_lambda: 
+            _target_: dl_toolbox.schedulers.SwaLR
+            cycle_len: 20
+            cycle_min: 0.05
+            cycle_max: 1
+            mode: cos 
