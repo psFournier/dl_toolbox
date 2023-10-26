@@ -1,12 +1,12 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: digitanie/digitanie
+  - override /datamodule: resisc/resisc
   - override /module: supervised
   - override /scheduler@module.scheduler: swa
-  - override /network@module.network: smpunet
+  - override /network@module.network: efficientnet
   - override /trainer: gpu
-  - override /transforms@datamodule.to_0_1: to_0_1_per_city
+  - override /transforms@datamodule.to_0_1: to_0_1
   - override /transforms@datamodule.train_tf: crop_d4
   - override /transforms@datamodule.test_tf: none
   - override /transforms@module.norm: imagenet_norm
@@ -18,13 +18,13 @@ defaults:
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    city: TOULOUSE
-    merge: main5
+    #city: TOULOUSE
+    merge: all45
     num_workers: 6
-    batch_size_s: 16
+    batch_size_s: 32
     batch_size_u: 4
     pin_memory: true
-    steps_per_epoch: 7
+    steps_per_epoch: 500
     sup: 1
     unsup: -1
     #pl_dir: /data/outputs/toulouse_sup_building/2023-10-25_110725/checkpoints/last
@@ -38,8 +38,8 @@ module:
                 lr_lambda:
                     cycle_len: 30
     network:
-        #weights: IMAGENET1K_V1
-        encoder_weights: imagenet
+        weights: IMAGENET1K_V1
+        #encoder_weights: imagenet
     #network1:
     #    #weights: IMAGENET1K_V1
     #    encoder_weights: imagenet
@@ -49,16 +49,17 @@ module:
 
 callbacks:
     feature_ft:
-        do_finetune: false
+        do_finetune: true
+        unfreeze_at_epoch: 10
     swa:
         swa_epoch_start: 100
         avg_every_n_epochs: 30
 
-name: "digi_sup_main5"
+name: "resisc_sup"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 220
+  max_epochs: 15
   limit_train_batches: 1.
   limit_val_batches: 1.
     

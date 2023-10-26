@@ -1,11 +1,12 @@
 from pytorch_lightning.callbacks import BaseFinetuning
             
 class FeatureFt(BaseFinetuning):
-    def __init__(self, do_finetune=False, unfreeze_at_epoch=10, train_bn=True):
+    def __init__(self, do_finetune=False, unfreeze_at_epoch=10, train_bn=True, initial_denom_lr=10.):
         super().__init__()
         self.do_finetune = do_finetune
         self._unfreeze_at_epoch = unfreeze_at_epoch
         self.train_bn = train_bn
+        self.initial_denom_lr=initial_denom_lr
 
     def freeze_before_training(self, pl_module):
         # freeze any module you want
@@ -20,6 +21,6 @@ class FeatureFt(BaseFinetuning):
                 modules=pl_module.network.feature_extractor,
                 optimizer=optimizer,
                 lr=None,
-                initial_denom_lr=10.,
+                initial_denom_lr=self.initial_denom_lr,
                 train_bn=self.train_bn,
             )

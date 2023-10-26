@@ -3,4 +3,5 @@ feature_ft:
     do_finetune: false
     unfreeze_at_epoch: 10
     train_bn: true
+    initial_denom_lr: 10.
 
