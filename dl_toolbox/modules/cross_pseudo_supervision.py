@@ -13,6 +13,7 @@ class CrossPseudoSupervision(Supervised):
     def __init__(
         self,
         network2,
+        cps_loss,
         cutmix,
         alpha_ramp,
         *args,
@@ -23,6 +24,7 @@ class CrossPseudoSupervision(Supervised):
         self.network2 = network2(
             in_channels=kwargs['in_channels'], num_classes=kwargs['num_classes']
         )
+        self.cps_loss = cps_loss
         self.cutmix = cutmix
         self.alpha_ramp = alpha_ramp
 
@@ -46,7 +48,7 @@ class CrossPseudoSupervision(Supervised):
         xu2, yu2 = self.cutmix(xu, yu2)
         logits_xu1 = self.network1.forward(self.norm(xu1))
         logits_xu2 = self.network2.forward(self.norm(xu2))
-        cps_loss = self.ce(logits_xu1, yu2) + self.ce(logits_xu2, yu1)
+        cps_loss = self.cps_loss(logits_xu1, yu2) + self.cps_loss(logits_xu2, yu1)
         self.log("cps_loss/train", cps_loss)
         if batch["unsup"]["label"] is not None:
             pl_acc = unsup_pl_1.eq(batch["unsup"]["label"]).float().mean()

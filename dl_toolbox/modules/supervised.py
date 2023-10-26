@@ -7,6 +7,7 @@ from dl_toolbox.utils import plot_confusion_matrix
 from pytorch_lightning.utilities import rank_zero_info
 import torch.nn as nn
 import math
+from dl_toolbox.transforms import Mixup
 
 class Supervised(pl.LightningModule):
     def __init__(
@@ -30,7 +31,8 @@ class Supervised(pl.LightningModule):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
-        self.ce = ce_loss
+        self.ce_train = ce_loss
+        self.ce_val = nn.CrossEntropyLoss(ignore_index=metric_ignore_index, reduction='mean')
         self.dice = dice_loss
         self.batch_tf = batch_tf
         self.tta = tta
@@ -84,30 +86,34 @@ class Supervised(pl.LightningModule):
     def one_hot(self, y):
         return F.one_hot(y.unsqueeze(1), self.num_classes).transpose(1,-1).squeeze(-1).float()
     
+    def apply_batch_tf(self, x, y):
+        if isinstance(self.batch_tf, Mixup):
+            print('oui')
+            return self.batch_tf(x, self.one_hot(y))
+        return self.batch_tf(x, y)        
+    
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
         xs = batch["image"]
         ys = batch["label"]
-        ys_o = self.one_hot(ys)
-        xs, ys_o = self.batch_tf(xs, ys_o)
+        xs, ys = self.apply_batch_tf(xs, ys)
         logits_xs = self.forward(xs)
-        ce = self.ce(logits_xs, ys_o)
+        ce = self.ce_train(logits_xs, ys)
         self.log(f"cross_entropy/train", ce)
         dice = 0
         if self.dice is not None: 
-            dice = self.dice(logits_xs, ys_o)
+            dice = self.dice(logits_xs, self.one_hot(batch["label"])) # dice is always multilabel
             self.log(f"dice/train", dice)
         return ce + dice
         
     def validation_step(self, batch, batch_idx):
         xs = batch["image"]
         ys = batch["label"]
-        ys_o = self.one_hot(ys)
         logits_xs = self.forward(xs)
-        ce = self.ce(logits_xs, ys_o)
+        ce = self.ce_val(logits_xs, ys)
         self.log(f"cross_entropy/val", ce)
         if self.dice is not None: 
-            dice = self.dice(logits_xs, ys_o)
+            dice = self.dice(logits_xs, self.one_hot(ys))
             self.log(f"dice/val", dice)
         probs = self.logits2probas(logits_xs)
         _, preds = self.probas2confpreds(probs)
@@ -141,12 +147,11 @@ class Supervised(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         xs = batch["image"]
         ys = batch["label"]
-        ys_o = self.one_hot(ys)
         logits_xs = self.forward(xs)
-        ce = self.ce(logits_xs, ys_o)
+        ce = self.ce_val(logits_xs, ys)
         self.log(f"cross_entropy/test", ce)
         if self.dice is not None: 
-            dice = self.dice(logits_xs, ys_o)
+            dice = self.dice(logits_xs, self.one_hot(ys))
             self.log(f"dice/test", dice)
         if self.tta is not None:
             auxs = [self.forward(x) for x in self.tta(xs)]

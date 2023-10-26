@@ -8,6 +8,7 @@ defaults:
   - /transforms@tta: tta
   - /transforms@norm: imagenet_norm
   - /transforms@cutmix: cutmix
+  - /loss@cps_loss: ce
   - /network@network2: smpunet
   - _self_
   
