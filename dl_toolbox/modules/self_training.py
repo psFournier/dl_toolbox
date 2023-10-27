@@ -24,7 +24,7 @@ class SelfTraining(Supervised):
         y_all = torch.vstack((ys, y_pl))
         x, y = self.apply_batch_tf(x_all, y_all)
         logits_x = self.forward(x)
-        ce = self.ce(logits_x, y)
+        ce = self.ce_train(logits_x, y)
         self.log(f"cross_entropy/train", ce)
         dice = 0
         #if self.dice is not None: 

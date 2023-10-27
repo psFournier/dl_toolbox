@@ -35,8 +35,7 @@ class DigitaniePseudosup(Digitanie):
             self.dict_pl["IMG"],
             self.dict_pl["MSK"],
             self.dict_pl["WIN"],
-            self.bands,
-            self.merge,
+            self.bands, #No merge !
             transforms=self.get_tf(self.train_tf, self.city)
         )
         
