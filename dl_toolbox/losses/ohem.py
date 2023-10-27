@@ -44,7 +44,6 @@ class ProbOhemCrossEntropy2d(_Loss):
                 threshold_index = index[min(len(index), self.min_kept) - 1]
                 if mask_prob[threshold_index] > self.thresh:
                     threshold = mask_prob[threshold_index]
-                    print('new threshold : ', threshold)
                 kept_mask = mask_prob.le(threshold)     # 概率小于阈值的挖出来
                 target = target * kept_mask.long()
                 valid_mask = valid_mask * kept_mask
