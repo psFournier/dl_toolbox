@@ -88,7 +88,6 @@ class Supervised(pl.LightningModule):
     
     def apply_batch_tf(self, x, y):
         if isinstance(self.batch_tf, Mixup):
-            print('oui')
             return self.batch_tf(x, self.one_hot(y))
         return self.batch_tf(x, y)        
     
@@ -96,14 +95,14 @@ class Supervised(pl.LightningModule):
         batch = batch["sup"]
         xs = batch["image"]
         ys = batch["label"]
-        xs, ys = self.apply_batch_tf(xs, ys)
-        logits_xs = self.forward(xs)
-        ce = self.ce_train(logits_xs, ys)
+        x, y = self.apply_batch_tf(xs, ys)
+        logits_x = self.forward(x)
+        ce = self.ce_train(logits_x, y)
         self.log(f"cross_entropy/train", ce)
         dice = 0
-        if self.dice is not None: 
-            dice = self.dice(logits_xs, self.one_hot(batch["label"])) # dice is always multilabel
-            self.log(f"dice/train", dice)
+        #if self.dice is not None: 
+        #    dice = self.dice(self.forward(batch["image"]), self.one_hot(batch["label"])) # dice is always multilabel
+        #    self.log(f"dice/train", dice)
         return ce + dice
         
     def validation_step(self, batch, batch_idx):

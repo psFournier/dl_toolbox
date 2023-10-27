@@ -1,13 +1,13 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: digitanie/digitanie
-  - override /module: supervised
+  - override /datamodule: digitanie/digitanie_pseudosup
+  - override /module: selftraining
   - override /scheduler@module.scheduler: swa
   - override /network@module.network: smpunet
   - override /trainer: gpu
   - override /transforms@datamodule.to_0_1: to_0_1_per_city
-  - override /transforms@datamodule.train_tf: crop_resize_color_d4
+  - override /transforms@datamodule.train_tf: none
   - override /transforms@datamodule.test_tf: none
   - override /transforms@module.norm: imagenet_norm
   - override /transforms@module.batch_tf: none
@@ -21,19 +21,19 @@ defaults:
 datamodule:
     city: TOULOUSE
     merge: main5
-    num_workers: 6
-    batch_size_s: 16
-    batch_size_u: 8
+    num_workers: 16
+    batch_size_s: 4
+    #batch_size_u: 8
     pin_memory: true
-    steps_per_epoch: 10
+    steps_per_epoch: 30
     sup: 1
     unsup: 1
-    #pl_dir: /data/outputs/toulouse_sup_building/2023-10-25_110725/checkpoints/last
+    pl_dir: /work/AI4GEO/users/fournip/outputs/test_ohem/2023-10-27_143004/0/checkpoints/epoch_180
     #thresh: 100
 
 module:
     scheduler:
-        milestones: [150]
+        milestones: [270]
         schedulers:
             swa:
                 lr_lambda:
@@ -43,6 +43,8 @@ module:
         encoder_weights: imagenet
     metric_ignore_index: 0
     dice_loss: null
+    ce_loss:
+        ignore_index: 0
 
 
 callbacks:
@@ -50,14 +52,16 @@ callbacks:
         do_finetune: true
         unfreeze_at_epoch: 1000
     model_avg:
-        swa_epoch_start: 150
+        swa_epoch_start: 270
         avg_every_n_epochs: 30
+    model_checkpoint:
+        dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
 
-name: "test_ohem"
+name: "test_st"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 180
+  max_epochs: 300
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -67,10 +71,9 @@ hydra:
   sweeper:
     params:
       seed: 1
-      module.ce_loss.ignore_index: 0,-1
-      #module.ce_loss.thresh: 0.3,0.5,0.7,0.9,1.
-      #module.ce_loss.min_kept: 10000
-      #module.alpha_ramp.val: 0.1
+      datamodule.batch_size_u: 4,8,16
+      transforms@datamodule.train_tf: crop,crop_d4,crop_resize_color_d4
+      datamodule.thresh: 100,500,1000,1500
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}
@@ -78,7 +81,4 @@ hydra:
    # setup:
 #        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie
 #        - rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /work/AI4GEO/users/fournip/SemCity-Toulouse-bench/ $TMPDIR/SemCity-Toulouse-bench/
-#        - rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" ${paths.data}/DIGITANIE_v4/ $TMPDIR/DIGITANIE_v4/
-    
-callbacks.model_checkpoint.dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
-    
+#        - rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" ${paths.data}/DIGITANIE_v4/ $TMPDIR/DIGITANIE_v4/    
