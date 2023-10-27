@@ -91,7 +91,7 @@ class DigitanieAi4geo(LightningDataModule):
         if isinstance(self.to_0_1, partial):
             return Compose([self.to_0_1(npy=self.npy_stats, city=city), tf])
         else:
-            return Compose([self.to_0_1(), tf])    
+            return Compose([self.to_0_1, tf])    
         
     def prepare_data(self):
         self.dicts = {}

@@ -11,7 +11,7 @@ defaults:
   - override /transforms@datamodule.test_tf: none
   - override /transforms@module.norm: imagenet_norm
   - override /transforms@module.batch_tf: none
-  - override /loss@module.ce_loss: ohem
+  - override /loss@module.ce_loss: ce
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -22,7 +22,7 @@ datamodule:
     city: TOULOUSE
     merge: main5
     num_workers: 6
-    batch_size_s: 8
+    batch_size_s: 16
     batch_size_u: 8
     pin_memory: true
     steps_per_epoch: 10
@@ -33,7 +33,7 @@ datamodule:
 
 module:
     scheduler:
-        milestones: [1000]
+        milestones: [150]
         schedulers:
             swa:
                 lr_lambda:
@@ -42,7 +42,7 @@ module:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
     metric_ignore_index: 0
-    #dice_loss: null
+    dice_loss: null
 
 
 callbacks:
@@ -50,14 +50,14 @@ callbacks:
         do_finetune: true
         unfreeze_at_epoch: 1000
     model_avg:
-        swa_epoch_start: 100
+        swa_epoch_start: 150
         avg_every_n_epochs: 30
 
 name: "test_ohem"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 50
+  max_epochs: 180
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -67,6 +67,9 @@ hydra:
   sweeper:
     params:
       seed: 1
+      module.ce_loss.ignore_index: 0,-1
+      #module.ce_loss.thresh: 0.3,0.5,0.7,0.9,1.
+      #module.ce_loss.min_kept: 10000
       #module.alpha_ramp.val: 0.1
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
