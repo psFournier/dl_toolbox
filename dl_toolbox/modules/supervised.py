@@ -148,14 +148,14 @@ class Supervised(pl.LightningModule):
         xs = batch["image"]
         ys = batch["label"]
         logits_xs = self.forward(xs)
+        if self.tta is not None:
+            auxs = [self.forward(x) for x in self.tta(xs)]
+            logits_xs = torch.stack([logits_xs] + self.tta.revert(auxs)).sum(dim=0)
         ce = self.ce_val(logits_xs, ys)
         self.log(f"cross_entropy/test", ce)
         if self.dice is not None: 
             dice = self.dice(logits_xs, self.one_hot(ys))
             self.log(f"dice/test", dice)
-        if self.tta is not None:
-            auxs = [self.forward(x) for x in self.tta(xs)]
-            logits_xs = torch.stack([logits_xs] + self.tta.revert(xs, auxs)).sum(dim=0)
         probs = self.logits2probas(logits_xs)
         _, preds = self.probas2confpreds(probs)
         self.test_accuracy.update(preds, ys)
@@ -189,7 +189,7 @@ class Supervised(pl.LightningModule):
         logits_xs = self.forward(xs)
         if self.tta is not None:
             auxs = [self.forward(x) for x in self.tta(xs)]
-            logits_xs = torch.stack([logits_xs] + self.tta.revert(xs, auxs)).sum(dim=0)
+            logits_xs = torch.stack([logits_xs] + self.tta.revert(auxs)).sum(dim=0)
         return logits_xs
 
 

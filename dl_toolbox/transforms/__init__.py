@@ -1,5 +1,5 @@
 from .color import Brightness, Color, Contrast, Gamma, Saturation
-from .crop import RandomCrop2, RandomResizedCrop
+from .crop import RandomCrop2, RandomResizedCrop, RemovePad, PadSymmetric
 from .cutmix import Cutmix, Cutmix2
 from .d4 import D4, Flip, Hflip, Rot180, Rot270, Rot90, Transpose1, Transpose2, Vflip
 from .mixup import Mixup, Mixup2

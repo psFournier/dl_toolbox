@@ -4,8 +4,24 @@ transforms:
     - _target_: dl_toolbox.transforms.Vflip
     - _target_: dl_toolbox.transforms.Transpose1
     - _target_: dl_toolbox.transforms.Transpose2
+    - _target_: dl_toolbox.transforms.PadSymmetric
+      ltrb: [64,64,0,0]
+    - _target_: dl_toolbox.transforms.PadSymmetric
+      ltrb: [0,64,64,0]
+    - _target_: dl_toolbox.transforms.PadSymmetric
+      ltrb: [0,0,64,64]
+    - _target_: dl_toolbox.transforms.PadSymmetric
+      ltrb: [64,0,0,64]
 reverse:
     - _target_: dl_toolbox.transforms.Hflip
     - _target_: dl_toolbox.transforms.Vflip
     - _target_: dl_toolbox.transforms.Transpose1
     - _target_: dl_toolbox.transforms.Transpose2
+    - _target_: dl_toolbox.transforms.RemovePad
+      ltrb: [64,64,0,0]
+    - _target_: dl_toolbox.transforms.RemovePad
+      ltrb: [0,64,64,0]
+    - _target_: dl_toolbox.transforms.RemovePad
+      ltrb: [0,0,64,64]
+    - _target_: dl_toolbox.transforms.RemovePad
+      ltrb: [64,0,0,64]

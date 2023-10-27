@@ -56,7 +56,6 @@ class Digitanie(DigitanieAi4geo):
             windows = [w[1] for w in ds.block_windows()]
         city_poly = digitanie_polygons[self.city]
         self.toa_windows = [w for w in windows if is_window_in_poly(w,city_tf,city_poly)]
-        print(len(self.toa_windows))
         
     def setup(self, stage):
         self.train_s_set = datasets.Digitanie(

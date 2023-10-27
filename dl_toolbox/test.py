@@ -8,7 +8,7 @@ import torch
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision('high')
 
-@hydra.main(version_base="1.3", config_path="../configs", config_name="default.yaml")
+@hydra.main(version_base="1.3", config_path="../configs", config_name="default_pred.yaml")
 def main(cfg: DictConfig) -> None:
     
     pl.seed_everything(cfg.seed)
@@ -19,9 +19,9 @@ def main(cfg: DictConfig) -> None:
         cfg.module,
         num_classes=datamodule.num_classes,
         in_channels=datamodule.in_channels,
-        class_weights=datamodule.class_weights,
     )
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
+    
     trainer = hydra.utils.instantiate(cfg.trainer)(
         callbacks=list(callbacks.values())
     )
