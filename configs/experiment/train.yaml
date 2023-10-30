@@ -72,7 +72,7 @@ hydra:
     params:
       seed: 1
       datamodule.batch_size_u: 4,8,16
-      transforms@datamodule.train_tf: crop,crop_d4,crop_resize_color_d4
+      transforms@datamodule.train_tf: crop_d4,crop_resize_color_d4
       datamodule.thresh: 100,500,1000,1500
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
