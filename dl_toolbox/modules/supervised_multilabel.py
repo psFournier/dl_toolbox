@@ -8,19 +8,9 @@ from dl_toolbox.utils import plot_confusion_matrix
 from .supervised import Supervised
 
 
-class Multilabel(pl.LightningModule):
+class Multilabel(Supervised):
     def __init__(
         self,
-        network,
-        optimizer,
-        scheduler,
-        bce_loss,
-        dice_loss,
-        class_weights,
-        ce_weight,
-        dice_weight,
-        in_channels,
-        num_classes,
         *args,
         **kwargs
     ):
