@@ -31,7 +31,7 @@ class SegmentationImagesVisualisation(pl.Callback):
         if label_is_img:
             labels_rgb = labels_to_rgb(label, colors=colors).transpose((0, 3, 1, 2))
             labels_rgb = torch.from_numpy(labels_rgb).float()
-        prob = module.logits2probas(logits)
+        prob = module.loss.prob(logits)
         _, pred = module.probas2confpreds(prob)
         pred_is_img = (pred.ndim==3)
         if pred_is_img:

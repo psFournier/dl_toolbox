@@ -2,8 +2,7 @@ defaults:
   - /optimizer: sgd
   - /scheduler: constant
   - /network: smpunet
-  - /loss@ce_loss: ce
-  - /loss@dice_loss: dice
+  - /loss: ce
   - /transforms@batch_tf: none
   - /transforms@tta: tta
   - /transforms@norm: imagenet_norm
@@ -11,3 +10,4 @@ defaults:
 
 _target_: dl_toolbox.modules.Supervised
 metric_ignore_index: null
+one_hot: false

@@ -17,12 +17,12 @@ class Supervised(pl.LightningModule):
         num_classes,
         optimizer,
         scheduler,
-        ce_loss,
-        dice_loss,
+        loss,
         batch_tf,
         tta,
         metric_ignore_index,
         norm,
+        one_hot,
         *args,
         **kwargs
     ):
@@ -31,12 +31,11 @@ class Supervised(pl.LightningModule):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_classes = num_classes
-        self.ce_train = ce_loss
-        self.ce_val = nn.CrossEntropyLoss(ignore_index=metric_ignore_index, reduction='mean')
-        self.dice = dice_loss
+        self.loss = loss
         self.batch_tf = batch_tf
         self.tta = tta
         self.norm = norm
+        self.one_hot = one_hot
         metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
         self.train_accuracy = M.Accuracy(**metric_args)
         self.val_accuracy = M.Accuracy(**metric_args)
@@ -77,50 +76,37 @@ class Supervised(pl.LightningModule):
     def forward(self, x):
         return self.network.forward(self.norm(x))
 
-    def logits2probas(cls, logits):
-        return logits.softmax(dim=1)
-
     def probas2confpreds(cls, probas):
-        return torch.max(probas, dim=1)   
-        
-    def one_hot(self, y):
-        return F.one_hot(y.unsqueeze(1), self.num_classes).transpose(1,-1).squeeze(-1).float()
+        return torch.max(probas, dim=1)       
     
-    def apply_batch_tf(self, x, y):
-        if isinstance(self.batch_tf, Mixup):
-            return self.batch_tf(x, self.one_hot(y))
-        return self.batch_tf(x, y)        
+    def to_one_hot(self, y):
+        return torch.movedim(F.one_hot(y, self.num_classes),-1,1).float()
     
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]
-        xs = batch["image"]
-        ys = batch["label"]
-        x, y = self.apply_batch_tf(xs, ys)
+        x = batch["image"]
+        y = batch["label"]
+        if self.one_hot: y = self.to_one_hot(y)
+        x, y = self.batch_tf(x, y)
         logits_x = self.forward(x)
-        ce = self.ce_train(logits_x, y)
-        self.log(f"cross_entropy/train", ce)
-        dice = 0
-        #if self.dice is not None: 
-        #    dice = self.dice(self.forward(batch["image"]), self.one_hot(batch["label"])) # dice is always multilabel
-        #    self.log(f"dice/train", dice)
-        return ce + dice
+        loss = self.loss(logits_x, y)
+        self.log(f"{self.loss.__name__}/train", loss)
+        return loss
         
     def validation_step(self, batch, batch_idx):
-        xs = batch["image"]
-        ys = batch["label"]
-        logits_xs = self.forward(xs)
-        ce = self.ce_val(logits_xs, ys)
-        self.log(f"cross_entropy/val", ce)
-        if self.dice is not None: 
-            dice = self.dice(logits_xs, self.one_hot(ys))
-            self.log(f"dice/val", dice)
-        probs = self.logits2probas(logits_xs)
+        x = batch["image"]
+        y = batch["label"]
+        if self.one_hot: y = self.to_one_hot(y)
+        logits_x = self.forward(x)
+        loss = self.loss(logits_x, y)
+        self.log(f"{self.loss.__name__}/val", loss)
+        probs = self.loss.prob(logits_x)
         _, preds = self.probas2confpreds(probs)
-        self.val_accuracy.update(preds, ys)
-        self.val_cm.update(preds, ys)
-        self.val_jaccard.update(preds, ys)
-        self.val_ece.update(probs, ys)
-        self.val_mce.update(probs, ys)
+        self.val_accuracy.update(preds, batch["label"])
+        self.val_cm.update(preds, batch["label"])
+        self.val_jaccard.update(preds, batch["label"])
+        self.val_ece.update(probs, batch["label"])
+        self.val_mce.update(probs, batch["label"])
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
@@ -142,26 +128,23 @@ class Supervised(pl.LightningModule):
         except:
             pass
 
-
     def test_step(self, batch, batch_idx):
-        xs = batch["image"]
-        ys = batch["label"]
-        logits_xs = self.forward(xs)
+        x = batch["image"]
+        y = batch["label"]
+        if self.one_hot: y = self.to_one_hot(y)
+        logits_x = self.forward(x)
         if self.tta is not None:
-            auxs = [self.forward(x) for x in self.tta(xs)]
-            logits_xs = torch.stack([logits_xs] + self.tta.revert(auxs)).sum(dim=0)
-        ce = self.ce_val(logits_xs, ys)
-        self.log(f"cross_entropy/test", ce)
-        if self.dice is not None: 
-            dice = self.dice(logits_xs, self.one_hot(ys))
-            self.log(f"dice/test", dice)
-        probs = self.logits2probas(logits_xs)
+            auxs = [self.forward(x) for x in self.tta(x)]
+            logits_x = torch.stack([logits_x] + self.tta.revert(auxs)).sum(dim=0)
+        loss = self.loss(logits_x, y)
+        self.log(f"{self.loss.__name__}/test", loss)
+        probs = self.loss.prob(logits_x)
         _, preds = self.probas2confpreds(probs)
-        self.test_accuracy.update(preds, ys)
-        self.test_jaccard.update(preds, ys)
-        self.test_cm.update(preds, ys)
-        self.test_ece.update(probs, ys)
-        self.test_mce.update(probs, ys)
+        self.test_accuracy.update(preds, batch["label"])
+        self.test_cm.update(preds, batch["label"])
+        self.test_jaccard.update(preds, batch["label"])
+        self.test_ece.update(probs, batch["label"])
+        self.test_mce.update(probs, batch["label"])
         
     def on_test_epoch_end(self):
         self.log("accuracy/test", self.test_accuracy.compute())
@@ -184,12 +167,12 @@ class Supervised(pl.LightningModule):
             pass
 
     def predict_step(self, batch, batch_idx):
-        xs = batch["image"]
-        logits_xs = self.forward(xs)
+        x = batch["image"]
+        logits_x = self.forward(x)
         if self.tta is not None:
-            auxs = [self.forward(x) for x in self.tta(xs)]
-            logits_xs = torch.stack([logits_xs] + self.tta.revert(auxs)).sum(dim=0)
-        return logits_xs
+            auxs = [self.forward(x) for x in self.tta(x)]
+            logits_x = torch.stack([logits_x] + self.tta.revert(auxs)).sum(dim=0)
+        return self.loss.prob(logits_x)
 
 
 #class Supervised(pl.LightningModule):

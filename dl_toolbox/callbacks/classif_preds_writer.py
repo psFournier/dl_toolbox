@@ -15,8 +15,8 @@ class ClassifPredsWriter(BasePredictionWriter):
         self.stats = {'img':[], 'preds': [], 'confs': []}
         
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        probas = pl_module.logits2probas(outputs.cpu())
-        confs, preds = pl_module.probas2confpreds(probas)
+        probs = outputs.cpu()
+        confs, preds = pl_module.probas2confpreds(probs)
         for p, c, path in zip(preds, confs, batch["path"]):
             relative = Path(path).relative_to(self.base) 
             self.stats['img'].append(relative)

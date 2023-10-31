@@ -1,2 +1,4 @@
-_target_: torch.nn.CrossEntropyLoss
-_partial_: True
+_target_: dl_toolbox.losses.BCE
+weight: null
+reduction: mean
+pos_weight: null

@@ -18,8 +18,8 @@ class TiffPredsWriter(BasePredictionWriter):
         self.stats = {'img':[], 'msk': [], 'win': [], 'avg_cert': []}
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        probas = pl_module.logits2probas(outputs.cpu())
-        confs, preds = pl_module.probas2confpreds(probas)
+        probs = outputs.cpu()
+        confs, preds = pl_module.probas2confpreds(probs)
         for p, c, path, win in zip(preds, confs, batch["image_path"], batch["window"]):
             r = Path(path).relative_to(self.base) 
             co, ro, _, _ = win
