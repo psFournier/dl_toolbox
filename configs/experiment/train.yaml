@@ -10,8 +10,8 @@ defaults:
   - override /transforms@datamodule.train_tf: crop_d4
   - override /transforms@datamodule.test_tf: none
   - override /transforms@module.norm: imagenet_norm
-  - override /transforms@module.batch_tf: cutmix
-  - override /loss@module.loss: ohem
+  - override /transforms@module.batch_tf: none
+  - override /loss@module.loss: bce
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -20,9 +20,9 @@ defaults:
 
 datamodule:
     city: TOULOUSE
-    merge: main5
+    merge: building
     num_workers: 6
-    batch_size_s: 4
+    batch_size_s: 16
     batch_size_u: 8
     pin_memory: true
     steps_per_epoch: 7
@@ -42,9 +42,7 @@ module:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
     metric_ignore_index: 0
-    one_hot: false
-    #loss:
-    #    ignore_index: 0
+    one_hot: true
 
 
 callbacks:
@@ -61,7 +59,7 @@ name: "test_losses"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 1
+  max_epochs: 50
   limit_train_batches: 1.
   limit_val_batches: 1.
     
@@ -71,6 +69,7 @@ hydra:
   sweeper:
     params:
       seed: 1
+      module.loss.factor: 0.1,1.
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
     #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}

@@ -2,3 +2,6 @@ _target_: dl_toolbox.losses.BCE
 weight: null
 reduction: mean
 pos_weight: null
+predict_zero: false
+pixel_weights: dst
+factor: 0.1
