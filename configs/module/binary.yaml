@@ -1,0 +1,12 @@
+defaults:
+  - /optimizer: sgd
+  - /scheduler: constant
+  - /network: smpunet
+  - /loss: bce
+  - /transforms@batch_tf: none
+  - /transforms@tta: tta
+  - /transforms@norm: imagenet_norm
+  - _self_
+
+_target_: dl_toolbox.modules.Binary
+metric_ignore_index: null

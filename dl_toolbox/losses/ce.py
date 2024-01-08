@@ -15,3 +15,6 @@ class CrossEntropy(torch.nn.CrossEntropyLoss):
         
     def prob(self, logits):
         return logits.softmax(dim=1)
+    
+    def pred(self, probs):
+        return torch.argmax(probs, dim=1)

@@ -20,7 +20,7 @@ all7 = [
 ]
 
 main5 = [
-    label("void", (255, 255, 255), {0}),
+    label("void", (255, 255, 255), {0,7}),
     label("impervious surface", (38, 38, 38), {1,5}),
     label("building", (238, 118, 33), {2}),
     label("pervious surface", (34, 139, 34), {3}),

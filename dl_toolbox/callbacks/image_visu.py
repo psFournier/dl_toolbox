@@ -32,7 +32,7 @@ class SegmentationImagesVisualisation(pl.Callback):
             labels_rgb = labels_to_rgb(label, colors=colors).transpose((0, 3, 1, 2))
             labels_rgb = torch.from_numpy(labels_rgb).float()
         prob = module.loss.prob(logits)
-        _, pred = module.probas2confpreds(prob)
+        pred = module.loss.pred(prob)
         pred_is_img = (pred.ndim==3)
         if pred_is_img:
             pred_rgb = labels_to_rgb(pred, colors=colors).transpose((0, 3, 1, 2))
@@ -65,14 +65,11 @@ class SegmentationImagesVisualisation(pl.Callback):
                 grids.append(pred_grid)
 
             final_grid = torch.cat(grids, dim=1)
-
             trainer.logger.experiment.add_image(
                 f"{prefix}_Images/batch0_part_{idx}",
                 final_grid,
                 global_step=trainer.global_step,
             )
-
-            break
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
         if trainer.current_epoch % self.freq == 0 and batch_idx <= 1:

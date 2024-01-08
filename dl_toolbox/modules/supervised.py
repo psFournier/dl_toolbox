@@ -8,6 +8,7 @@ from pytorch_lightning.utilities import rank_zero_info
 import torch.nn as nn
 import math
 from dl_toolbox.transforms import Mixup
+import wandb
 
 class Supervised(pl.LightningModule):
     def __init__(
@@ -58,13 +59,11 @@ class Supervised(pl.LightningModule):
         )
         optimizer = self.optimizer(params=trainable_parameters)
         schs = self.scheduler.schedulers.values()
-        print(schs)
         scheduler = torch.optim.lr_scheduler.SequentialLR(
             optimizer,
             schedulers=[s(optimizer) for s in schs],
             milestones=self.scheduler.milestones
         )
-        
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
@@ -74,10 +73,7 @@ class Supervised(pl.LightningModule):
         }
 
     def forward(self, x):
-        return self.network.forward(self.norm(x))
-
-    def probas2confpreds(cls, probas):
-        return torch.max(probas, dim=1)       
+        return self.network.forward(self.norm(x)).squeeze(dim=1)    
     
     def to_one_hot(self, y):
         return torch.movedim(F.one_hot(y, self.num_classes),-1,1).float()
@@ -101,12 +97,12 @@ class Supervised(pl.LightningModule):
         loss = self.loss(logits_x, y)
         self.log(f"{self.loss.__name__}/val", loss)
         probs = self.loss.prob(logits_x)
-        _, preds = self.probas2confpreds(probs)
-        self.val_accuracy.update(preds, batch["label"])
-        self.val_cm.update(preds, batch["label"])
-        self.val_jaccard.update(preds, batch["label"])
-        self.val_ece.update(probs, batch["label"])
-        self.val_mce.update(probs, batch["label"])
+        preds = self.loss.pred(probs)
+        self.val_accuracy.update(preds, y)
+        self.val_cm.update(preds, y)
+        self.val_jaccard.update(preds, y)
+        self.val_ece.update(probs, y)
+        self.val_mce.update(probs, y)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
@@ -123,10 +119,8 @@ class Supervised(pl.LightningModule):
         logger = self.trainer.logger
         fs = 12 - 2*(self.num_classes//10)
         fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
-        try:
-            logger.experiment.add_figure("confmat/val", fig, global_step=self.trainer.global_step)
-        except:
-            pass
+        logger.experiment.add_figure("confmat/val", fig, global_step=self.trainer.global_step)
+
 
     def test_step(self, batch, batch_idx):
         x = batch["image"]
@@ -139,12 +133,12 @@ class Supervised(pl.LightningModule):
         loss = self.loss(logits_x, y)
         self.log(f"{self.loss.__name__}/test", loss)
         probs = self.loss.prob(logits_x)
-        _, preds = self.probas2confpreds(probs)
-        self.test_accuracy.update(preds, batch["label"])
-        self.test_cm.update(preds, batch["label"])
-        self.test_jaccard.update(preds, batch["label"])
-        self.test_ece.update(probs, batch["label"])
-        self.test_mce.update(probs, batch["label"])
+        preds = self.loss.pred(probs)
+        self.test_accuracy.update(preds, y)
+        self.test_cm.update(preds, y)
+        self.test_jaccard.update(preds, y)
+        self.test_ece.update(probs, y)
+        self.test_mce.update(probs, y)
         
     def on_test_epoch_end(self):
         self.log("accuracy/test", self.test_accuracy.compute())
@@ -161,10 +155,7 @@ class Supervised(pl.LightningModule):
         logger = self.trainer.logger
         fs = 12 - 2*(self.num_classes//10)
         fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
-        try:
-            logger.experiment.add_figure("confmat/test", fig, global_step=self.trainer.global_step)
-        except:
-            pass
+        logger.experiment.add_figure("confmat/test", fig, global_step=self.trainer.global_step)
 
     def predict_step(self, batch, batch_idx):
         x = batch["image"]

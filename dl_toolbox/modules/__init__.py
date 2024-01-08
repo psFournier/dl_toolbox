@@ -10,6 +10,7 @@
 # from .fgsm import FGSM
 # from .flair import *
 from .supervised import *
+from .binary import *
 from .cross_pseudo_supervision import *
 from .mean_teacher import MeanTeacher
 from .fixmatch import *

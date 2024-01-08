@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate, get_tiles
-from dl_toolbox.transforms import Compose, NoOp
+from dl_toolbox.transforms import Compose, NoOp, RandomCrop2
 
 
 
