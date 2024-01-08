@@ -25,6 +25,8 @@ class BCE(torch.nn.BCEWithLogitsLoss):
         #self.predict_zero = predict_zero
         self.pixel_weights = pixel_weights
         self.factor = factor
+        self.__name__ = 'binary cross entropy'
+
 
     def forward(self, logits, targets):
         #if not self.predict_zero:

@@ -62,5 +62,8 @@ class Airs(Dataset):
         image, label = self.transforms(img=image, label=label)
         return {
             "image": image,
-            "label": None if label is None else label.squeeze()
+            "label": None if label is None else label.squeeze(),
+            "image_path": img,
+            "window": win,
+            "label_path": None if label is None else msk
         }

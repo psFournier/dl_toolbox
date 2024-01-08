@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate
+from dl_toolbox.transforms import Compose, NoOp, RandomCrop2
 
 from .utils import flair_gather_data
 
@@ -24,7 +25,9 @@ class Flair(LightningDataModule):
         sup,
         unsup,
         bands,
-        dataset_tf,
+        to_0_1,
+        train_tf,
+        test_tf,
         batch_size,
         num_workers,
         pin_memory,
@@ -38,7 +41,9 @@ class Flair(LightningDataModule):
         self.sup = sup
         self.unsup = unsup
         self.bands = bands
-        self.dataset_tf = dataset_tf
+        self.to_0_1 = to_0_1
+        self.train_tf = train_tf
+        self.test_tf = test_tf
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
@@ -76,14 +81,14 @@ class Flair(LightningDataModule):
                 self.dict_train["MSK"],
                 self.bands,
                 self.merge,
-                transforms=self.dataset_tf,
+                transforms=Compose([self.to_0_1, self.train_tf])
             )
             self.val_set = datasets.Flair(
                 self.dict_val["IMG"],
                 self.dict_val["MSK"],
                 self.bands,
                 self.merge,
-                transforms=self.dataset_tf,
+                transforms=Compose([self.to_0_1, self.test_tf])
             )
             if self.unsup > 0:
                 self.unlabeled_set = datasets.Flair(
@@ -91,7 +96,7 @@ class Flair(LightningDataModule):
                     [],
                     self.bands,
                     self.merge,
-                    transforms=self.dataset_tf,
+                    transforms=Compose([self.to_0_1, self.test_tf])
                 )
                 
     def dataloader(self, dataset):
