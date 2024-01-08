@@ -25,7 +25,7 @@ datamodule:
     #batch_size_s: 8
     #batch_size_u: 8
     pin_memory: true
-    steps_per_epoch: 10000
+    steps_per_epoch: 1000
     sup: 1
     unsup: -1
     #pl_dir: /work/AI4GEO/users/fournip/outputs/test_ohem/2023-10-27_143004/0/checkpoints/epoch_180
@@ -59,9 +59,9 @@ name: "back_to_tensorboard"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 10
-  limit_train_batches: 1
-  limit_val_batches: 1
+  max_epochs: 100
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:
