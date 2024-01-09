@@ -7,8 +7,8 @@ defaults:
   - override /network@module.network: smpunet
   - override /trainer: gpu
   - override /transforms@datamodule.to_0_1: to_0_1
-  - override /transforms@datamodule.train_tf: none
-  - override /transforms@datamodule.test_tf: none
+  - override /transforms@datamodule.train_tf: crop
+  - override /transforms@datamodule.test_tf: crop
   - override /transforms@module.norm: imagenet_norm
   - override /transforms@module.batch_tf: none
   - override /loss@module.loss: bce
@@ -22,8 +22,8 @@ datamodule:
     #city: TOULOUSE
     #merge: main5
     num_workers: 6
-    #batch_size_s: 8
-    #batch_size_u: 8
+    batch_size_s: 8
+    batch_size_u: 8
     pin_memory: true
     steps_per_epoch: 1000
     sup: 1
@@ -60,7 +60,7 @@ name: "back_to_tensorboard"
 trainer:
   max_time: "00:11:30:59"
   max_epochs: 100
-  limit_train_batches: 1.
+  limit_train_batches: 1
   limit_val_batches: 1.
     
 hydra:

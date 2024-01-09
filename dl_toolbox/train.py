@@ -38,9 +38,10 @@ def train(cfg: DictConfig) -> None:
     )
     #wandb_logger.watch(module.network)
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
+    dsm = pl.callbacks.DeviceStatsMonitor()
     trainer = hydra.utils.instantiate(cfg.trainer)(
         logger=tensorboard,
-        callbacks=list(callbacks.values())
+        callbacks=list(callbacks.values())+[dsm]
     )
     
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)

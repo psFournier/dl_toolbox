@@ -41,10 +41,7 @@ class Binary(pl.LightningModule):
         self.test_cm = M.ConfusionMatrix(**metric_args, normalize='true')
         self.val_jaccard = M.JaccardIndex(**metric_args)
         self.test_jaccard = M.JaccardIndex(**metric_args)
-        self.val_ece = M.CalibrationError(**metric_args)
-        self.test_ece = M.CalibrationError(**metric_args)
-        self.val_mce = M.CalibrationError(**metric_args, norm='max')
-        self.test_mce = M.CalibrationError(**metric_args, norm='max')
+        #self.val_ece = M.CalibrationError(**metric_args) # attention : l'ece doit stocker toutes les preds en val --> OOM sur gros dataset
     
     def configure_optimizers(self):
         parameters = list(self.parameters())
@@ -92,20 +89,14 @@ class Binary(pl.LightningModule):
         self.val_accuracy.update(preds, y)
         self.val_cm.update(preds, y)
         self.val_jaccard.update(preds, y)
-        self.val_ece.update(probs, y)
-        self.val_mce.update(probs,y)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())
         self.log("iou/val", self.val_jaccard.compute())
-        self.log("ece/val", self.val_ece.compute())
-        self.log("mce/val", self.val_mce.compute())
         confmat = self.val_cm.compute().detach().cpu()
         self.val_accuracy.reset()
         self.val_jaccard.reset()
         self.val_cm.reset()
-        self.val_ece.reset()
-        self.val_mce.reset()
         class_names = self.trainer.datamodule.class_names
         logger = self.trainer.logger
         fig = plot_confusion_matrix(confmat, class_names, norm=None)
@@ -125,20 +116,14 @@ class Binary(pl.LightningModule):
         self.test_accuracy.update(preds, y)
         self.test_cm.update(preds, y)
         self.test_jaccard.update(preds, y)
-        self.test_ece.update(probs, y)
-        self.test_mce.update(probs, y)
         
     def on_test_epoch_end(self):
         self.log("accuracy/test", self.test_accuracy.compute())
         self.log("iou/test", self.test_jaccard.compute())
-        self.log("ece/test", self.test_ece.compute())
-        self.log("mce/test", self.test_mce.compute())
         confmat = self.test_cm.compute().detach().cpu()
         self.test_accuracy.reset()
         self.test_jaccard.reset()
         self.test_cm.reset()
-        self.test_ece.reset()
-        self.test_mce.reset()
         class_names = self.trainer.datamodule.class_names
         logger = self.trainer.logger
         fig = plot_confusion_matrix(confmat, class_names, norm=None)

@@ -3,5 +3,5 @@ weight: null
 reduction: mean
 pos_weight: null
 #predict_zero: false
-pixel_weights: dst
+pixel_weights: null
 factor: 0.1
