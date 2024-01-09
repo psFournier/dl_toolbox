@@ -1,17 +1,15 @@
 defaults:
-  - transforms@train_tf: norm_city_crop_d4_color
-  - transforms@val_tf: norm_city
-  - _self_
+    - /transforms@to_0_1: to_0_1
+    - /transforms@train_tf: crop
+    - /transforms@test_tf: crop
 
 _target_: dl_toolbox.datamodules.Cityscapes
-data_path: ${paths.data}/Cityscapes/
-batch_size: 8
+data_path: ${paths.data}
+sup: 1
+unsup: 1
+batch_size_s: 4
+batch_size_u: 4
+steps_per_epoch: 250
 num_workers: 6
-dataset_tf:
-    _target_: dl_toolbox.transforms.Compose
-    transforms: 
-        - _target_: dl_toolbox.transforms.RandomCrop2
-          size: 256
-        - _target_: dl_toolbox.transforms.StretchToMinmax
-          mins: [0,0,0]
-          maxs: [255,255,255]
+merge: all19
+pin_memory: True

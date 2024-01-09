@@ -3,10 +3,11 @@ import os
 from functools import partial
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate
+from dl_toolbox.transforms import Compose, NoOp, RandomCrop2
 
 
 class Cityscapes(LightningDataModule):
@@ -16,8 +17,12 @@ class Cityscapes(LightningDataModule):
         merge,
         sup,
         unsup,
-        dataset_tf,
-        batch_size,
+        to_0_1,
+        train_tf,
+        test_tf,
+        batch_size_s,
+        batch_size_u,
+        steps_per_epoch,
         num_workers,
         pin_memory,
         class_weights=None,
@@ -27,8 +32,12 @@ class Cityscapes(LightningDataModule):
         self.merge = merge
         self.sup = sup
         self.unsup = unsup
-        self.dataset_tf = dataset_tf
-        self.batch_size = batch_size
+        self.to_0_1 = to_0_1
+        self.train_tf = train_tf
+        self.test_tf = test_tf
+        self.batch_size_s = batch_size_s
+        self.batch_size_u = batch_size_u
+        self.steps_per_epoch = steps_per_epoch
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.in_channels = 3
@@ -69,25 +78,25 @@ class Cityscapes(LightningDataModule):
 
     def setup(self, stage):
         if stage in ("fit", "validate"):
-            self.train_set = datasets.Cityscapes(
+            self.train_s_set = datasets.Cityscapes(
                 self.dict_train['IMG'],
                 self.dict_train['MSK'],
                 merge=self.merge,
-                transforms=self.dataset_tf,
+                transforms=Compose([self.to_0_1, self.train_tf])
             )
 
             self.val_set = datasets.Cityscapes(
                 self.dict_val['IMG'],
                 self.dict_val['MSK'],
                 merge=self.merge,
-                transforms=self.dataset_tf,
+                transforms=Compose([self.to_0_1, self.test_tf]),
             )
             if self.unsup > 0:
-                self.unlabeled_set = datasets.Cityscapes(
+                self.train_u_set = datasets.Cityscapes(
                     self.dict_train_unlabeled["IMG"],
                     [],
                     self.merge,
-                    transforms=self.dataset_tf
+                    transforms=Compose([self.to_0_1, self.train_tf])
                 )
 
     def dataloader(self, dataset):
@@ -95,21 +104,30 @@ class Cityscapes(LightningDataModule):
             DataLoader,
             dataset=dataset,
             collate_fn=CustomCollate(),
-            batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory
         )
                        
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = self.dataloader(self.train_set)(
-            shuffle=True,
+        train_dataloaders["sup"] = self.dataloader(self.train_s_set)(
+            sampler=RandomSampler(
+                self.train_s_set,
+                replacement=True,
+                num_samples=self.steps_per_epoch*self.batch_size_s
+            ),
             drop_last=True,
+            batch_size=self.batch_size_s
         )
-        if self.unsup > 0:
-            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
-                shuffle=True,
+        if self.unsup != -1:
+            train_dataloaders["unsup"] = self.dataloader(self.train_u_set)(
+                sampler=RandomSampler(
+                    self.train_u_set,
+                    replacement=True,
+                    num_samples=self.steps_per_epoch*self.batch_size_u
+                ),
                 drop_last=True,
+                batch_size=self.batch_size_u
             )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
@@ -117,4 +135,12 @@ class Cityscapes(LightningDataModule):
         return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
+            batch_size=self.batch_size_s
+        )
+    
+    def test_dataloader(self):
+        return self.dataloader(self.test_set)(
+            shuffle=False,
+            drop_last=False,
+            batch_size=self.batch_size_s
         )

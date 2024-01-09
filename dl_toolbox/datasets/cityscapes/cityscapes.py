@@ -50,7 +50,7 @@ class Cityscapes(Dataset):
             target = Image.open(self.msks[index])
             target = np.array(target)
             label = merge_labels(target, self.merges)
-            label = torch.from_numpy(label).long()      
+            label = torch.from_numpy(label).long().unsqueeze(0)    
 
         #targets = []
         #for i, t in enumerate(self.target_type):
@@ -68,6 +68,8 @@ class Cityscapes(Dataset):
 
         return {
             "image": image,
-            "label": None if label is None else label.squeeze()
-            #"path": self.imgs[index],
+            "label": None if label is None else label.squeeze(),
+            "image_path": self.imgs[index],
+            #"window": win,
+            "label_path": None if label is None else self.msks[index]
         }
