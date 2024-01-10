@@ -1,0 +1,52 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: cityscapes/cityscapes
+  - override /module: supervised
+  - override /scheduler@module.scheduler: poly
+  - override /network@module.network: smp_deeplabv3p
+  - override /trainer: gpu
+  - override /transforms@module.norm: imagenet_norm
+  - override /transforms@module.batch_tf: none
+  - override /loss@module.loss: ohem
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+datamodule:
+    num_workers: 6
+    sup: 1 # expressed in 16th of the full train set, max=16
+    steps_per_epoch: 96
+    batch_size_s: 2
+
+module:
+    loss:
+        ignore_index: 0
+    optimizer:
+        lr: 0.04
+    network:
+        encoder_name: resnet50
+        encoder_weights: imagenet
+    metric_ignore_index: 0
+    one_hot: false
+
+
+callbacks:
+    model_avg:
+        swa_epoch_start: 1000 #above max_epochs
+    model_checkpoint:
+        dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
+
+name: "cityscapes"
+            
+trainer:
+  max_epochs: 240
+  limit_train_batches: 1.
+  limit_val_batches: 1.
+    
+hydra:
+  sweeper:
+    params:
+      seed: 1
+  sweep:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}  

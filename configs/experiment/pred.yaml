@@ -1,0 +1,55 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: digitanie/digitanie
+  - override /module: supervised
+  - override /network@module.network: smpunet
+  - override /trainer: gpu
+  - override /transforms@datamodule.to_0_1: to_0_1_per_city
+  - override /transforms@datamodule.train_tf: none
+  - override /transforms@datamodule.test_tf: none
+  - override /transforms@module.batch_tf: none
+  - override /transforms@module.norm: imagenet_norm
+
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+ckpt: "/data/outputs/test_ohem/2023-10-26_213736/checkpoints/epoch_180.ckpt"
+
+datamodule:
+    city: TOULOUSE
+    merge: main5
+    num_workers: 6
+    batch_size_s: 16
+    batch_size_u: 2
+    pin_memory: true
+    steps_per_epoch: 250
+    sup: 1
+    unsup: -1
+    
+module:
+    network:
+        encoder_weights: null
+    metric_ignore_index: 0
+    #tta: null
+
+        
+name: pred_toulouse_${datamodule.sup}
+
+preds_writer:
+    _target_: dl_toolbox.callbacks.TiffPredsWriter
+    out_path: /data/outputs/test_ohem/2023-10-26_213736/checkpoints/epoch_180
+    base: ${datamodule.data_path}
+            
+trainer:
+  max_time: "00:11:30:59"
+  #max_steps: 200000
+  max_epochs: 100
+  limit_predict_batches: 1.
+    
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweep:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
