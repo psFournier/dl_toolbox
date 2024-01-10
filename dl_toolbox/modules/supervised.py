@@ -8,7 +8,6 @@ from pytorch_lightning.utilities import rank_zero_info
 import torch.nn as nn
 import math
 from dl_toolbox.transforms import Mixup
-import wandb
 
 class Supervised(pl.LightningModule):
     def __init__(
