@@ -1,15 +1,15 @@
 defaults:
-    - /transforms@to_0_1: to_0_1
-    - /transforms@train_tf: crop
-    - /transforms@test_tf: crop
+    - /transforms@to_0_1: from_0_255
+    - /transforms@train_tf: cityscapes_train
+    - /transforms@test_tf: cityscapes_val
 
 _target_: dl_toolbox.datamodules.Cityscapes
 data_path: ${paths.data}
-sup: 1
-unsup: 1
-batch_size_s: 4
-batch_size_u: 4
-steps_per_epoch: 250
+sup: 16
+unsup: 0
+batch_size_s: 8
+batch_size_u: 8
+steps_per_epoch: 370
 num_workers: 6
 merge: all19
 pin_memory: True

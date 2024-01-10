@@ -54,12 +54,13 @@ class Supervised(pl.LightningModule):
             f"trainable parameters out of {sum([int(torch.numel(p)) for p in parameters])}."
         )
         optimizer = self.optimizer(params=trainable_parameters)
-        schs = self.scheduler.schedulers.values()
-        scheduler = torch.optim.lr_scheduler.SequentialLR(
-            optimizer,
-            schedulers=[s(optimizer) for s in schs],
-            milestones=self.scheduler.milestones
-        )
+        scheduler = self.scheduler(optimizer)
+        #schs = self.scheduler.schedulers.values()
+        #scheduler = torch.optim.lr_scheduler.SequentialLR(
+        #    optimizer,
+        #    schedulers=[s(optimizer) for s in schs],
+        #    milestones=self.scheduler.milestones
+        #)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {

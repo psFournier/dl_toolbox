@@ -25,6 +25,9 @@ class ProbOhemCrossEntropy2d(_Loss):
         
     def prob(self, logits):
         return logits.softmax(dim=1)
+    
+    def pred(self, probs):
+        return torch.argmax(probs, dim=1)
 
     def forward(self, pred, target):
         b, c, h, w = pred.size()

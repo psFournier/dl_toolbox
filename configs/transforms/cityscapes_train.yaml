@@ -1,0 +1,9 @@
+_target_: dl_toolbox.transforms.Compose
+transforms: 
+    - _target_: dl_toolbox.transforms.Hflip
+      p: 0.5
+    - _target_: dl_toolbox.transforms.Resize
+      factors: [0.75,1.,1.25,1.5,1.75,2.]
+    - _target_: dl_toolbox.transforms.RandomCrop2
+      size: 768
+

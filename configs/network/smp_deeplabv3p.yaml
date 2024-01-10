@@ -1,0 +1,4 @@
+_target_: dl_toolbox.networks.SmpDeeplabV3p
+_partial_: True
+encoder_name: efficientnet-b0
+encoder_weights: null

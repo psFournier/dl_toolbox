@@ -67,9 +67,9 @@ class Cityscapes(LightningDataModule):
                     msks.append(msk_dir/city/target_name)
             return zip(imgs, msks)
         for i, (img, msk) in enumerate(get_split_data('train')):
-            if self.sup <= i%100 < self.sup + self.unsup:
+            if self.sup <= i%16 < self.sup + self.unsup:
                 self.dict_train_unlabeled["IMG"].append(img)
-            if i%100 < self.sup:
+            if i%16 < self.sup:
                 self.dict_train["IMG"].append(img)
                 self.dict_train["MSK"].append(msk)
         for img, msk in get_split_data('val'):
@@ -119,7 +119,7 @@ class Cityscapes(LightningDataModule):
             drop_last=True,
             batch_size=self.batch_size_s
         )
-        if self.unsup != -1:
+        if self.unsup > 0:
             train_dataloaders["unsup"] = self.dataloader(self.train_u_set)(
                 sampler=RandomSampler(
                     self.train_u_set,

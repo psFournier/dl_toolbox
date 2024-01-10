@@ -3,7 +3,7 @@
 defaults:
   - override /datamodule: cityscapes/cityscapes
   - override /module: supervised
-  - override /scheduler@module.scheduler: swa
+  - override /scheduler@module.scheduler: poly
   - override /network@module.network: smpunet
   - override /trainer: gpu
   - override /transforms@datamodule.to_0_1: to_0_1
@@ -19,17 +19,14 @@ defaults:
 #ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
 
 datamodule:
-    #city: TOULOUSE
-    #merge: main5
     num_workers: 6
-    batch_size_s: 8
-    batch_size_u: 8
     sup: 1
-    unsup: -1
     #pl_dir: /work/AI4GEO/users/fournip/outputs/test_ohem/2023-10-27_143004/0/checkpoints/epoch_180
     #thresh: 100
 
 module:
+    optimizer:
+        lr: 0.04
     scheduler:
         milestones: [270]
         schedulers:
@@ -39,7 +36,7 @@ module:
     network:
         #weights: IMAGENET1K_V1
         encoder_weights: imagenet
-    metric_ignore_index: null
+    metric_ignore_index: 0
     one_hot: false
 
 
@@ -57,8 +54,8 @@ name: "back_to_tensorboard"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 100
-  limit_train_batches: 1
+  max_epochs: 240
+  limit_train_batches: 1.
   limit_val_batches: 1.
     
 hydra:
