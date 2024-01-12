@@ -19,11 +19,11 @@ class Supervised(pl.LightningModule):
         scheduler,
         loss,
         batch_tf,
-        tta,
-        sliding,
         metric_ignore_index,
         norm,
         one_hot,
+        tta=None,
+        sliding=None,
         *args,
         **kwargs
     ):

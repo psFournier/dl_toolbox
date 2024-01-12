@@ -1,7 +1,7 @@
 defaults:
     - /transforms@to_0_1: from_0_255
     - /transforms@train_tf: cityscapes_train
-    - /transforms@test_tf: none
+    - /transforms@test_tf: noop
 
 _target_: dl_toolbox.datamodules.Cityscapes
 data_path: ${paths.data}

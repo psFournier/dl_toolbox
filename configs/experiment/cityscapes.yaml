@@ -5,9 +5,7 @@ defaults:
   - override /module: supervised
   - override /scheduler@module.scheduler: poly
   - override /network@module.network: smp_deeplabv3p
-  - override /trainer: gpu
   - override /transforms@module.norm: imagenet_norm
-  - override /transforms@module.tta: none
   - override /transforms@module.sliding: sliding_windows_cityscapes
   - override /loss@module.loss: ce
 
@@ -15,9 +13,9 @@ defaults:
 # this allows you to overwrite only specified parameters
 
 datamodule:
-    num_workers: 6
-    steps_per_epoch: 96
-    batch_size_s: 2
+    num_workers: 10
+    steps_per_epoch: 370
+    batch_size_s: 8
 
 module:
     loss:
@@ -35,13 +33,16 @@ callbacks:
         swa_epoch_start: 1000 #above max_epochs
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
+    feature_ft:
+        do_finetune: true
+        unfreeze_at_epoch: 150
 
 name: "cityscapes"
             
 trainer:
-  max_epochs: 240
-  limit_train_batches: 1
-  limit_val_batches: 2
+  max_epochs: 300
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   sweeper:

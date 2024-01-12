@@ -3,10 +3,10 @@ defaults:
   - /scheduler: constant
   - /network: smpunet
   - /loss: ce
-  - /transforms@batch_tf: none
-  - /transforms@tta: none
-  - /transforms@sliding: none
-  - /transforms@norm: none
+  - /transforms@batch_tf: noop
+  - /transforms@tta: null
+  - /transforms@sliding: null
+  - /transforms@norm: noop
   - _self_
 
 _target_: dl_toolbox.modules.Supervised
