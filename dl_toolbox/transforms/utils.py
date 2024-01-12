@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from dl_toolbox.utils import get_tiles
 
 
 class NoOp:
@@ -25,7 +26,38 @@ class TTA:
         for r, img in zip(self.reverse, imgs):
             res.append(r(img, None)[0])
         return res
-
+    
+class Sliding:
+    def __init__(
+        self,
+        nols,
+        nrows,
+        width,
+        height,
+        step_w,
+        step_h
+    ):
+        self.nols = nols
+        self.nrows = nrows
+        self.tiles = list(get_tiles(nols, nrows, width, height, step_w, step_h))
+        
+    def __call__(self, img):
+        imgs = []
+        for co, ro, w, h in self.tiles:
+            imgs.append(img[...,ro:ro+h,co:co+w])
+        return imgs
+    
+    def merge(self, preds):
+        bs, nc, h, w = preds[0].shape
+        d = preds[0].device
+        #mask = torch.ones((h, w)).float().to(d)
+        merged = torch.zeros((bs, nc, self.nrows, self.nols)).to(d)
+        weight = torch.zeros((bs, nc, self.nrows, self.nols)).to(d)
+        for (co, ro, w, h), pred in zip(self.tiles, preds):
+            merged[:, :, ro:ro+h, co:co+w] += pred #mask * pred
+            weight[:, :, ro:ro+h, co:co+w] += 1 #mask
+        return torch.div(merged, weight)
+        
 class Compose:
     def __init__(self, transforms):
         self.transforms = transforms

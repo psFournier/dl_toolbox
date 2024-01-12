@@ -20,6 +20,7 @@ class Supervised(pl.LightningModule):
         loss,
         batch_tf,
         tta,
+        sliding,
         metric_ignore_index,
         norm,
         one_hot,
@@ -34,6 +35,7 @@ class Supervised(pl.LightningModule):
         self.loss = loss
         self.batch_tf = batch_tf
         self.tta = tta
+        self.sliding = sliding
         self.norm = norm
         self.one_hot = one_hot
         metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
@@ -68,9 +70,16 @@ class Supervised(pl.LightningModule):
             },
         }
 
-    def forward(self, x):
-        logits = self.network.forward(self.norm(x))
-        return logits.squeeze(dim=1)    
+    def forward(self, x, sliding=None, tta=None):
+        if sliding is not None:
+            auxs = [self.forward(aux, tta=tta) for aux in sliding(x)]
+            return sliding.merge(auxs)
+        elif tta is not None:
+            auxs = [self.forward(aux) for aux in tta(x)]
+            logits = self.forward(x)
+            return torch.stack([logits] + self.tta.revert(auxs)).sum(dim=0)
+        else:
+            return self.network.forward(self.norm(x))
     
     def to_one_hot(self, y):
         return torch.movedim(F.one_hot(y, self.num_classes),-1,1).float()
@@ -81,7 +90,7 @@ class Supervised(pl.LightningModule):
         y = batch["label"]
         if self.one_hot: y = self.to_one_hot(y)
         x, y = self.batch_tf(x, y)
-        logits_x = self.forward(x)
+        logits_x = self.forward(x, sliding=None, tta=None)
         loss = self.loss(logits_x, y)
         self.log(f"{self.loss.__name__}/train", loss)
         return loss
@@ -90,7 +99,7 @@ class Supervised(pl.LightningModule):
         x = batch["image"]
         y = batch["label"]
         if self.one_hot: y = self.to_one_hot(y)
-        logits_x = self.forward(x)
+        logits_x = self.forward(x, sliding=self.sliding)                    
         loss = self.loss(logits_x, y)
         self.log(f"{self.loss.__name__}/val", loss)
         probs = self.loss.prob(logits_x)
@@ -112,15 +121,11 @@ class Supervised(pl.LightningModule):
         fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
         logger.experiment.add_figure("confmat/val", fig, global_step=self.trainer.global_step)
 
-
     def test_step(self, batch, batch_idx):
         x = batch["image"]
         y = batch["label"]
         if self.one_hot: y = self.to_one_hot(y)
-        logits_x = self.forward(x)
-        if self.tta is not None:
-            auxs = [self.forward(x) for x in self.tta(x)]
-            logits_x = torch.stack([logits_x] + self.tta.revert(auxs)).sum(dim=0)
+        logits_x = self.forward(x, sliding=self.sliding, tta=self.tta)
         loss = self.loss(logits_x, y)
         self.log(f"{self.loss.__name__}/test", loss)
         probs = self.loss.prob(logits_x)
@@ -144,8 +149,5 @@ class Supervised(pl.LightningModule):
 
     def predict_step(self, batch, batch_idx):
         x = batch["image"]
-        logits_x = self.forward(x)
-        if self.tta is not None:
-            auxs = [self.forward(x) for x in self.tta(x)]
-            logits_x = torch.stack([logits_x] + self.tta.revert(auxs)).sum(dim=0)
+        logits_x = self.forward(x, sliding=self.sliding, tta=self.tta)
         return self.loss.prob(logits_x)

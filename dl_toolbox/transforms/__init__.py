@@ -4,7 +4,7 @@ from .cutmix import Cutmix, Cutmix2
 from .d4 import D4, Flip, Hflip, Rot180, Rot270, Rot90, Transpose1, Transpose2, Vflip
 from .mixup import Mixup, Mixup2
 from .resize import Resize
-from .utils import Compose, NoOp, OneOf, rand_bbox, TTA
+from .utils import Compose, NoOp, OneOf, rand_bbox, TTA, Sliding
 from .imagenet import *
 from .stretch_to_minmax import *
 from .zero_average import *

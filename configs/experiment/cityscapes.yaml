@@ -7,15 +7,15 @@ defaults:
   - override /network@module.network: smp_deeplabv3p
   - override /trainer: gpu
   - override /transforms@module.norm: imagenet_norm
-  - override /transforms@module.batch_tf: none
-  - override /loss@module.loss: ohem
+  - override /transforms@module.tta: none
+  - override /transforms@module.sliding: sliding_windows_cityscapes
+  - override /loss@module.loss: ce
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
 datamodule:
     num_workers: 6
-    sup: 1 # expressed in 16th of the full train set, max=16
     steps_per_epoch: 96
     batch_size_s: 2
 
@@ -28,7 +28,6 @@ module:
         encoder_name: resnet50
         encoder_weights: imagenet
     metric_ignore_index: 0
-    one_hot: false
 
 
 callbacks:
@@ -41,8 +40,8 @@ name: "cityscapes"
             
 trainer:
   max_epochs: 240
-  limit_train_batches: 1.
-  limit_val_batches: 1.
+  limit_train_batches: 1
+  limit_val_batches: 2
     
 hydra:
   sweeper:

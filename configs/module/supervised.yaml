@@ -4,8 +4,9 @@ defaults:
   - /network: smpunet
   - /loss: ce
   - /transforms@batch_tf: none
-  - /transforms@tta: tta
-  - /transforms@norm: imagenet_norm
+  - /transforms@tta: none
+  - /transforms@sliding: none
+  - /transforms@norm: none
   - _self_
 
 _target_: dl_toolbox.modules.Supervised
