@@ -6,11 +6,7 @@ defaults:
   - override /scheduler@module.scheduler: poly
   - override /network@module.network: ViT
   - override /trainer: gpu
-  - override /transforms@datamodule.to_0_1: to_0_1
-  - override /transforms@datamodule.train_tf: noop
-  - override /transforms@datamodule.test_tf: noop
   - override /transforms@module.norm: imagenet_norm
-  - override /transforms@module.batch_tf: none
   - override /loss@module.loss: ce
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -27,15 +23,6 @@ datamodule:
 module:
     optimizer:
         lr: 0.04
-    scheduler:
-        milestones: [270]
-        schedulers:
-            swa:
-                lr_lambda:
-                    cycle_len: 30
-    network:
-        #weights: IMAGENET1K_V1
-        encoder_weights: imagenet
     metric_ignore_index: 0
     one_hot: false
 
@@ -45,8 +32,7 @@ callbacks:
         do_finetune: false
         unfreeze_at_epoch: 1000
     model_avg:
-        swa_epoch_start: 270
-        avg_every_n_epochs: 30
+        swa_epoch_start: 1000 #above max_epochs
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
 

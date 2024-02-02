@@ -1,0 +1,4 @@
+_target_: dl_toolbox.transforms.RandomResizedCrop
+size: 224
+scale: [1, 1]
+ratio: [1, 1]
