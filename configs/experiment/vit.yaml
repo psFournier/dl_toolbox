@@ -8,6 +8,8 @@ defaults:
   - override /trainer: gpu
   - override /transforms@module.norm: imagenet_norm
   - override /loss@module.loss: ce
+  - override /hydra/sweeper: optuna
+  - override /hparams_search: vit_optuna
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -29,7 +31,7 @@ module:
 
 callbacks:
     feature_ft:
-        do_finetune: false
+        do_finetune: true
         unfreeze_at_epoch: 1000
     model_avg:
         swa_epoch_start: 1000 #above max_epochs
@@ -40,9 +42,9 @@ name: "test_vit"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 5
-  limit_train_batches: 1
-  limit_val_batches: 1
+  max_epochs: 10
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:

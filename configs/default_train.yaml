@@ -17,6 +17,7 @@ defaults:
   - paths: qdtis056z
   - trainer: gpu
   - hydra: default
+  - hparams_search: null
 
 ckpt: null
 seed: 1

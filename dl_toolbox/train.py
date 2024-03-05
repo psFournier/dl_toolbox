@@ -45,6 +45,8 @@ def train(cfg: DictConfig) -> None:
     )
     
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
+    metrics = trainer.validate(module, datamodule=datamodule)
+    return metrics[0][cfg.optimized_metric]
 
 if __name__ == "__main__":
     train()

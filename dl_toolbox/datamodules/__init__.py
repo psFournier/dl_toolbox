@@ -14,7 +14,7 @@ from .cityscapes.cityscapes import *
 #from .cityscapes import *
 #from .digitanie.digitanie_sublabeled_toa import *
 #from .airs import *
-#from .rellis3d import *
+from .rellis3d.rellis3d import *
 
 # from .splitfile_sup import SplitfileSup
 # from .splitfile_semisup import SplitfileSemisup
