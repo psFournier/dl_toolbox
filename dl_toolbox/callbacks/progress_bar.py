@@ -3,7 +3,7 @@ import sys
 from pytorch_lightning.callbacks import TQDMProgressBar
 
 
-class MyProgressBar(TQDMProgressBar):
+class ProgressBar(TQDMProgressBar):
     def init_validation_tqdm(self):
         bar = super().init_validation_tqdm()
         if not sys.stdout.isatty():
