@@ -252,7 +252,6 @@ class Head(nn.Module):
         cness_preds = []
         for l, features in enumerate(x):
             features = self.shared_layers(features)
-
             cls_logits.append(self.cls_logits(features))
             cness_preds.append(self.ctrness(features))
             reg = self.bbox_pred(features)
