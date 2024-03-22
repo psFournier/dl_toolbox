@@ -280,8 +280,14 @@ class FCOS(torch.nn.Module):
                                     out_channels=out_channels)
         self.feature_extractor = nn.Sequential(backbone, fpn)
         self.head = Head(out_channels, num_classes)
+        inp = torch.randn(2, 3, 500, 500)
+        with torch.no_grad():
+            out = self.feature_extractor(inp)
+        self.feat_sizes = [o.shape[2:] for o in out]
 
     def forward(self, images):
         features = self.feature_extractor(images)
         box_cls, box_regression, centerness = self.head(features)
-        return features, box_cls, box_regression, centerness
+        all_level_preds = (torch.cat([t.flatten(-2) for t in o], dim=-1) for o in [features, box_cls, box_regression, centerness])
+        return (torch.permute(t, (0,2,1)) for t in all_level_preds)
+        #return features, box_cls, box_regression, centerness
