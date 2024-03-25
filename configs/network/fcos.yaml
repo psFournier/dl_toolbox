@@ -1,0 +1,4 @@
+_target_: dl_toolbox.networks.FCOS
+_partial_: True
+out_channels: 256
+image_size: 480

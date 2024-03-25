@@ -1,0 +1,49 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: pascalvoc/pascalvoc
+  - override /module: fcos
+  - override /network@module.network: fcos
+  - override /trainer: gpu
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+#ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
+
+datamodule:
+    num_workers: 1
+    #pl_dir: /work/AI4GEO/users/fournip/outputs/test_ohem/2023-10-27_143004/0/checkpoints/epoch_180
+    #thresh: 100
+
+callbacks:
+    feature_ft:
+        do_finetune: false
+        unfreeze_at_epoch: 1000
+    model_avg:
+        swa_epoch_start: 1000 #above max_epochs
+    model_checkpoint:
+        dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
+
+name: "test_fcos"
+            
+trainer:
+  max_time: "00:11:30:59"
+  max_epochs: 10
+  limit_train_batches: 1
+  limit_val_batches: 1
+    
+hydra:
+  run:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+  sweeper:
+    params:
+      seed: 1
+  sweep:
+    dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
+    #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}
+#  launcher:
+   # setup:
+#        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie
+#        - rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /work/AI4GEO/users/fournip/SemCity-Toulouse-bench/ $TMPDIR/SemCity-Toulouse-bench/
+#        - rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" ${paths.data}/DIGITANIE_v4/ $TMPDIR/DIGITANIE_v4/    

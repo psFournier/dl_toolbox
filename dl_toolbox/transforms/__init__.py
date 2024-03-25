@@ -8,6 +8,7 @@ from .utils import Compose, NoOp, OneOf, rand_bbox, TTA, Sliding
 from .imagenet import *
 from .stretch_to_minmax import *
 from .zero_average import *
+from .conversions import ToFloat32
 
 aug_dict = {
     "no": NoOp,

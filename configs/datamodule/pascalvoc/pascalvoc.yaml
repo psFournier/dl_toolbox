@@ -1,0 +1,12 @@
+defaults:
+    - /transforms@train_tf: pascal_train
+    - /transforms@test_tf: pascal_test
+
+_target_: dl_toolbox.datamodules.PascalVOC
+data_path: ${paths.data}
+merge: all20
+batch_size_s: 4
+batch_size_u: 8
+steps_per_epoch: 1000
+num_workers: 6
+pin_memory: True

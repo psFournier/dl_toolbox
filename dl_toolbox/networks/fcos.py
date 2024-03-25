@@ -291,3 +291,4 @@ class FCOS(torch.nn.Module):
         all_level_preds = (torch.cat([t.flatten(-2) for t in o], dim=-1) for o in [features, box_cls, box_regression, centerness])
         return (torch.permute(t, (0,2,1)) for t in all_level_preds)
         #return features, box_cls, box_regression, centerness
+        
