@@ -80,6 +80,8 @@ class FCOS(pl.LightningModule):
         self,
         network,
         num_classes,
+        optimizer,
+        scheduler,
         in_channels=3,
         pre_nms_thresh=0.3,
         pre_nms_top_n=1000,
@@ -91,6 +93,8 @@ class FCOS(pl.LightningModule):
     ):
         super().__init__()
         self.network = network(in_channels=in_channels, num_classes=num_classes)
+        self.optimizer = optimizer
+        self.scheduler = scheduler
         self.pre_nms_thresh = pre_nms_thresh
         self.pre_nms_top_n = pre_nms_top_n
         self.nms_thresh = nms_thresh
@@ -113,24 +117,13 @@ class FCOS(pl.LightningModule):
             f"The model will start training with only {sum([int(torch.numel(p)) for p in trainable_parameters])} "
             f"trainable parameters out of {sum([int(torch.numel(p)) for p in parameters])}."
         )
-        optimizer = torch.optim.AdamW(
-            trainable_parameters,
-            lr=1e-3,
-            betas=(0.9, 0.999),
-            weight_decay=5e-2,
-            eps=1e-8,
-        )
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer,
-            max_lr=1e-3,
-            steps_per_epoch=1000,
-            epochs=100
-        )
+        optimizer = self.optimizer(params=trainable_parameters)
+        scheduler = self.scheduler(optimizer)
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval": "step"
+                "interval": "epoch"
             },
         }
     
