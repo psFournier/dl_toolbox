@@ -36,7 +36,7 @@ class Rellis3d(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        image = read_image(str(self.imgs[idx]))
+        image = tv_tensors.Image(read_image(str(self.imgs[idx])))
         #with open(self.imgs[idx], "rb") as f:
         #    image = np.array(Image.open(f))
         #image = torch.from_numpy(image).permute(2, 0, 1)
