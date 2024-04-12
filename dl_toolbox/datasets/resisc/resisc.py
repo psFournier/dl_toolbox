@@ -32,7 +32,7 @@ classes = enum.Enum(
 def pil_to_torch_loader(path: str):
     with open(path, "rb") as f:
         img = np.array(Image.open(f))
-        img = torch.from_numpy(img).permute(2, 0, 1).float()
+        img = torch.from_numpy(img).permute(2, 0, 1)
         return img
 
 
@@ -67,7 +67,7 @@ class Resisc(DatasetFolder):
         #image = self.loader(path)/255.
         image = self.loader(path)
         #image = self.transforms(image)
-        image,_ = self.transforms(image)
+        image = self.transforms(image) 
         return {
             "image": image,
             "label": torch.tensor(label),

@@ -33,7 +33,7 @@ class Rellis3d(LightningDataModule):
         merge,
         sup,
         unsup,
-        to_0_1,
+        #to_0_1,
         train_tf,
         test_tf,
         batch_size_s,
@@ -49,7 +49,7 @@ class Rellis3d(LightningDataModule):
         self.merge = merge
         self.sup = sup
         self.unsup = unsup
-        self.to_0_1 = to_0_1
+        #self.to_0_1 = to_0_1
         self.train_tf = train_tf
         self.test_tf = test_tf
         self.batch_size_s = batch_size_s
@@ -93,28 +93,33 @@ class Rellis3d(LightningDataModule):
         self.train_s_set = datasets.Rellis3d(
             *[list(t) for t in zip(*self.train_s)],
             self.merge,
-            transforms=Compose([self.to_0_1, self.train_tf])
+            transforms=self.train_tf
+            #transforms=Compose([self.to_0_1, self.train_tf])
         )
         if self.unsup != -1:
             self.train_u_set = datasets.Rellis3d(
                 *[list(t) for t in zip(*self.train_u)],
                 self.merge,
-                transforms=Compose([self.to_0_1, RandomCrop2(256)])
+                transforms=self.train_tf
+                #transforms=Compose([self.to_0_1, RandomCrop2(256)])
             )
         self.val_set = datasets.Rellis3d(
             *[list(t) for t in zip(*self.val)],
             self.merge,
-            transforms=Compose([self.to_0_1, self.test_tf])
+            self.test_tf
+            #transforms=Compose([self.to_0_1, self.test_tf])
         )
         self.test_set = datasets.Rellis3d(
             *[list(t) for t in zip(*self.test)],
             self.merge,
-            transforms=Compose([self.to_0_1, self.test_tf])
+            self.test_tf
+            #transforms=Compose([self.to_0_1, self.test_tf])
         )
         self.predict_set = datasets.Rellis3d(
             *[list(t) for t in zip(*self.predict)],
             self.merge,
-            transforms=Compose([self.to_0_1, self.test_tf])
+            self.test_tf
+            #transforms=Compose([self.to_0_1, self.test_tf])
         )
                 
     def dataloader(self, dataset):

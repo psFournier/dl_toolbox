@@ -6,11 +6,12 @@ from collections import namedtuple
 label = namedtuple("label", ["name", "color", "values"])
 
 def merge_labels(labels, merge):
-    ret = np.zeros(labels.shape, dtype=labels.dtype)
+    ret = torch.zeros(labels.shape, dtype=labels.dtype)
     for i, val in enumerate(merge):
         for j in val:
             ret[labels == j] = i
     return ret
+
 
 def labels_to_rgb(labels, colors):
     rgb = np.zeros(shape=(*labels.shape, 3), dtype=np.uint8)

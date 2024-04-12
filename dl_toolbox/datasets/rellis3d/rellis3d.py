@@ -1,8 +1,8 @@
 import enum
 import numpy as np
-from PIL import Image
 import torch
-
+from torchvision.io import read_image
+from torchvision import tv_tensors
 from torch.utils.data import Dataset
 
 import dl_toolbox.transforms as transforms
@@ -36,16 +36,19 @@ class Rellis3d(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        with open(self.imgs[idx], "rb") as f:
-            image = np.array(Image.open(f))
-        image = torch.from_numpy(image).permute(2, 0, 1).float()
+        image = read_image(str(self.imgs[idx]))
+        #with open(self.imgs[idx], "rb") as f:
+        #    image = np.array(Image.open(f))
+        #image = torch.from_numpy(image).permute(2, 0, 1)
         label = None
         if self.msks:
-            with open(self.msks[idx], "rb") as f:
-                label = np.array(Image.open(f))
+            label = read_image(str(self.msks[idx]))
+            #with open(self.msks[idx], "rb") as f:
+            #    label = np.array(Image.open(f))
             label = merge_labels(label, self.merges)
-            label = torch.from_numpy(label).long()
-        image, label = self.transforms(img=image, label=label)
+            label = tv_tensors.Mask(label)
+            #label = torch.from_numpy(label)
+        image, label = self.transforms(image, label)
         return {
             "image": image,
             "label": None if label is None else label.squeeze()
