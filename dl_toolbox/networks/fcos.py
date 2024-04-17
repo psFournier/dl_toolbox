@@ -212,7 +212,7 @@ class Scale(nn.Module):
 
 class Head(nn.Module):
 
-    def __init__(self, in_channels, n_classes, n_share_convs=4):
+    def __init__(self, in_channels, n_classes, n_share_convs=4, n_feat_levels=5):
         super().__init__()
 
         tower = []
@@ -244,7 +244,7 @@ class Head(nn.Module):
                                  stride=1,
                                  padding=1)
 
-        self.scales = nn.ModuleList([Scale(init_value=1.0) for _ in range(5)])
+        self.scales = nn.ModuleList([Scale(init_value=1.0) for _ in range(n_feat_levels)])
 
     def forward(self, x):
         cls_logits = []
