@@ -63,8 +63,8 @@ class Cityscapes(Dataset):
         #    targets.append(target)
 #
         #target = tuple(targets) if len(targets) > 1 else targets[0]
-
-        image, label = self.transforms(img=image, label=label)
+        if self.transforms is not None:
+            image, label = self.transforms(img=image, label=label)
 
         return {
             "image": image,
