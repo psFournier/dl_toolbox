@@ -4,7 +4,7 @@ from functools import partial
 
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate
@@ -25,13 +25,11 @@ class Flair(LightningDataModule):
         sup,
         unsup,
         bands,
-        to_0_1,
         train_tf,
         test_tf,
         batch_size,
         num_workers,
         pin_memory,
-        class_weights=None,
         *args,
         **kwargs
     ):
@@ -41,7 +39,6 @@ class Flair(LightningDataModule):
         self.sup = sup
         self.unsup = unsup
         self.bands = bands
-        self.to_0_1 = to_0_1
         self.train_tf = train_tf
         self.test_tf = test_tf
         self.batch_size = batch_size
@@ -51,59 +48,23 @@ class Flair(LightningDataModule):
         self.classes = datasets.Flair.classes[merge].value
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
-        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
-        self.class_weights = (
-            [1.0] * self.num_classes if class_weights is None else class_weights
-        )
-        
-    def prepare_data(self):
-        domains = [self.data_path / "FLAIR_1" / "train" / d for d in self.train_domains]
-        all_img, all_msk, all_mtd = flair_gather_data(
-            domains, path_metadata=None, use_metadata=False, test_set=False
-        )
-        self.dict_train = {"IMG": [], "MSK": [], "MTD": []}
-        self.dict_train_unlabeled = {"IMG": [], "MSK": [], "MTD": []}
-        self.dict_val = {"IMG": [], "MSK": [], "MTD": []}
-        for i, (img, msk) in enumerate(zip(all_img, all_msk)):
-            if self.sup <= i%100 < self.sup + self.unsup:
-                self.dict_train_unlabeled["IMG"].append(img)
-            if i%100 < self.sup:
-                self.dict_train["IMG"].append(img)
-                self.dict_train["MSK"].append(msk)
-            elif 90 <= i%100:
-                self.dict_val["IMG"].append(img)
-                self.dict_val["MSK"].append(msk)
+        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]        
 
     def setup(self, stage):
-        if stage in ("fit", "validate"):
-            self.train_set = datasets.Flair(
-                self.dict_train["IMG"],
-                self.dict_train["MSK"],
-                self.bands,
-                self.merge,
-                transforms=Compose([self.to_0_1, self.train_tf])
-            )
-            self.val_set = datasets.Flair(
-                self.dict_val["IMG"],
-                self.dict_val["MSK"],
-                self.bands,
-                self.merge,
-                transforms=Compose([self.to_0_1, self.test_tf])
-            )
-            if self.unsup > 0:
-                self.unlabeled_set = datasets.Flair(
-                    self.dict_train_unlabeled["IMG"],
-                    [],
-                    self.bands,
-                    self.merge,
-                    transforms=Compose([self.to_0_1, self.test_tf])
-                )
+        train_domains = [self.data_path/"FLAIR_1/train"/d for d in self.train_domains]
+        imgs, msks, mtds = flair_gather_data(
+            train_domains, path_metadata=None, use_metadata=False, test_set=False
+        )
+        flair = partial(datasets.Flair, imgs, msks, self.bands, self.merge)
+        l, L = int(0.8*len(imgs)), len(imgs)
+        idxs=random.sample(range(L), L)
+        self.train_set = Subset(flair(self.train_tf), idxs[:l])
+        self.val_set = Subset(flair(self.test_tf), idxs[l:])
                 
     def dataloader(self, dataset):
         return partial(
             DataLoader,
             dataset=dataset,
-            collate_fn=CustomCollate(),
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory

@@ -7,11 +7,11 @@ import numpy as np
 import rasterio
 
 import torch
-from rasterio.windows import Window
 from torch.utils.data import Dataset
 
 import dl_toolbox.transforms as transforms
 from dl_toolbox.utils import merge_labels, label
+from torchvision import tv_tensors
 
 
 lut_colors = {
@@ -103,95 +103,19 @@ class Flair(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        path = self.imgs[idx]
-        with rasterio.open(path, "r") as file:
-            image = file.read(out_dtype=np.float32, indexes=self.bands)
-        image = torch.from_numpy(image) 
-        label = None
+        with rasterio.open(self.imgs[idx], "r") as file:
+            image = file.read(out_dtype=np.uint8, indexes=self.bands)
+        image = tv_tensors.Image(torch.from_numpy(image))
+        target = None
         if self.msks:
+            target = {}
             with rasterio.open(self.msks[idx], "r") as file:
-                label = file.read(out_dtype=np.uint8)
-            label = merge_labels(label, self.merges) 
-            label = torch.from_numpy(label).long()
-        image, label = self.transforms(img=image, label=label)
-        return {
-            "image": image,
-            "label": None if label is None else label.squeeze(),
-            "path": path
-        }
-
-
-#    def __len__(self):
-#        return len(self.list_imgs)
-#
-#    def __getitem__(self, index):
-#
-#        image_file = self.list_imgs[index]
-#
-#        cx = np.random.randint(0, 512 - self.crop_size + 1)
-#        cy = np.random.randint(0, 512 - self.crop_size + 1)
-#        window = Window(cx, cy, self.crop_size, self.crop_size)
-#        image = self.read_image(image_file, window)
-#        image = torch.from_numpy(image).float().contiguous()
-#
-#        label = None
-#        if self.list_msks.size: # a changer
-#            mask_file = self.list_msks[index]
-#            label = self.read_label(mask_file, window)
-#            label = torch.from_numpy(label).long().contiguous()
-#
-#        if self.img_aug is not None:
-#            end_image, end_mask = self.img_aug(img=image, label=label)
-#        else:
-#            end_image, end_mask = image, label
-#
-#        # todo : gerer metadata
-#
-#        return {
-#            #'orig_image':image,
-#            #'orig_mask':label,
-#            'image':end_image,
-#            'label':end_mask,
-#            'path': '/'.join(image_file.split('/')[-4:])
-#        }
-
-#        if self.use_metadata == True:
-#            mtd = self.list_metadata[index]
-#            return {"img": torch.as_tensor(img, dtype=torch.float),
-#                    "mtd": torch.as_tensor(mtd, dtype=torch.float),
-#                    "msk": torch.as_tensor(msk, dtype=torch.float)}
-
-# class Predict_Dataset(Dataset):
-#
-#    def __init__(self,
-#                 dict_files,
-#                 num_classes=13, use_metadata=True
-#                 ):
-#        self.list_imgs = np.array(dict_files["IMG"])
-#        self.num_classes = num_classes
-#        self.use_metadata = use_metadata
-#        if use_metadata == True:
-#            self.list_metadata = np.array(dict_files["MTD"])
-#
-#    def read_img(self, raster_file: str) -> np.ndarray:
-#        with rasterio.open(raster_file) as src_img:
-#            array = src_img.read()
-#            return array
-#
-#    def __len__(self):
-#        return len(self.list_imgs)
-#
-#    def __getitem__(self, index):
-#        image_file = self.list_imgs[index]
-#        img = self.read_img(raster_file=image_file)
-#        img = img_as_float(img)
-#
-#        if self.use_metadata == True:
-#            mtd = self.list_metadata[index]
-#            return {"img": torch.as_tensor(img, dtype=torch.float),
-#                    "mtd": torch.as_tensor(mtd, dtype=torch.float),
-#                    "id": '/'.join(image_file.split('/')[-4:])}
-#        else:
-#
-#            return {"img": torch.as_tensor(img, dtype=torch.float),
-#                    "id": '/'.join(image_file.split('/')[-4:])}
+                mask = file.read(out_dtype=np.uint8)
+            mask = merge_labels(torch.from_numpy(mask), self.merges) 
+            target['masks'] = tv_tensors.Mask(mask)
+        if self.transforms is not None:
+            image, target = self.transforms(image, target)
+        if self.msks:
+            target['masks'] = target['masks'].squeeze()
+        
+        return image, target

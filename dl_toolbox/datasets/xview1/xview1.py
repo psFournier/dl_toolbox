@@ -1,14 +1,12 @@
-from __future__ import print_function, division
-import os
 from torch.utils.data import Dataset
 from PIL import Image
-from collections import defaultdict
+from torchvision import tv_tensors
+from torchvision.transforms.v2 import functional as F
+from dl_toolbox.utils import list_of_dicts_to_dict_of_lists
+from pathlib import Path
+import torch
+
 from dl_toolbox.utils import label, merge_labels
-
-
-# Ignore warnings
-import warnings
-warnings.filterwarnings("ignore")
 
 LABEL_TO_STRING = {
     11: "Fixed-wing Aircraft",
@@ -73,88 +71,50 @@ LABEL_TO_STRING = {
     94: "Tower",
 }
 
-#all19 = [label("void", (0, 0, 0), void_cls)] + [
-#    label(c.name, c.color, {c.id}) for c in Cityscapes.classes if c.train_id not in {255, -1}
-#]
-#
-#classes = enum.Enum(
-#    "CityscapesClasses",
-#    {
-#        "all19": all19,
-#    },
-#)
-
-class Xview1(Dataset):
-    """xView object detection dataset.
-    
-    Args:
-        root_dir (string): Directory with all the images.
-        annFile (string): Path to json annotation file.
-        transform (callable, optional): A function/transform that  takes in an PIL image
-            and returns a transformed version. E.g, ``transforms.ToTensor``
-        target_transform (callable, optional): A function/transform that takes in the
-            target and transforms it.
-        transforms (callable, optional): A function/transform that takes input sample and its target as entry
-            and returns a transformed version.
+class xView1(Dataset):
     """
-    
-    def __init__(self, root, annFile, merge, transforms=None):
-        image_ids = [int(f.replace(".tif", "")) for f in os.listdir(root)]
-        
-        # === load annotations ===
-        import json
-        import time
-        with open(annFile, "r") as f:
-            print("loading annotations into memory...")
-            t0 = time.time()
-            raw_anns = json.load(f)
-            raw_anns = raw_anns["features"]
-            t1 = time.time()
-            print(f"Done (t={t1-t0:.2f}s)")
-            
-        # === create index ===
-        print("creating index...")
-        image_id_to_object_ids = defaultdict(list)
-        objects = []
-        for i in range(len(raw_anns)): # for all objects
-            image_id = int(raw_anns[i]["properties"]["image_id"].replace(".tif", ""))
-            xmin, ymin, xmax, ymax = map(int, raw_anns[i]["properties"]["bounds_imcoords"].split(","))
-            x = xmin
-            y = ymin
-            w = xmax - xmin
-            h = ymax - ymin
-            type_id = raw_anns[i]["properties"]["type_id"]
-            image_id_to_object_ids[image_id].append(i)
-            objects.append({
-                "image_id": image_id,
-                "bbox": [x, y, w, h],
-                "category_id": type_id
-            })
-        print("index created!")
-        self.image_ids = image_ids
-        self.image_id_to_object_ids = image_id_to_object_ids
-        self.objects = objects
-        
-    def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
+    Requires the `COCO API to be installed <https://github.com/pdollar/coco/tree/master/PythonAPI>`_.
 
-        Returns:
-            tuple: Tuple (image, target) where target is a dictionary.
-        """
-        img_id = self.image_ids[index]
-        ann_ids = self.image_id_to_object_ids[img_id]
-        target = []
-        for ann_id in ann_ids:
-            target.append(self.objects[ann_id])
+    Args:
+        root (str or ``pathlib.Path``): Root directory where images are downloaded to.
+        annFile (string): Path to json annotation file.
+    """
+    classes = [label(v, (0, 255, 255), {k}) for k, v in LABEL_TO_STRING.items()]
 
-        fname = os.path.join(self.root, str(img_id) + ".tif")
-        
-        img = Image.open(os.path.join(self.root, fname)).convert("RGB")
+    def __init__(self, root, annFile, transforms=None):
+        self.root = Path(root)
+        self.transforms = transforms
+        from pycocotools.coco import COCO
+        self.coco = COCO(annFile)
+        self.ids = list(sorted(self.coco.imgs.keys()))
+        self.merges = [list(l.values) for l in self.classes]
+
+    def _load_image(self, id: int):
+        path = self.coco.loadImgs(id)[0]["file_name"]
+        return Image.open(self.root/path).convert("RGB")
+
+    def _load_target(self, id: int):
+        return self.coco.loadAnns(self.coco.getAnnIds(id))
+
+    def __getitem__(self, index: int):
+        id = self.ids[index]
+        tv_image = tv_tensors.Image(self._load_image(id))
+        target = self._load_target(id)
+        target = list_of_dicts_to_dict_of_lists(target)
+        tv_target = {}
+        tv_target["boxes"] = F.convert_bounding_box_format(
+            tv_tensors.BoundingBoxes(
+                target["bbox"],
+                format=tv_tensors.BoundingBoxFormat.XYWH,
+                canvas_size=tuple(F.get_size(tv_image)),
+            ),
+            new_format=tv_tensors.BoundingBoxFormat.XYXY
+        )
+        labels = torch.tensor(target["category_id"])
+        tv_target['labels'] = merge_labels(labels, self.merges)
         if self.transforms is not None:
-            img, target = self.transforms(img, target)
-        return img, target
+            tv_image, tv_target = self.transforms(tv_image, tv_target)
+        return tv_image, tv_target
 
     def __len__(self):
         return len(self.ids)

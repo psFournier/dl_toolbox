@@ -11,3 +11,4 @@ from .digitanie.digitanie_sublabeled_toa import *
 from .digitanie.digitanie_pseudosup import *
 #from .infinigen.dataset_loader import *
 from .pascalvoc.pascalvoc import *
+from .xview1.xview1 import xView1

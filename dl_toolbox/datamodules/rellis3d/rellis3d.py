@@ -10,7 +10,7 @@ from functools import partial
 import numpy as np
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, Subset
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate
@@ -33,12 +33,9 @@ class Rellis3d(LightningDataModule):
         merge,
         sup,
         unsup,
-        #to_0_1,
         train_tf,
         test_tf,
-        batch_size_s,
-        batch_size_u,
-        steps_per_epoch,
+        batch_size,
         num_workers,
         pin_memory,
         *args,
@@ -49,12 +46,9 @@ class Rellis3d(LightningDataModule):
         self.merge = merge
         self.sup = sup
         self.unsup = unsup
-        #self.to_0_1 = to_0_1
         self.train_tf = train_tf
         self.test_tf = test_tf
-        self.batch_size_s = batch_size_s
-        self.batch_size_u = batch_size_u
-        self.steps_per_epoch = steps_per_epoch
+        self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.in_channels = 3
@@ -62,95 +56,44 @@ class Rellis3d(LightningDataModule):
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
-        #self.class_weights = (
-        #    [1.0] * self.num_classes if class_weights is None else class_weights
-        #)
+
+    def setup(self, stage):
         
-    
-    def prepare_data(self):
-        def get_seq_imgs_msks(seq):
-            imgs = []
-            msks = []
-            img_dir = self.data_path/'Rellis-3D'/f'{seq}'/'pylon_camera_node'
-            msk_dir = self.data_path/'Rellis-3D'/f'{seq}'/'pylon_camera_node_label_id'
+        imgs = []
+        msks = []
+        for s in self.sequences:
+            img_dir = self.data_path/'Rellis-3D'/f'{s}'/'pylon_camera_node'
+            msk_dir = self.data_path/'Rellis-3D'/f'{s}'/'pylon_camera_node_label_id'
             for msk_name in os.listdir(msk_dir):
                 img_name = "{}.{}".format(msk_name.split('.')[0], "jpg")
                 imgs.append(img_dir/img_name)
                 msks.append(msk_dir/msk_name)
-            return zip(imgs, msks)
-        imgs_msks_from_seqs = []
-        for s in self.sequences:
-            imgs_msks_from_seqs += get_seq_imgs_msks(s)
-        random.shuffle(imgs_msks_from_seqs)
-        L = len(imgs_msks_from_seqs)
-        self.train_s = imgs_msks_from_seqs[:int(L*0.6):self.sup]
-        self.val = imgs_msks_from_seqs[int(L*0.6):int(L*0.8)]
-        self.test = imgs_msks_from_seqs[int(L*0.8):]
-        self.train_u = imgs_msks_from_seqs
-        self.predict = self.val[:]
-
-    def setup(self, stage):
-        self.train_s_set = datasets.Rellis3d(
-            *[list(t) for t in zip(*self.train_s)],
-            self.merge,
-            transforms=self.train_tf
-            #transforms=Compose([self.to_0_1, self.train_tf])
-        )
-        if self.unsup != -1:
-            self.train_u_set = datasets.Rellis3d(
-                *[list(t) for t in zip(*self.train_u)],
-                self.merge,
-                transforms=self.train_tf
-                #transforms=Compose([self.to_0_1, RandomCrop2(256)])
-            )
-        self.val_set = datasets.Rellis3d(
-            *[list(t) for t in zip(*self.val)],
-            self.merge,
-            self.test_tf
-            #transforms=Compose([self.to_0_1, self.test_tf])
-        )
-        self.test_set = datasets.Rellis3d(
-            *[list(t) for t in zip(*self.test)],
-            self.merge,
-            self.test_tf
-            #transforms=Compose([self.to_0_1, self.test_tf])
-        )
-        self.predict_set = datasets.Rellis3d(
-            *[list(t) for t in zip(*self.predict)],
-            self.merge,
-            self.test_tf
-            #transforms=Compose([self.to_0_1, self.test_tf])
-        )
+                    
+        rellis = partial(datasets.Rellis3d, imgs, msks, self.merge)
+        l, L = int(0.8*len(imgs)), len(imgs)
+        idxs=random.sample(range(L), L)
+        self.train_set = Subset(rellis(self.train_tf), idxs[:l])
+        self.val_set = Subset(rellis(self.test_tf), idxs[l:])
                 
     def dataloader(self, dataset):
         return partial(
             DataLoader,
             dataset=dataset,
-            collate_fn=CustomCollate(),
+            batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory
         )
                        
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = self.dataloader(self.train_s_set)(
-            sampler=RandomSampler(
-                self.train_s_set,
-                replacement=True,
-                num_samples=self.steps_per_epoch*self.batch_size_s
-            ),
+        train_dataloaders["sup"] = self.dataloader(self.train_set)(
+            shuffle=True,
             drop_last=True,
-            batch_size=self.batch_size_s
         )
-        if self.unsup != -1:
-            train_dataloaders["unsup"] = self.dataloader(self.train_u_set)(
-                sampler=RandomSampler(
-                    self.train_u_set,
-                    replacement=True,
-                    num_samples=self.steps_per_epoch*self.batch_size_u
-                ),
+        if self.unsup > 0:
+            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
+                shuffle=True,
                 drop_last=True,
-                batch_size=self.batch_size_u
             )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
@@ -158,19 +101,18 @@ class Rellis3d(LightningDataModule):
         return self.dataloader(self.val_set)(
             shuffle=False,
             drop_last=False,
-            batch_size=self.batch_size_s
         )
     
-    def test_dataloader(self):
-        return self.dataloader(self.test_set)(
-            shuffle=False,
-            drop_last=False,
-            batch_size=self.batch_size_s
-        )
-    
-    def predict_dataloader(self):
-        return self.dataloader(self.predict_set)(
-            shuffle=False,
-            drop_last=False,
-            batch_size=self.batch_size_s
-        )
+    #def test_dataloader(self):
+    #    return self.dataloader(self.test_set)(
+    #        shuffle=False,
+    #        drop_last=False,
+    #        batch_size=self.batch_size_s
+    #    )
+    #
+    #def predict_dataloader(self):
+    #    return self.dataloader(self.predict_set)(
+    #        shuffle=False,
+    #        drop_last=False,
+    #        batch_size=self.batch_size_s
+    #    )
