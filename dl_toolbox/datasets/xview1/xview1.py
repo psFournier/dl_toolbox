@@ -111,7 +111,7 @@ class xView1(Dataset):
             new_format=tv_tensors.BoundingBoxFormat.XYXY
         )
         labels = torch.tensor(target["category_id"])
-        tv_target['labels'] = merge_labels(labels, self.merges)
+        tv_target['labels'] = merge_labels(labels, self.merges).long()
         if self.transforms is not None:
             tv_image, tv_target = self.transforms(tv_image, tv_target)
         return tv_image, tv_target
