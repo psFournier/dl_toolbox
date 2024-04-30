@@ -102,13 +102,10 @@ class xView1(Dataset):
         target = self._load_target(id)
         target = list_of_dicts_to_dict_of_lists(target)
         tv_target = {}
-        tv_target["boxes"] = F.convert_bounding_box_format(
-            tv_tensors.BoundingBoxes(
-                target["bbox"],
-                format=tv_tensors.BoundingBoxFormat.XYWH,
-                canvas_size=tuple(F.get_size(tv_image)),
-            ),
-            new_format=tv_tensors.BoundingBoxFormat.XYXY
+        tv_target["boxes"] = tv_tensors.BoundingBoxes(
+            target["bbox"],
+            format=tv_tensors.BoundingBoxFormat.XYWH,
+            canvas_size=tuple(F.get_size(tv_image)),
         )
         labels = torch.tensor(target["category_id"])
         tv_target['labels'] = merge_labels(labels, self.merges).long()
