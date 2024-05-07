@@ -17,8 +17,7 @@ def train(cfg: DictConfig) -> None:
     datamodule = hydra.utils.instantiate(cfg.datamodule)
     module = hydra.utils.instantiate(
         cfg.module,
-        num_classes=datamodule.num_classes,
-        in_channels=datamodule.in_channels,
+        num_classes=datamodule.num_classes
     )
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     dsm = pl.callbacks.DeviceStatsMonitor()

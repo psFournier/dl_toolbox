@@ -1,56 +1,17 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: resisc/resisc
-  - override /module: supervised
-  - override /scheduler@module.scheduler: poly
-  - override /network@module.network: ViT
+  - override /datamodule: rellis/rellis
+  - override /module: segmenter
   - override /trainer: gpu
-  - override /transforms@datamodule.to_0_1: to_0_1
-  - override /transforms@datamodule.train_tf: noop
-  - override /transforms@datamodule.test_tf: noop
-  - override /transforms@module.norm: imagenet_norm
-  - override /transforms@module.batch_tf: none
-  - override /loss@module.loss: ce
-
-# all parameters below will be merged with parameters from default configurations set above
-# this allows you to overwrite only specified parameters
-
-#ckpt: "/data/outputs/semcity/run_sup/2023-10-01_171911/checkpoints/last.ckpt"
-
-datamodule:
-    num_workers: 1
-    sup: 1
-    #pl_dir: /work/AI4GEO/users/fournip/outputs/test_ohem/2023-10-27_143004/0/checkpoints/epoch_180
-    #thresh: 100
-
-module:
-    optimizer:
-        lr: 0.04
-    scheduler:
-        milestones: [270]
-        schedulers:
-            swa:
-                lr_lambda:
-                    cycle_len: 30
-    network:
-        #weights: IMAGENET1K_V1
-        encoder_weights: imagenet
-    metric_ignore_index: 0
-    one_hot: false
-
 
 callbacks:
-    feature_ft:
-        do_finetune: false
-        unfreeze_at_epoch: 1000
-    model_avg:
-        swa_epoch_start: 270
-        avg_every_n_epochs: 30
+    lora:
+        module_name: encoder
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
 
-name: "test_vit"
+name: "test_rellis"
             
 trainer:
   max_time: "00:11:30:59"
@@ -66,9 +27,4 @@ hydra:
       seed: 1
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}
-#  launcher:
-   # setup:
-#        - cp -r /scratchm/pfournie/data/NWPU-RESISC45 /scratch/pfournie
-#        - rsync -rvl --include="img_multispec_05/" --include="semantic_05/" --include="TLS_BDSD_RGB/" --include="TLS_indMap/" --include="*.tif" --exclude="*" /work/AI4GEO/users/fournip/SemCity-Toulouse-bench/ $TMPDIR/SemCity-Toulouse-bench/
-#        - rsync -rvl --include="*.npy" --include="TOULOUSE/" --include="*[0-9].tif" --include="COS43/" --exclude="*" ${paths.data}/DIGITANIE_v4/ $TMPDIR/DIGITANIE_v4/    
+    #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}  

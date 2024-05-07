@@ -90,11 +90,6 @@ class Rellis3d(LightningDataModule):
             shuffle=True,
             drop_last=True,
         )
-        if self.unsup > 0:
-            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
-                shuffle=True,
-                drop_last=True,
-            )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
     def val_dataloader(self):
@@ -102,17 +97,3 @@ class Rellis3d(LightningDataModule):
             shuffle=False,
             drop_last=False,
         )
-    
-    #def test_dataloader(self):
-    #    return self.dataloader(self.test_set)(
-    #        shuffle=False,
-    #        drop_last=False,
-    #        batch_size=self.batch_size_s
-    #    )
-    #
-    #def predict_dataloader(self):
-    #    return self.dataloader(self.predict_set)(
-    #        shuffle=False,
-    #        drop_last=False,
-    #        batch_size=self.batch_size_s
-    #    )

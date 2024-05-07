@@ -1,0 +1,11 @@
+defaults:
+  - /optimizer: adam
+  - /scheduler: constant
+  - /loss: ce
+  - /transforms@sliding: sliding
+  - _self_
+
+_target_: dl_toolbox.modules.Segmenter
+metric_ignore_index: null
+batch_tf: null
+tta: null

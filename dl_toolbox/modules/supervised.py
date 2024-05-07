@@ -1,4 +1,4 @@
-    import pytorch_lightning as pl
+import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torchmetrics as M
@@ -39,7 +39,6 @@ class Supervised(pl.LightningModule):
         self.norm = norm
         self.one_hot = one_hot
         metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
-        self.train_accuracy = M.Accuracy(**metric_args)
         self.val_accuracy = M.Accuracy(**metric_args)
         self.test_accuracy = M.Accuracy(**metric_args)
         self.val_cm = M.ConfusionMatrix(**metric_args, normalize='true')

@@ -1,7 +1,7 @@
 _target_: dl_toolbox.transforms.Sliding
-nols: 2048
-nrows: 1024
-width: 768
-height: 768
+nols: 1920
+nrows: 1200
+width: 588
+height: 588
 step_w: 512
 step_h: 512

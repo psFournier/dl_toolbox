@@ -8,7 +8,7 @@ class CrossEntropy(torch.nn.CrossEntropyLoss):
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.__name__ = 'cross entropy'
+        self.__name__ = 'CE'
 
     def forward(self, logits, targets):
         return super().forward(logits, targets)
@@ -17,4 +17,4 @@ class CrossEntropy(torch.nn.CrossEntropyLoss):
         return logits.softmax(dim=1)
     
     def pred(self, probs):
-        return torch.argmax(probs, dim=1)
+        return torch.max(probs, dim=1)

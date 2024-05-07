@@ -17,4 +17,5 @@ from .fixmatch import *
 from .mixmatch import *
 from .self_training import *
 from .fcos.fcos import *
+from .segmenter.segmenter import *
 # from .module_factory import ModuleFactory

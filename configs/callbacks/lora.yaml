@@ -1,0 +1,4 @@
+lora:
+    _target_: dl_toolbox.callbacks.Lora
+    module_name: encoder
+    rank: 4

@@ -8,5 +8,3 @@ from .tiff_preds_writer import TiffPredsWriter
 from .classif_preds_writer import *
 from .feature_ft import *
 from .lora import *
-
-# from .merge_tile import MergeTile

@@ -9,10 +9,8 @@ defaults:
   - callbacks:
       - model_checkpoint
       - model_summary
-      - early_stopping
-      - model_avg
       - lr_monitor
-      - feature_ft
+      - lora
   - paths: qdtis056z
   - trainer: gpu
   - hydra: default
