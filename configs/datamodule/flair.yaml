@@ -1,12 +1,13 @@
 defaults:
-    - /transforms@train_tf: rellis
+    - /transforms@train_tf: flair/hf
 
-_target_: dl_toolbox.datamodules.Rellis3d
+_target_: dl_toolbox.datamodules.Flair
 data_path: ${paths.data}
+bands: [1,2,3]
 sup: 1
 unsup: 0
 batch_size: 4
 num_workers: 6
-merge: all20
+merge: main13
 pin_memory: True
 test_tf: null

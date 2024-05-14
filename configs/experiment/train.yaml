@@ -1,9 +1,10 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: rellis/rellis
+  - override /datamodule: rellis
   - override /module: segmenter
   - override /trainer: gpu
+  - override /transforms@module.sliding: rellis/sliding
 
 callbacks:
     lora:
@@ -27,4 +28,3 @@ hydra:
       seed: 1
   sweep:
     dir: ${paths.output_dir}/${name}/${now:%Y-%m-%d_%H%M%S}
-    #subdir: ${hydra:sweeper.params.transforms@module.batch_tf}_${seed}  

@@ -12,6 +12,7 @@ from torch.utils.data import Dataset
 import dl_toolbox.transforms as transforms
 from dl_toolbox.utils import merge_labels, label
 from torchvision import tv_tensors
+import torchvision.transforms.v2 as v2 
 
 
 lut_colors = {
@@ -97,7 +98,13 @@ class Flair(Dataset):
         self.bands = bands
         self.class_list = self.classes[merge].value
         self.merges = [list(l.values) for l in self.class_list]
-        self.transforms = transforms
+        self.transforms = v2.ToDtype(dtype={
+            tv_tensors.Image: torch.float32,
+            tv_tensors.Mask: torch.int64,
+            "others":None
+        }, scale=True)
+        if transforms is not None:
+            self.transforms = v2.Compose([self.transforms, transforms])
 
     def __len__(self):
         return len(self.imgs)
@@ -113,9 +120,7 @@ class Flair(Dataset):
                 mask = file.read(out_dtype=np.uint8)
             mask = merge_labels(torch.from_numpy(mask), self.merges) 
             target['masks'] = tv_tensors.Mask(mask)
-        if self.transforms is not None:
-            image, target = self.transforms(image, target)
+        image, target = self.transforms(image, target)
         if self.msks:
             target['masks'] = target['masks'].squeeze()
-        
         return image, target

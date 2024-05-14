@@ -76,11 +76,6 @@ class Flair(LightningDataModule):
             shuffle=True,
             drop_last=True,
         )
-        if self.unsup > 0:
-            train_dataloaders["unsup"] = self.dataloader(self.unlabeled_set)(
-                shuffle=True,
-                drop_last=True,
-            )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
     def val_dataloader(self):

@@ -2,7 +2,7 @@ defaults:
   - /optimizer: adam
   - /scheduler: constant
   - /loss: ce
-  - /transforms@sliding: sliding
+  - /transforms@sliding: null
   - _self_
 
 _target_: dl_toolbox.modules.Segmenter

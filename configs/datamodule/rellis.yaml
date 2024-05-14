@@ -1,0 +1,12 @@
+defaults:
+    - /transforms@train_tf: rellis/hf
+
+_target_: dl_toolbox.datamodules.Rellis3d
+data_path: ${paths.data}
+sup: 1
+unsup: 0
+batch_size: 4
+num_workers: 6
+merge: all20
+pin_memory: True
+test_tf: null

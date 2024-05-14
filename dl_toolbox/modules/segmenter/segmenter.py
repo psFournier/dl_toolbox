@@ -22,7 +22,6 @@ def param_groups_weight_decay(
     for name, param in params:
         if param.ndim <= 1 or name.endswith(".bias") or name in no_weight_decay_list:
             no_decay.append(param)
-            print(name)
         else:
             decay.append(param)
     return [
