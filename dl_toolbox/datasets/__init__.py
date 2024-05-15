@@ -4,11 +4,11 @@ from .resisc.resisc import *
 from .airs.airs import *
 from .flair.flair import *
 from .rellis3d.rellis3d import *
-from .semanticdrone.semanticdrone import *
-from .digitanie.digitanie import *
-from .digitanie.digitanie_unlabeled_toa import *
-from .digitanie.digitanie_sublabeled_toa import *
-from .digitanie.digitanie_pseudosup import *
+#from .semanticdrone.semanticdrone import *
+#from .digitanie.digitanie import *
+#from .digitanie.digitanie_unlabeled_toa import *
+#from .digitanie.digitanie_sublabeled_toa import *
+#from .digitanie.digitanie_pseudosup import *
 #from .infinigen.dataset_loader import *
 from .pascalvoc.pascalvoc import *
 from .xview1.xview1 import xView1
