@@ -9,6 +9,7 @@ max_epochs: 10000
 limit_train_batches: 1.
 limit_val_batches: 1.
 num_sanity_val_steps: 0
+val_check_interval: 1000
 
 accelerator: cpu
 devices: 1
@@ -16,8 +17,8 @@ devices: 1
 # mixed precision for extra speed-up
 # precision: 16
 
-# perform a validation loop every N training epochs
-check_val_every_n_epoch: 1
+# perform a validation loop every N training epochs : here see val_check_interval
+check_val_every_n_epoch: null
 
 # set True to to ensure deterministic results
 # makes training slower but gives more reproducibility than just setting seeds

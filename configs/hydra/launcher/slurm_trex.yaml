@@ -6,7 +6,7 @@ cpus_per_task: 16
 # gpus_per_node: 1
 gres: gpu:1
 tasks_per_node: 1
-mem_gb: 120
+#mem_gb: 120
 nodes: 1
 name: ${hydra.job.name}
 partition: gpu_a100
@@ -19,7 +19,7 @@ export: null
 # cpus_per_gpu: null
 # gpus_per_task: null
 # mem_per_gpu: null
-# mem_per_cpu: 8G
+mem_per_cpu: 7G
 signal_delay_s: 120
 max_num_timeout: 0
 # additional_parameters: {}

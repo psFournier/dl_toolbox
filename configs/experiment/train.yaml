@@ -1,10 +1,10 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: rellis
+  - override /datamodule: flair
   - override /module: segmenter
   - override /trainer: gpu
-  - override /transforms@module.sliding: rellis/sliding
+  - override /transforms@module.sliding: flair/sliding
 
 callbacks:
     lora:
@@ -12,13 +12,13 @@ callbacks:
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
 
-name: "test_rellis"
+name: "flair_segmenter"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 5
-  limit_train_batches: 1
-  limit_val_batches: 1
+  max_epochs: 50
+  limit_train_batches: 1.
+  limit_val_batches: 1.
     
 hydra:
   run:
