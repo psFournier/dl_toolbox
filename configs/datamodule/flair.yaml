@@ -1,5 +1,5 @@
 defaults:
-    - /transforms@train_tf: flair/hf
+    - /transforms@train_tf: flair/full
 
 _target_: dl_toolbox.datamodules.Flair
 data_path: ${paths.data}

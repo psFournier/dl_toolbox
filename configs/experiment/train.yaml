@@ -16,9 +16,7 @@ name: "flair_segmenter"
             
 trainer:
   max_time: "00:11:30:59"
-  max_epochs: 5
-  limit_train_batches: 1
-  limit_val_batches: 1
+  #fast_dev_run: 1
     
 hydra:
   run:
