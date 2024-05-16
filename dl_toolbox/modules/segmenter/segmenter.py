@@ -58,6 +58,7 @@ class Segmenter(pl.LightningModule):
     def __init__(
         self,
         num_classes,
+        backbone,
         optimizer,
         scheduler,
         loss,
@@ -70,8 +71,12 @@ class Segmenter(pl.LightningModule):
     ):
         super().__init__()
         self.num_classes = num_classes
-        self.encoder = timm.create_model('vit_small_patch14_dinov2', pretrained=True, dynamic_img_size=True)
-        self.decoder = DecoderLinear(num_classes, 14, self.encoder.embed_dim)
+        self.encoder = timm.create_model(backbone, pretrained=True, dynamic_img_size=True)
+        self.decoder = DecoderLinear(
+            num_classes,
+            self.encoder.patch_embed.patch_size[0],
+            self.encoder.embed_dim
+        )
         self.loss =  loss
         self.optimizer = optimizer
         self.scheduler = scheduler

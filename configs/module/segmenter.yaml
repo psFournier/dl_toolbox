@@ -6,6 +6,7 @@ defaults:
   - _self_
 
 _target_: dl_toolbox.modules.Segmenter
+backbone: 'vit_small_patch14_dinov2'
 metric_ignore_index: null
 batch_tf: null
 tta: null
