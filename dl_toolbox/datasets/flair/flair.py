@@ -110,7 +110,8 @@ class Flair(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        with rasterio.open(self.imgs[idx], "r") as file:
+        p = self.imgs[idx]
+        with rasterio.open(p, "r") as file:
             image = file.read(out_dtype=np.uint8, indexes=self.bands)
         image = tv_tensors.Image(torch.from_numpy(image))
         target = None
@@ -123,4 +124,4 @@ class Flair(Dataset):
         image, target = self.transforms(image, target)
         if self.msks:
             target['masks'] = target['masks'].squeeze()
-        return image, target
+        return image, target, p

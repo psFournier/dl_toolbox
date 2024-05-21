@@ -5,6 +5,7 @@ from functools import partial
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader, Subset
+from torch.utils.data._utils.collate import default_collate
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate
@@ -60,11 +61,17 @@ class Flair(LightningDataModule):
         idxs=random.sample(range(L), L)
         self.train_set = Subset(flair(self.train_tf), idxs[:l])
         self.val_set = Subset(flair(self.test_tf), idxs[l:])
-                
+        self.predict_set = Subset(flair(self.test_tf), idxs[l:])
+                        
+    def collate(self, batch, *args, **kwargs):
+        collated = default_collate([(img, msk) for img, msk, path in batch])
+        return *collated, [path for _,_,path in batch]
+        
     def dataloader(self, dataset):
         return partial(
             DataLoader,
             dataset=dataset,
+            collate_fn=self.collate,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory
@@ -80,6 +87,12 @@ class Flair(LightningDataModule):
     
     def val_dataloader(self):
         return self.dataloader(self.val_set)(
+            shuffle=False,
+            drop_last=False,
+        )
+
+    def predict_dataloader(self):
+        return self.dataloader(self.predict_set)(
             shuffle=False,
             drop_last=False,
         )

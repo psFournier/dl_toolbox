@@ -137,7 +137,7 @@ class Segmenter(pl.LightningModule):
         return masks
     
     def training_step(self, batch, batch_idx):
-        x, y = batch["sup"]
+        x, y, p = batch["sup"]
         if self.batch_tf is not None:
             x, y = self.batch_tf(x, y)
         logits = self.forward(x)
@@ -146,7 +146,7 @@ class Segmenter(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        x, y, p = batch
         logits = self.forward(x, sliding=self.sliding)
         loss = self.loss(logits, y['masks'])
         self.log(f"{self.loss.__name__}/val", loss)
@@ -168,3 +168,8 @@ class Segmenter(pl.LightningModule):
         fs = 12 - 2*(self.num_classes//10)
         fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
         logger.experiment.add_figure("confmat/val", fig, global_step=self.trainer.global_step)
+        
+    def predict_step(self, batch, batch_idx):
+        x, y, p = batch
+        logits = self.forward(x, sliding=self.sliding, tta=self.tta)
+        return self.loss.prob(logits)
