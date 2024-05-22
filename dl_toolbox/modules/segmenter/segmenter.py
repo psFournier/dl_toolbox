@@ -83,10 +83,10 @@ class Segmenter(pl.LightningModule):
         self.batch_tf = batch_tf
         self.tta = tta
         self.sliding = sliding
-        metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
-        self.val_accuracy = M.Accuracy(**metric_args)
-        self.val_cm = M.ConfusionMatrix(**metric_args, normalize='true')
-        self.val_jaccard = M.JaccardIndex(**metric_args)
+        self.metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
+        self.val_accuracy = M.Accuracy(**self.metric_args)
+        self.val_cm = M.ConfusionMatrix(**self.metric_args, normalize='true')
+        self.val_jaccard = M.JaccardIndex(**self.metric_args)
 
     def configure_optimizers(self):
         train_params = list(filter(lambda p: p[1].requires_grad, self.named_parameters()))

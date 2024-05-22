@@ -64,8 +64,8 @@ def flair_gather_data(
 
     img, msk, mtd = [], [], []
     if path_folders:
+        print(f"Processing domains")
         for domain in path_folders:
-            print(f"Processing domain {domain}")
             # list_img = sorted(list(get_data_paths(domain, 'IMG*.tif')), key=lambda x: int(x.split('_')[-2][1:]))
             list_img = sorted(
                 list(get_data_paths(domain, "IMG*.tif")),
