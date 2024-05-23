@@ -155,6 +155,7 @@ class Segmenter(pl.LightningModule):
         self.val_accuracy.update(preds, y['masks'])
         self.val_cm.update(preds, y['masks'])
         self.val_jaccard.update(preds, y['masks'])
+        return self.loss.prob(logits)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())

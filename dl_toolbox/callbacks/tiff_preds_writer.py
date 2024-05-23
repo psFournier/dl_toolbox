@@ -44,5 +44,3 @@ class TiffPredsWriter(BasePredictionWriter):
     def on_predict_epoch_end(self, trainer, pl_module):
         stats = pd.DataFrame(self.stats, columns=['img_path', 'pred_path', 'conf', 'acc'])
         stats.to_csv(self.out_path / 'stats.csv')
-        #df = pd.read_csv(self.out_path / 'stats.csv', index_col=0)
-        #print(df['avg_cert'].loc['/data/outputs/flair2_3_97/supervised_dummy/2023-09-05_102306/checkpoints/last_preds/FLAIR_1/train/D007_2020/Z1_AA/img/IMG_003576.tif'])

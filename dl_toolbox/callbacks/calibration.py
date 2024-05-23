@@ -29,7 +29,7 @@ def plot_reliability_diagram(acc_bin, conf_bin):
 
 def plot_calib(count_bins, acc_bins, conf_bins, max_points):
     acc, conf = [], []
-    total_count = np.sum(count_bins)
+    total_count = torch.sum(count_bins)
     k = min(max_points / total_count, 1)
     for i, c in enumerate(count_bins):
         c = int(c * k)
@@ -58,10 +58,12 @@ def plot_calib(count_bins, acc_bins, conf_bins, max_points):
     return g.figure
 
 
-def compute_calibration_bins(bin_boundaries, labels, confs, preds, ignore_idx=None):
+def compute_calibration_bins(n_bins, labels, confs, preds, ignore_idx=None):
     """
     All inputs must be flattened torch tensors.
     """
+    
+    bin_boundaries = torch.linspace(0, 1, n_bins + 1)
 
     if ignore_idx is not None:
         idx = labels != ignore_idx
@@ -91,70 +93,25 @@ def compute_calibration_bins(bin_boundaries, labels, confs, preds, ignore_idx=No
 
 
 class CalibrationLogger(pl.Callback):
-    def __init__(self, per_class, freq, *args, **kwargs):
+    def __init__(self, freq, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.per_class = per_class
         self.freq = freq
         self.labels = []
         self.confs = []
         self.preds = []
-
-    def on_fit_start(self, trainer, pl_module):
         self.n_bins = 100
-        self.bin_boundaries = torch.linspace(0, 1, self.n_bins + 1)
-        # self.acc_bins = torch.zeros(self.n_bins)
-        # self.conf_bins = torch.zeros(self.n_bins)
-        # self.count_bins = torch.zeros(self.n_bins)
-        # self.acc_bins, self.conf_bins, self.count_bins = [], [], []
-
-    # for i in range(pl_module.num_classes):
-    #     if i != pl_module.ignore_index:
-    #         self.acc_bins.append(torch.zeros(self.n_bins))
-    #         self.conf_bins.append(torch.zeros(self.n_bins))
-    #         self.count_bins.append(torch.zeros(self.n_bins))
-    #         if not self.per_class: break
-    # self.nb_step = 0
 
     def on_validation_batch_end(
-        self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
+        self, trainer, pl_module, outputs, batch, batch_idx
     ):
-        if trainer.current_epoch % self.freq == 0:
-            batch = outputs["batch"]
-
-            labels = batch["mask"].to("cpu")
-            confs = batch["confs"].to("cpu")
-            preds = batch["preds"].to("cpu")
-            self.labels.append(labels.flatten())
+        if trainer.current_epoch % self.freq == 0 and batch_idx < 100:
+            _, y, _ = batch
+            probs = outputs.cpu()
+            confs, preds = pl_module.loss.pred(probs)
+            masks = y["masks"].cpu()
+            self.labels.append(masks.flatten())
             self.confs.append(confs.flatten())
             self.preds.append(preds.flatten())
-        # acc_bins, conf_bins, count_bins = compute_calibration_bins(
-        #     self.bin_boundaries,
-        #     labels,
-        #     confs,
-        #     preds
-        # )
-        # self.accs.append(acc_bins)
-        # self.confs.append(conf_bins)
-        # self.counts.append(count_bins)
-
-    #            for i in range(pl_module.num_classes):
-    #                cls_filter = torch.nonzero(labels == i, as_tuple=True)
-    #                if i != pl_module.ignore_index:
-    #                    cls_labels = labels[cls_filter]
-    #                    cls_confs = batch['confs'].cpu().flatten()[cls_filter]
-    #                    cls_preds = batch['preds'].cpu().flatten()[cls_filter]
-    #                    acc_bins, conf_bins, count_bins = compute_calibration_bins(
-    #                        self.bin_boundaries,
-    #                        cls_labels,
-    #                        cls_confs,
-    #                        cls_preds
-    #                    )
-    #                    idx = i if self.per_class else 0
-    #                    self.acc_bins[idx] += acc_bins
-    #                    self.conf_bins[idx] += conf_bins
-    #                    self.count_bins[idx] += count_bins
-    #
-    #            self.nb_step += 1
 
     def on_validation_epoch_end(self, trainer, pl_module):
         if trainer.current_epoch % self.freq == 0:
@@ -163,24 +120,16 @@ class CalibrationLogger(pl.Callback):
             preds = torch.cat(self.preds, dim=0)
 
             acc_bins, conf_bins, count_bins = compute_calibration_bins(
-                self.bin_boundaries, labels, confs, preds
+                self.n_bins, labels, confs, preds
             )
 
             figure = plot_calib(count_bins, acc_bins, conf_bins, max_points=10000)
 
-            # for i, (acc, conf, count) in enumerate(
-            #        zip(self.acc_bins, self.conf_bins, self.count_bins)
-            # ):
-
-            # figure = plot_calib(
-            #    count,
-            #    acc/self.nb_step,
-            #    conf/self.nb_step,
-            #    max_points=10000
-            # )
             trainer.logger.experiment.add_figure(
                 f"Calibration", figure, global_step=trainer.global_step
             )
+            #figure.savefig('calib')
+            
             self.labels = []
             self.confs = []
             self.preds = []
