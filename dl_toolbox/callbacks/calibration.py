@@ -5,16 +5,11 @@ import numpy as np
 import pytorch_lightning as pl
 import seaborn as sns
 import torch
-from torchmetrics import CalibrationError
-from torchmetrics.functional.classification.calibration_error import _binning_bucketize
-from torchmetrics.utilities.data import dim_zero_cat
 
 # Necessary for imshow to run on machines with no graphical interface.
 plt.switch_backend("agg")
 
-
 def plot_reliability_diagram(acc_bin, conf_bin):
-    """ """
     figure = plt.figure(figsize=(8, 8))
     plt.plot([0, 1], [0, 1], "k:", label="Perfectly calibrated")
     plt.plot(conf_bin, acc_bin, "s-", label="Model")
@@ -23,9 +18,7 @@ def plot_reliability_diagram(acc_bin, conf_bin):
     plt.legend(loc="lower right")
     plt.title("Calibration curve")
     plt.show()
-
     return figure
-
 
 def plot_calib(count_bins, acc_bins, conf_bins, max_points):
     acc, conf = [], []
@@ -96,40 +89,36 @@ class CalibrationLogger(pl.Callback):
     def __init__(self, freq, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.freq = freq
+        self.n_bins = 100
+        self.initialize()
+        
+    def initialize(self):
         self.labels = []
         self.confs = []
-        self.preds = []
-        self.n_bins = 100
+        self.preds = []        
 
-    def on_validation_batch_end(
-        self, trainer, pl_module, outputs, batch, batch_idx
-    ):
+    def on_validation_batch_end(self, trainer, module, outputs, batch, batch_idx):
         if trainer.current_epoch % self.freq == 0 and batch_idx < 100:
-            _, y, _ = batch
-            probs = outputs.cpu()
-            confs, preds = pl_module.loss.pred(probs)
-            masks = y["masks"].cpu()
-            self.labels.append(masks.flatten())
-            self.confs.append(confs.flatten())
-            self.preds.append(preds.flatten())
+            x, tgt, p = batch
+            logits = module.forward(x).cpu()
+            prob = module.loss.prob(logits)
+            conf, pred = module.loss.pred(prob)
+            y = tgt["masks"].cpu()
+            self.labels.append(y.flatten())
+            self.confs.append(conf.flatten())
+            self.preds.append(pred.flatten())
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer, module):
         if trainer.current_epoch % self.freq == 0:
             labels = torch.cat(self.labels, dim=0)
             confs = torch.cat(self.confs, dim=0)
             preds = torch.cat(self.preds, dim=0)
-
             acc_bins, conf_bins, count_bins = compute_calibration_bins(
                 self.n_bins, labels, confs, preds
             )
-
             figure = plot_calib(count_bins, acc_bins, conf_bins, max_points=10000)
-
             trainer.logger.experiment.add_figure(
                 f"Calibration", figure, global_step=trainer.global_step
             )
             #figure.savefig('calib')
-            
-            self.labels = []
-            self.confs = []
-            self.preds = []
+            self.initialize()

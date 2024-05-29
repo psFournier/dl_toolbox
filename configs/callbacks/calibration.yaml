@@ -1,0 +1,4 @@
+calibration:
+  _target_: dl_toolbox.callbacks.CalibrationLogger
+  freq: 10
+

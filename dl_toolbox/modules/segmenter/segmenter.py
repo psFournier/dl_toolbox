@@ -61,6 +61,7 @@ class Segmenter(pl.LightningModule):
         backbone,
         optimizer,
         scheduler,
+        onehot,
         loss,
         batch_tf,
         metric_ignore_index,
@@ -80,7 +81,8 @@ class Segmenter(pl.LightningModule):
         self.loss =  loss
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.batch_tf = batch_tf
+        self.onehot = onehot
+        #self.batch_tf = batch_tf
         self.tta = tta
         self.sliding = sliding
         self.metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
@@ -136,26 +138,30 @@ class Segmenter(pl.LightningModule):
         masks = F.interpolate(masks, size=(H, W), mode="bilinear")
         return masks
     
+    def _onehot(self, y):
+        return torch.movedim(F.one_hot(y, self.num_classes),-1,1).float()
+    
     def training_step(self, batch, batch_idx):
-        x, y, p = batch["sup"]
-        if self.batch_tf is not None:
-            x, y = self.batch_tf(x, y)
+        x, tgt, p = batch["sup"]
+        y = tgt['masks']
+        if self.onehot: y = self._onehot(y)
+        #if self.batch_tf: x, y = self.batch_tf(x, y)
         logits = self.forward(x)
-        loss = self.loss(logits, y['masks'])
+        loss = self.loss(logits, y)
         self.log(f"{self.loss.__name__}/train", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y, p = batch
-        logits = self.forward(x, sliding=self.sliding)
-        loss = self.loss(logits, y['masks'])
+        x, tgt, p = batch
+        y = tgt['masks']
+        logits = self.forward(x)
+        loss = self.loss(logits, y)
         self.log(f"{self.loss.__name__}/val", loss)
         probs = self.loss.prob(logits)
         _, preds = self.loss.pred(probs)
-        self.val_accuracy.update(preds, y['masks'])
-        self.val_cm.update(preds, y['masks'])
-        self.val_jaccard.update(preds, y['masks'])
-        return self.loss.prob(logits)
+        self.val_accuracy.update(preds, y)
+        self.val_cm.update(preds, y)
+        self.val_jaccard.update(preds, y)
         
     def on_validation_epoch_end(self):
         self.log("accuracy/val", self.val_accuracy.compute())

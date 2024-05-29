@@ -8,9 +8,10 @@ defaults:
   - module: supervised
   - callbacks:
       - model_checkpoint
-      - model_summary
+      - image_visu
       - lr_monitor
       - lora
+      - calibration
   - paths: qdtis056z
   - trainer: gpu
   - hydra: default

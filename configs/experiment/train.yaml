@@ -5,22 +5,37 @@ defaults:
   - override /module: segmenter
   - override /trainer: gpu
   - override /transforms@module.sliding: flair/sliding
+  - override /transforms@module.batch_tf: flair/cutmix
 
 callbacks:
     lora:
         module_name: encoder
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
+    calibration:
+        freq: 1
+    image_visu:
+        freq: 1
 
 name: "flair_segmenter"
             
 trainer:
     max_time: "00:11:30:59"
     #fast_dev_run: 1
+    limit_train_batches: 1
+    limit_val_batches: 1
+    max_epochs: 5
+    log_every_n_steps: 1
+    val_check_interval: 1.
+    check_val_every_n_epoch: 1
 
 datamodule:
-    batch_size: 8
-    num_workers: 16
+    batch_size: 4
+    num_workers: 0
+    batch_tf: null
+    
+#module:
+#    onehot: True
     
 hydra:
   run:

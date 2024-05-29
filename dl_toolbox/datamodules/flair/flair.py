@@ -28,6 +28,7 @@ class Flair(LightningDataModule):
         bands,
         train_tf,
         test_tf,
+        batch_tf,
         batch_size,
         num_workers,
         pin_memory,
@@ -42,6 +43,7 @@ class Flair(LightningDataModule):
         self.bands = bands
         self.train_tf = train_tf
         self.test_tf = test_tf
+        self.batch_tf = batch_tf
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
@@ -64,8 +66,10 @@ class Flair(LightningDataModule):
         self.predict_set = Subset(flair(self.test_tf), idxs[l:])
                         
     def collate(self, batch, *args, **kwargs):
-        collated = default_collate([(img, msk) for img, msk, path in batch])
-        return *collated, [path for _,_,path in batch]
+        b_img, b_tgt = default_collate([(img, tgt) for img, tgt, path in batch])
+        if self.batch_tf:
+            b_img, b_tgt['masks'] = self.batch_tf(b_img, b_tgt['masks'])
+        return b_img, b_tgt, [path for _,_,path in batch]
         
     def dataloader(self, dataset):
         return partial(

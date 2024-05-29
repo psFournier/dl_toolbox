@@ -1,5 +1,7 @@
 defaults:
-    - /transforms@train_tf: flair/full
+    - /transforms@train_tf: flair/train
+    - /transforms@test_tf: flair/test
+    - /transforms@batch_tf: flair/cutmix
 
 _target_: dl_toolbox.datamodules.Flair
 data_path: ${paths.data}
@@ -10,4 +12,3 @@ batch_size: 4
 num_workers: 6
 merge: main13
 pin_memory: True
-test_tf: null
