@@ -3,7 +3,6 @@ defaults:
   - /scheduler: constant
   - /loss: ce
   - /transforms@sliding: null
-  - /transforms@batch_tf: null
   - /transforms@tta: null
   - _self_
 

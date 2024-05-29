@@ -8,9 +8,6 @@ from torch.utils.data import DataLoader, Subset
 from torch.utils.data._utils.collate import default_collate
 
 import dl_toolbox.datasets as datasets
-from dl_toolbox.utils import CustomCollate
-from dl_toolbox.transforms import Compose, NoOp, RandomCrop2
-
 from .utils import flair_gather_data
 
 class Flair(LightningDataModule):
@@ -44,14 +41,17 @@ class Flair(LightningDataModule):
         self.train_tf = train_tf
         self.test_tf = test_tf
         self.batch_tf = batch_tf
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.pin_memory = pin_memory
         self.in_channels = len(self.bands)
         self.classes = datasets.Flair.classes[merge].value
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
-        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]        
+        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
+        self.dataloader = partial(
+            DataLoader,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory
+        )
 
     def setup(self, stage):
         train_domains = [self.data_path/"FLAIR_1/train"/d for d in self.train_domains]
@@ -65,38 +65,34 @@ class Flair(LightningDataModule):
         self.val_set = Subset(flair(self.test_tf), idxs[l:])
         self.predict_set = Subset(flair(self.test_tf), idxs[l:])
                         
-    def collate(self, batch, *args, **kwargs):
+    def collate(self, batch, train, *args, **kwargs):
         b_img, b_tgt = default_collate([(img, tgt) for img, tgt, path in batch])
-        if self.batch_tf:
+        if self.batch_tf and train:
             b_img, b_tgt['masks'] = self.batch_tf(b_img, b_tgt['masks'])
         return b_img, b_tgt, [path for _,_,path in batch]
-        
-    def dataloader(self, dataset):
-        return partial(
-            DataLoader,
-            dataset=dataset,
-            collate_fn=self.collate,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory
-        )
                        
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = self.dataloader(self.train_set)(
+        train_dataloaders["sup"] = self.dataloader(
+            dataset=self.train_set,
             shuffle=True,
             drop_last=True,
+            collate_fn=partial(self.collate, train=True)
         )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
     def val_dataloader(self):
-        return self.dataloader(self.val_set)(
+        return self.dataloader(
+            dataset=self.val_set,
             shuffle=False,
             drop_last=False,
+            collate_fn=partial(self.collate, train=False)
         )
 
     def predict_dataloader(self):
-        return self.dataloader(self.predict_set)(
+        return self.dataloader(
+            dataset=self.predict_set,
             shuffle=False,
             drop_last=False,
+            collate_fn=partial(self.collate, train=False)
         )

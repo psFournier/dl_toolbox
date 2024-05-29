@@ -1,3 +1,0 @@
-_target_: dl_toolbox.transforms.To_0_1_fromNpy
-_partial_: true
-bands: [1,2,3]

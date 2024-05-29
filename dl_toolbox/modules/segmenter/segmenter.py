@@ -63,7 +63,6 @@ class Segmenter(pl.LightningModule):
         scheduler,
         onehot,
         loss,
-        batch_tf,
         metric_ignore_index,
         tta=None,
         sliding=None,
@@ -82,7 +81,6 @@ class Segmenter(pl.LightningModule):
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.onehot = onehot
-        #self.batch_tf = batch_tf
         self.tta = tta
         self.sliding = sliding
         self.metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
@@ -145,7 +143,6 @@ class Segmenter(pl.LightningModule):
         x, tgt, p = batch["sup"]
         y = tgt['masks']
         if self.onehot: y = self._onehot(y)
-        #if self.batch_tf: x, y = self.batch_tf(x, y)
         logits = self.forward(x)
         loss = self.loss(logits, y)
         self.log(f"{self.loss.__name__}/train", loss)

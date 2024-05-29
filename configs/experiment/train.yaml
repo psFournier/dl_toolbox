@@ -1,11 +1,10 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: flair
+  - override /datamodule: rellis
   - override /module: segmenter
   - override /trainer: gpu
-  - override /transforms@module.sliding: flair/sliding
-  - override /transforms@module.batch_tf: flair/cutmix
+  - override /transforms@module.sliding: rellis/sliding
 
 callbacks:
     lora:
@@ -17,14 +16,14 @@ callbacks:
     image_visu:
         freq: 1
 
-name: "flair_segmenter"
+name: "rellis_segmenter"
             
 trainer:
     max_time: "00:11:30:59"
     #fast_dev_run: 1
     limit_train_batches: 1
     limit_val_batches: 1
-    max_epochs: 5
+    max_epochs: 1
     log_every_n_steps: 1
     val_check_interval: 1.
     check_val_every_n_epoch: 1
@@ -32,7 +31,7 @@ trainer:
 datamodule:
     batch_size: 4
     num_workers: 0
-    batch_tf: null
+    #batch_tf: null
     
 #module:
 #    onehot: True

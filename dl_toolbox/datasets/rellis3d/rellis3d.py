@@ -42,7 +42,8 @@ class Rellis3d(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        image = tv_tensors.Image(read_image(self.imgs[idx]))
+        p = self.imgs[idx]
+        image = tv_tensors.Image(read_image(p))
         target = None
         if self.msks:
             target = {}
@@ -53,4 +54,4 @@ class Rellis3d(Dataset):
         image, target = self.transforms(image, target)
         if self.msks:
             target['masks'] = target['masks'].squeeze()
-        return image, target
+        return image, target, p
