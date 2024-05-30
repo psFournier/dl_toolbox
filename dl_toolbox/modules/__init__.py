@@ -17,5 +17,6 @@ from .fixmatch import *
 from .mixmatch import *
 from .self_training import *
 from .fcos.fcos import *
-from .segmenter.segmenter import *
+from .segmenter import *
+from .yolos import *
 # from .module_factory import ModuleFactory

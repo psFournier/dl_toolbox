@@ -89,25 +89,20 @@ class Segmenter(pl.LightningModule):
         self.val_jaccard = M.JaccardIndex(**self.metric_args)
 
     def configure_optimizers(self):
-        train_params = list(filter(lambda p: p[1].requires_grad, self.named_parameters()))
-        print(
-            f"The model will start training with only {sum([int(torch.numel(p)) for n,p in train_params])} "
-            f"trainable parameters out of {sum([int(torch.numel(p)) for p in self.parameters()])}."
-        )
+        train_params = list(filter(lambda p: p.requires_grad, self.parameters()))
+        nb_train = sum([int(torch.numel(p)) for p in train_params])
+        nb_tot = sum([int(torch.numel(p)) for p in self.parameters()])
+        print(f"Training {nb_train} params out of {nb_tot}.")
+        
         if hasattr(self, 'no_weight_decay'):
             wd_val = 0. #self.optimizer.weight_decay
             nwd_params = self.no_weight_decay()
             train_params = param_groups_weight_decay(train_params, wd_val, nwd_params)
-            print(f"{len(train_params[0]['params'])} params do not undergo weight decay")
+            print(f"{len(train_params[0]['params'])} are not affected by weight decay.")
+            
         optimizer = self.optimizer(params=train_params)
         scheduler = self.scheduler(optimizer)
-        return {
-            "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "interval": "epoch"
-            },
-        }
+        return [optimizer], [scheduler]
 
     def no_weight_decay(self):
         def append_prefix_no_weight_decay(prefix, module):
