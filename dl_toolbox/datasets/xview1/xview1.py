@@ -1,12 +1,17 @@
+from collections import defaultdict
 from torch.utils.data import Dataset
-from PIL import Image
 from torchvision import tv_tensors
 from torchvision.transforms.v2 import functional as F
-from dl_toolbox.utils import list_of_dicts_to_dict_of_lists
 from pathlib import Path
 import torch
+import torchvision.transforms.v2 as v2
+import rasterio
+import numpy as np
 
 from dl_toolbox.utils import label, merge_labels
+
+
+
 
 LABEL_TO_STRING = {
     11: "Fixed-wing Aircraft",
@@ -71,6 +76,13 @@ LABEL_TO_STRING = {
     94: "Tower",
 }
 
+def list_of_dicts_to_dict_of_lists(list_of_dicts):
+    dict_of_lists = defaultdict(list)
+    for dct in list_of_dicts:
+        for key, value in dct.items():
+            dict_of_lists[key].append(value)
+    return dict(dict_of_lists)
+
 class xView1(Dataset):
     """
     Requires the `COCO API to be installed <https://github.com/pdollar/coco/tree/master/PythonAPI>`_.
@@ -88,18 +100,21 @@ class xView1(Dataset):
         self.coco = COCO(annFile)
         self.ids = list(sorted(self.coco.imgs.keys()))
         self.merges = [list(l.values) for l in self.classes]
+        self.transforms = v2.ToDtype(
+            dtype={tv_tensors.Image: torch.float32, "others":None},
+            scale=True
+        )
+        if transforms:
+            self.transforms = v2.Compose([self.transforms, transforms])
 
-    def _load_image(self, id: int):
-        path = self.coco.loadImgs(id)[0]["file_name"]
-        return Image.open(self.root/path).convert("RGB")
-
-    def _load_target(self, id: int):
-        return self.coco.loadAnns(self.coco.getAnnIds(id))
-
-    def __getitem__(self, index: int):
+    def __getitem__(self, index):
         id = self.ids[index]
-        tv_image = tv_tensors.Image(self._load_image(id))
-        target = self._load_target(id)
+        path = self.root/self.coco.loadImgs(id)[0]["file_name"]
+        with rasterio.open(path, "r") as file:
+            image = file.read(out_dtype=np.uint8)
+        tv_image = tv_tensors.Image(torch.from_numpy(image))
+                
+        target = self.coco.loadAnns(self.coco.getAnnIds(id))
         target = list_of_dicts_to_dict_of_lists(target)
         tv_target = {}
         tv_target["boxes"] = tv_tensors.BoundingBoxes(
@@ -111,7 +126,7 @@ class xView1(Dataset):
         tv_target['labels'] = merge_labels(labels, self.merges).long()
         if self.transforms is not None:
             tv_image, tv_target = self.transforms(tv_image, tv_target)
-        return tv_image, tv_target
+        return tv_image, tv_target, path
 
     def __len__(self):
         return len(self.ids)

@@ -16,7 +16,7 @@ from .flair.flair import *
 #from .airs import *
 from .rellis3d.rellis3d import *
 #from .pascalvoc.pascalvoc import *
-#from .xview1.xview1 import xView1
+from .xview1.xview1 import xView1
 
 # from .splitfile_sup import SplitfileSup
 # from .splitfile_semisup import SplitfileSemisup

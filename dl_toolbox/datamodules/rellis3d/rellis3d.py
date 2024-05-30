@@ -73,7 +73,7 @@ class Rellis3d(LightningDataModule):
         self.train_set = Subset(rellis(self.train_tf), idxs[:l])
         self.val_set = Subset(rellis(self.test_tf), idxs[l:])
         
-    def collate(self, batch, train, *args, **kwargs):
+    def collate(self, batch, train):
         b_img, b_tgt = default_collate([(img, tgt) for img, tgt, path in batch])
         if self.batch_tf and train:
             b_img, b_tgt['masks'] = self.batch_tf(b_img, b_tgt['masks'])
