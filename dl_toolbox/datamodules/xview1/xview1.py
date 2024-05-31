@@ -18,7 +18,6 @@ class xView1(LightningDataModule):
         train_tf,
         test_tf,
         batch_tf,
-        merge,
         batch_size,
         num_workers,
         pin_memory,
