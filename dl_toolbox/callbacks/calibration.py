@@ -98,7 +98,7 @@ class CalibrationLogger(pl.Callback):
         self.preds = []        
 
     def on_validation_batch_end(self, trainer, module, outputs, batch, batch_idx):
-        if trainer.current_epoch % self.freq == 0 and batch_idx < 100:
+        if self.freq>0 and trainer.current_epoch % self.freq == 0 and batch_idx < 100:
             x, tgt, p = batch
             logits = module.forward(x).cpu()
             prob = module.loss.prob(logits)
@@ -109,7 +109,7 @@ class CalibrationLogger(pl.Callback):
             self.preds.append(pred.flatten())
 
     def on_validation_epoch_end(self, trainer, module):
-        if trainer.current_epoch % self.freq == 0:
+        if self.freq>0 and trainer.current_epoch % self.freq == 0:
             labels = torch.cat(self.labels, dim=0)
             confs = torch.cat(self.confs, dim=0)
             preds = torch.cat(self.preds, dim=0)

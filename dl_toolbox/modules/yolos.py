@@ -226,7 +226,6 @@ class Yolos(pl.LightningModule):
         sizes = [len(v["boxes"]) for v in targets]
 
         indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]
-        breakpoint()
         return [(torch.as_tensor(i, dtype=torch.int64), torch.as_tensor(j, dtype=torch.int64)) for i, j in indices]
     
     @torch.no_grad()

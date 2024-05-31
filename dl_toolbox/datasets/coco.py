@@ -123,6 +123,7 @@ class Coco(Dataset):
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
         self.ids = list(sorted(self.coco.imgs.keys()))
+        self.merges = [list(l.values) for l in self.classes]
         self.transforms = v2.ToDtype(
             dtype={tv_tensors.Image: torch.float32, "others":None},
             scale=True
@@ -144,7 +145,7 @@ class Coco(Dataset):
             canvas_size=tuple(F.get_size(tv_image)),
         )
         labels = torch.tensor(target["category_id"])
-        tv_target['labels'] = labels.long()
+        tv_target['labels'] = merge_labels(labels, self.merges).long()
         if self.transforms is not None:
             tv_image, tv_target = self.transforms(tv_image, tv_target)
         return tv_image, tv_target, path

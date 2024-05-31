@@ -1,0 +1,10 @@
+defaults:
+    - /transforms@train_tf: xview/train
+    - /transforms@test_tf: xview/test
+    - /transforms@batch_tf: xview/batch
+
+_target_: dl_toolbox.datamodules.xView
+data_path: ${paths.data}
+batch_size: 4
+num_workers: 6
+pin_memory: False

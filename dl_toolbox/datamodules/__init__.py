@@ -14,9 +14,9 @@ from .flair.flair import *
 #from .cityscapes import *
 #from .digitanie.digitanie_sublabeled_toa import *
 #from .airs import *
-from .rellis3d.rellis3d import *
+from .rellis.rellis import *
 #from .pascalvoc.pascalvoc import *
-from .xview1.xview1 import xView1
+from .xview.xview import *
 from .coco import Coco
 
 # from .splitfile_sup import SplitfileSup

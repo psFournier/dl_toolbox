@@ -12,7 +12,7 @@ from torch.utils.data._utils.collate import default_collate
 import dl_toolbox.datasets as datasets
 
 
-class Rellis3d(LightningDataModule):
+class Rellis(LightningDataModule):
     
     sequences = [
         "00000",

@@ -1,0 +1,10 @@
+defaults:
+  - /optimizer: adam
+  - /scheduler: constant
+  - /transforms@sliding: null
+  - /transforms@tta: null
+  - _self_
+
+_target_: dl_toolbox.modules.Yolos
+backbone: 'vit_small_patch14_dinov2'
+det_token_num: 100

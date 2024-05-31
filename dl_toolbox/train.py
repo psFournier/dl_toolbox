@@ -3,6 +3,7 @@ import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
 import torch
+import gc
 
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision('high')
@@ -25,7 +26,11 @@ def train(cfg: DictConfig) -> None:
         logger=tensorboard,
         callbacks=list(callbacks.values())+[dsm]
     )
+    
+    gc.collect()
+    torch.cuda.empty_cache()
+    gc.collect()
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
-
+    
 if __name__ == "__main__":
     train()

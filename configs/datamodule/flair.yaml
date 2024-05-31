@@ -11,4 +11,4 @@ unsup: 0
 batch_size: 4
 num_workers: 6
 merge: main13
-pin_memory: True
+pin_memory: False

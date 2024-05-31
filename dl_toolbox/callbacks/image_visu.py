@@ -62,16 +62,16 @@ class SegmentationImagesVisualisation(pl.Callback):
             )
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        if trainer.current_epoch % self.freq == 0 and batch_idx <= 1:
+        if self.freq>0 and trainer.current_epoch % self.freq == 0 and batch_idx <= 1:
             colors = trainer.datamodule.class_colors
             self.display_batch(colors, trainer, pl_module, batch["sup"], "Train")
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        if trainer.current_epoch % self.freq == 0 and batch_idx <= 1:
+        if self.freq>0 and trainer.current_epoch % self.freq == 0 and batch_idx <= 1:
             colors = trainer.datamodule.class_colors
             self.display_batch(colors, trainer, pl_module, batch, "Val")
             
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        if batch_idx <= 1:
+        if self.freq>0 and batch_idx <= 1:
             colors = trainer.datamodule.class_colors
             self.display_batch(colors, trainer, pl_module, batch, "Test")

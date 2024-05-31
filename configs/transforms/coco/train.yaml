@@ -1,0 +1,12 @@
+_target_: torchvision.transforms.v2.Compose
+transforms: 
+    - _target_: torchvision.transforms.v2.RandomHorizontalFlip
+      p: 0.5
+    - _target_: torchvision.transforms.v2.RandomVerticalFlip
+      p: 0.5
+    - _target_: torchvision.transforms.v2.RandomPhotometricDistort
+      p: 1
+    - _target_: torchvision.transforms.v2.RandomResizedCrop
+      size: 224
+      scale: [0.8,1]
+    - _target_: torchvision.transforms.v2.SanitizeBoundingBoxes

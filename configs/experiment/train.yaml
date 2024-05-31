@@ -1,22 +1,22 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: rellis
-  - override /module: segmenter
+  - override /datamodule: coco
+  - override /module: yolos
   - override /trainer: gpu
-  - override /transforms@module.sliding: rellis/sliding
+#  - override /transforms@module.sliding: rellis/sliding
 
 callbacks:
     lora:
-        module_name: encoder
+        module_name: backbone
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
     calibration:
-        freq: 1
+        freq: 0
     image_visu:
-        freq: 1
+        freq: 0
 
-name: "rellis_segmenter"
+name: "coco_yolos"
             
 trainer:
     max_time: "00:11:30:59"
@@ -31,7 +31,7 @@ trainer:
 datamodule:
     batch_size: 4
     num_workers: 0
-    #batch_tf: null
+    batch_tf: null
     
 #module:
 #    onehot: True

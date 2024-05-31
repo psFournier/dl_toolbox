@@ -10,7 +10,7 @@ import random
 from pytorch_lightning.utilities import CombinedLoader
 
 
-class xView1(LightningDataModule):
+class xView(LightningDataModule):
     
     def __init__(
         self,

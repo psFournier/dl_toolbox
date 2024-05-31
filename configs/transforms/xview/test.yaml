@@ -1,0 +1,5 @@
+_target_: torchvision.transforms.v2.Compose
+transforms: 
+    - _target_: torchvision.transforms.v2.CenterCrop
+      size: 504
+    - _target_: torchvision.transforms.v2.SanitizeBoundingBoxes
