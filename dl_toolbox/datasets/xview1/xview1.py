@@ -91,7 +91,7 @@ class xView1(Dataset):
         root (str or ``pathlib.Path``): Root directory where images are downloaded to.
         annFile (string): Path to json annotation file.
     """
-    classes = [label(v, (0, 255, 255), {k}) for k, v in LABEL_TO_STRING.items()]
+    classes = [label(v, (0, int(255-k), 255), {k}) for k, v in LABEL_TO_STRING.items()]
 
     def __init__(self, root, annFile, transforms=None):
         self.root = Path(root)

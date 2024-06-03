@@ -8,7 +8,8 @@ defaults:
   - module: supervised
   - callbacks:
       - model_checkpoint
-      - image_visu
+      - seg_preds_visu
+      - det_preds_visu
       - lr_monitor
       - lora
       - calibration

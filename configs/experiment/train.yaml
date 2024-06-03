@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: coco
+  - override /datamodule: xview
   - override /module: yolos
   - override /trainer: gpu
 #  - override /transforms@module.sliding: rellis/sliding
@@ -13,10 +13,12 @@ callbacks:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
     calibration:
         freq: 0
-    image_visu:
+    seg_preds_visu:
         freq: 0
+    det_preds_visu:
+        freq: 1
 
-name: "coco_yolos"
+name: "xview_yolos"
             
 trainer:
     max_time: "00:11:30:59"

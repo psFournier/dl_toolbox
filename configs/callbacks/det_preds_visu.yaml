@@ -1,0 +1,4 @@
+det_preds_visu:
+  _target_: dl_toolbox.callbacks.DetectionImagesVisualisation
+  freq: 10
+

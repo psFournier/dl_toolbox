@@ -585,7 +585,7 @@ class FCOS(pl.LightningModule):
             self.trainer.logger.experiment.add_image_with_boxes(
                 f"preds/val",
                 x[0].detach().cpu(),
-                preds[0]['boxes'].detach().cpu(),#,
+                preds[0]['boxes'].detach().cpu(),
                 global_step=self.trainer.global_step,
                 dataformats='CHW', 
                 labels=[f"{l}: {s}" for l,s in zip(preds[0]['labels'], preds[0]['scores'])]
