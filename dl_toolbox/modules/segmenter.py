@@ -94,11 +94,11 @@ class Segmenter(pl.LightningModule):
         nb_tot = sum([int(torch.numel(p)) for p in self.parameters()])
         print(f"Training {nb_train} params out of {nb_tot}.")
         
-        if hasattr(self, 'no_weight_decay'):
-            wd_val = 0. #self.optimizer.weight_decay
-            nwd_params = self.no_weight_decay()
-            train_params = param_groups_weight_decay(train_params, wd_val, nwd_params)
-            print(f"{len(train_params[0]['params'])} are not affected by weight decay.")
+        #if hasattr(self, 'no_weight_decay'):
+        #    wd_val = 0. #self.optimizer.weight_decay
+        #    nwd_params = self.no_weight_decay()
+        #    train_params = param_groups_weight_decay(train_params, wd_val, nwd_params)
+        #    print(f"{len(train_params[0]['params'])} are not affected by weight decay.")
             
         optimizer = self.optimizer(params=train_params)
         scheduler = self.scheduler(optimizer)

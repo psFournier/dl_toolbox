@@ -1,22 +1,22 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: xview
-  - override /module: yolos
+  - override /datamodule: flair
+  - override /module: segmenter
   - override /trainer: gpu
 #  - override /transforms@module.sliding: rellis/sliding
 
 callbacks:
     lora:
-        module_name: backbone
+        module_name: encoder
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
     calibration:
         freq: 0
     seg_preds_visu:
-        freq: 0
-    det_preds_visu:
         freq: 1
+    det_preds_visu:
+        freq: 0
 
 name: "xview_yolos"
             
