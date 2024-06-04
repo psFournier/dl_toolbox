@@ -5,12 +5,17 @@ defaults:
   - override /module: segmenter
   - override /trainer: gpu
 #  - override /transforms@module.sliding: rellis/sliding
+  - override /scheduler@module.scheduler: poly
 
 callbacks:
     lora:
+        module_name: backbone
+        rank: 4
         activated: False
     finetuning:
-        activated: False
+        module_name: backbone
+        unfreeze_at_epoch: 100
+        activated: True
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
     calibration:
@@ -27,19 +32,19 @@ trainer:
     #fast_dev_run: 1
     limit_train_batches: 1.
     limit_val_batches: 1.
-    max_epochs: 100
+    max_epochs: 20
     log_every_n_steps: 50
     val_check_interval: 1000
     check_val_every_n_epoch: null
 
 datamodule:
-    batch_size: 1
-    num_workers: 6
+    batch_size: 2
+    num_workers: 0
     batch_tf: null
     
-#module:
-    #onehot: True
-    #backbone: vit_base_patch16_224 
+module:
+    onehot: False
+    backbone: 'vit_small_patch14_dinov2' 
     
 hydra:
   run:

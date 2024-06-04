@@ -74,6 +74,7 @@ class Rellis(LightningDataModule):
         self.val_set = Subset(rellis(self.test_tf), idxs[l:])
         
     def collate(self, batch, train):
+        assert all([b[1]['masks'].shape == batch[0][1]['masks'].shape for b in batch]), print([(b[1]['masks'].shape, str(b[2])) for b in batch])
         b_img, b_tgt = default_collate([(img, tgt) for img, tgt, path in batch])
         if self.batch_tf and train:
             b_img, b_tgt['masks'] = self.batch_tf(b_img, b_tgt['masks'])
