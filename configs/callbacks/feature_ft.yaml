@@ -1,7 +1,0 @@
-feature_ft:
-    _target_: dl_toolbox.callbacks.FeatureFt
-    module_name: encoder
-    unfreeze_at_epoch: 2
-    train_bn: true
-    initial_denom_lr: 10.
-

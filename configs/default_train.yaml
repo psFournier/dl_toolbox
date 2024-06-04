@@ -12,6 +12,7 @@ defaults:
       - det_preds_visu
       - lr_monitor
       - lora
+      - finetuning
       - calibration
   - paths: qdtis056z
   - trainer: gpu

@@ -1,4 +1,5 @@
 lora:
     _target_: dl_toolbox.callbacks.Lora
-    module_name: encoder
+    module_name: backbone
     rank: 4
+    activated: False

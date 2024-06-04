@@ -1,0 +1,8 @@
+finetuning:
+    _target_: dl_toolbox.callbacks.Finetuning
+    module_name: backbone
+    unfreeze_at_epoch: 100
+    train_bn: true
+    initial_denom_lr: 10.
+    activated: False
+

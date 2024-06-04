@@ -71,11 +71,11 @@ class Segmenter(pl.LightningModule):
     ):
         super().__init__()
         self.num_classes = num_classes
-        self.encoder = timm.create_model(backbone, pretrained=True, dynamic_img_size=True)
+        self.backbone = timm.create_model(backbone, pretrained=True, dynamic_img_size=True)
         self.decoder = DecoderLinear(
             num_classes,
-            self.encoder.patch_embed.patch_size[0],
-            self.encoder.embed_dim
+            self.backbone.patch_embed.patch_size[0],
+            self.backbone.embed_dim
         )
         self.loss =  loss
         self.optimizer = optimizer
@@ -107,7 +107,7 @@ class Segmenter(pl.LightningModule):
     def no_weight_decay(self):
         def append_prefix_no_weight_decay(prefix, module):
             return set(map(lambda x: prefix + x, module.no_weight_decay()))
-        nwd_params = append_prefix_no_weight_decay("encoder.", self.encoder).union(
+        nwd_params = append_prefix_no_weight_decay("backbone.", self.backbone).union(
             append_prefix_no_weight_decay("decoder.", self.decoder)
         )
         return nwd_params
@@ -125,8 +125,8 @@ class Segmenter(pl.LightningModule):
 
     def _forward(self, im):
         H, W = im.size(2), im.size(3)
-        x = self.encoder.forward_features(im)
-        x = x[:,self.encoder.num_prefix_tokens:,...]
+        x = self.backbone.forward_features(im)
+        x = x[:,self.backbone.num_prefix_tokens:,...]
         masks = self.decoder(x, H)
         masks = F.interpolate(masks, size=(H, W), mode="bilinear")
         return masks
@@ -140,7 +140,7 @@ class Segmenter(pl.LightningModule):
         if self.onehot: y = self._onehot(y)
         logits = self.forward(x)
         loss = self.loss(logits, y)
-        self.log(f"{self.loss.__name__}/train", loss)
+        self.log("Total loss/train", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -148,7 +148,7 @@ class Segmenter(pl.LightningModule):
         y = tgt['masks']
         logits = self.forward(x)
         loss = self.loss(logits, y)
-        self.log(f"{self.loss.__name__}/val", loss)
+        self.log("Total loss/val", loss)
         probs = self.loss.prob(logits)
         _, preds = self.loss.pred(probs)
         self.val_accuracy.update(preds, y)

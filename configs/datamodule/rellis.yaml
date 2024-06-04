@@ -3,7 +3,7 @@ defaults:
     - /transforms@test_tf: rellis/test
     - /transforms@batch_tf: rellis/cutmix
 
-_target_: dl_toolbox.datamodules.Rellis3d
+_target_: dl_toolbox.datamodules.Rellis
 data_path: ${paths.data}
 sup: 1
 unsup: 0

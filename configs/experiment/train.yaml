@@ -1,42 +1,45 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: flair
+  - override /datamodule: rellis
   - override /module: segmenter
   - override /trainer: gpu
 #  - override /transforms@module.sliding: rellis/sliding
 
 callbacks:
     lora:
-        module_name: encoder
+        activated: False
+    finetuning:
+        activated: False
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
     calibration:
         freq: 0
     seg_preds_visu:
-        freq: 1
+        freq: 10
     det_preds_visu:
         freq: 0
 
-name: "xview_yolos"
+name: "rellis_segmenter"
             
 trainer:
     max_time: "00:11:30:59"
     #fast_dev_run: 1
-    limit_train_batches: 1
-    limit_val_batches: 1
-    max_epochs: 1
-    log_every_n_steps: 1
-    val_check_interval: 1.
-    check_val_every_n_epoch: 1
+    limit_train_batches: 1.
+    limit_val_batches: 1.
+    max_epochs: 100
+    log_every_n_steps: 50
+    val_check_interval: 1000
+    check_val_every_n_epoch: null
 
 datamodule:
-    batch_size: 4
-    num_workers: 0
+    batch_size: 1
+    num_workers: 6
     batch_tf: null
     
 #module:
-#    onehot: True
+    #onehot: True
+    #backbone: vit_base_patch16_224 
     
 hydra:
   run:
