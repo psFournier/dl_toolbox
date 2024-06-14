@@ -1,8 +1,8 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: rellis
-  - override /module: segmenter
+  - override /datamodule: xview
+  - override /module: yolos
   - override /trainer: gpu
 #  - override /transforms@module.sliding: rellis/sliding
   - override /scheduler@module.scheduler: poly
@@ -11,30 +11,30 @@ callbacks:
     lora:
         module_name: backbone
         rank: 4
-        activated: False
+        activated: True
     finetuning:
         module_name: backbone
-        unfreeze_at_epoch: 100
-        activated: True
+        unfreeze_at_epoch: 1
+        activated: False
     model_checkpoint:
         dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
     calibration:
         freq: 0
     seg_preds_visu:
-        freq: 10
-    det_preds_visu:
         freq: 0
+    det_preds_visu:
+        freq: 1
 
-name: "rellis_segmenter"
+name: "xview_yolos"
             
 trainer:
-    max_time: "00:11:30:59"
+    max_time: "00:24:30:59"
     #fast_dev_run: 1
-    limit_train_batches: 1.
-    limit_val_batches: 1.
-    max_epochs: 20
+    limit_train_batches: 1
+    limit_val_batches: 1
+    max_epochs: 1
     log_every_n_steps: 50
-    val_check_interval: 1000
+    val_check_interval: 5000
     check_val_every_n_epoch: null
 
 datamodule:

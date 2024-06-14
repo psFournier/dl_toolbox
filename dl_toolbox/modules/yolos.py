@@ -90,6 +90,7 @@ class Yolos(pl.LightningModule):
         backbone,
         optimizer,
         scheduler,
+        pred_thresh,
         tta=None,
         sliding=None,
         *args,
@@ -106,24 +107,23 @@ class Yolos(pl.LightningModule):
         self.num_classes = num_classes
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.map_metric = MeanAveragePrecision(box_format='xywh')
+        self.map_metric = MeanAveragePrecision(box_format='xywh', backend='faster_coco_eval')
+        self.sliding = sliding
+        self.pred_thresh = pred_thresh
         
     def add_det_tokens_to_backbone(self):
         det_token = nn.Parameter(torch.zeros(1, self.det_token_num, self.backbone.embed_dim))
         self.det_token = torch.nn.init.trunc_normal_(det_token, std=.02)
-        det_pos_embed = torch.zeros(1, self.det_token_num, self.backbone.embed_dim)
-        det_pos_embed = torch.nn.init.trunc_normal_(det_pos_embed, std=.02)
-        cls_pos_embed = self.backbone.pos_embed[:, 0, :][:,None] # size 1x1xembed_dim
-        patch_pos_embed = self.backbone.pos_embed[:, 1:, :] # 1xnum_patchxembed_dim
-        all_pos_embed = torch.cat((cls_pos_embed, det_pos_embed, patch_pos_embed), dim=1)
-        self.pos_embed = torch.nn.Parameter(all_pos_embed)
+        det_pos_embed = nn.Parameter(torch.zeros(1, self.det_token_num, self.backbone.embed_dim))
+        self.det_pos_embed = torch.nn.init.trunc_normal_(det_pos_embed, std=.02)
         self.backbone.num_prefix_tokens += self.det_token_num
     
     def configure_optimizers(self):
-        train_params = list(filter(lambda p: p.requires_grad, self.parameters()))
-        nb_train = sum([int(torch.numel(p)) for p in train_params])
+        train_params = list(filter(lambda p: p[1].requires_grad, self.named_parameters()))
+        nb_train = sum([int(torch.numel(p[1])) for p in train_params])
         nb_tot = sum([int(torch.numel(p)) for p in self.parameters()])
-        print(f"Training {nb_train} params out of {nb_tot}.")
+        #print(f"Training {nb_train} params out of {nb_tot}: {[p[0] for p in train_params]}")
+        print(f"Training {nb_train} params out of {nb_tot}")
         
         #if hasattr(self, 'no_weight_decay'):
         #    wd_val = 0. #self.optimizer.weight_decay
@@ -131,53 +131,48 @@ class Yolos(pl.LightningModule):
         #    train_params = param_groups_weight_decay(train_params, wd_val, nwd_params)
         #    print(f"{len(train_params[0]['params'])} are not affected by weight decay.")
         
-        optimizer = self.optimizer(params=train_params)
+        optimizer = self.optimizer(params=[p[1] for p in train_params])
         scheduler = self.scheduler(optimizer)
         return [optimizer], [scheduler]
     
-    def _pos_embed_with_det(self, x):
+    def raw_logits_and_bboxs(self, x):
+        x = self.backbone.patch_embed(x)
+        # If cls token in backbone
+        cls_pos_embed = self.backbone.pos_embed[:, 0, :][:,None] # size 1x1xembed_dim
+        patch_pos_embed = self.backbone.pos_embed[:, 1:, :] # 1xnum_patchxembed_dim
+        pos_embed = torch.cat((cls_pos_embed, self.det_pos_embed, patch_pos_embed), dim=1)
         if self.backbone.dynamic_img_size:
             B, H, W, C = x.shape
             pos_embed = resample_abs_pos_embed(
-                self.pos_embed,
+                pos_embed,
                 (H, W),
                 num_prefix_tokens=self.backbone.num_prefix_tokens,
             )
             x = x.view(B, -1, C)
-        else:
-            pos_embed = self.pos_embed
-
-        to_cat = []
-        if self.backbone.cls_token is not None:
-            to_cat.append(self.backbone.cls_token.expand(x.shape[0], -1, -1))
-        if self.backbone.reg_token is not None:
-            to_cat.append(self.backbone.reg_token.expand(x.shape[0], -1, -1))
-        to_cat.append(self.det_token.expand(x.shape[0], -1, -1)) # HERE det tokens
-        
-        # check that no embed class is indeed false for ViT ?
-        if to_cat:
-            x = torch.cat(to_cat + [x], dim=1)
-        x = x + pos_embed
-
-        return self.backbone.pos_drop(x)
-    
-    def backbone_forward_features(self, x):
-        x = self.backbone.patch_embed(x)
-        x = self._pos_embed_with_det(x)
+        # If cls token in backbone
+        cls_token = self.backbone.cls_token.expand(x.shape[0], -1, -1) 
+        det_token = self.det_token.expand(x.shape[0], -1, -1)
+        x = torch.cat([cls_token, det_token, x], dim=1)
+        x += pos_embed
+        x = self.backbone.pos_drop(x)
         x = self.backbone.patch_drop(x)
         x = self.backbone.norm_pre(x)
         x = self.backbone.blocks(x)
         x = self.backbone.norm(x)
-        return x
-    
-    def forward(self, x):
-        x = self.backbone_forward_features(x)
         x = x[:,1:1+self.det_token_num,...]
         outputs_class = self.class_embed(x)
         outputs_coord = self.bbox_embed(x).sigmoid()
         out = {'pred_logits': outputs_class, 'pred_boxes': outputs_coord}
         return out
     
+    
+    def forward(self, x, sliding=None):
+        if sliding is not None:
+            auxs = [self.forward(aux) for aux in sliding(x)]
+            return sliding.merge(auxs)
+        else:
+            return self.raw_logits_and_bboxs(x)
+
     @torch.no_grad()
     def hungarian_matching(self, outputs, targets):
         """ 
@@ -261,7 +256,7 @@ class Yolos(pl.LightningModule):
     
     def training_step(self, batch, batch_idx):
         x, targets, paths = batch["sup"]
-        outputs = self.forward(x)
+        outputs = self.raw_logits_and_bboxs(x)
         # are we sure we need to norm targets ?
         norm_tgts = self.norm_targets(targets)
         matches = self.hungarian_matching(outputs, norm_tgts)
@@ -271,11 +266,11 @@ class Yolos(pl.LightningModule):
         
     def validation_step(self, batch, batch_idx):
         x, targets, paths = batch
-        outputs = self.forward(x)
+        outputs = self.forward(x, sliding=self.sliding)
         norm_tgts = self.norm_targets(targets)
         matches = self.hungarian_matching(outputs, norm_tgts)
         loss = self.loss(outputs, norm_tgts, matches)
-        self.log(f"loss/val", loss.detach().item())
+        self.log(f"Total loss/val", loss.detach().item())
         preds = self.post_process(outputs, x)
         # map_metric does not work yet with tv_tensors
         targets = [{'labels':t['labels'], 'boxes':t['boxes'].as_subclass(torch.Tensor)} for t in targets]
@@ -286,3 +281,9 @@ class Yolos(pl.LightningModule):
         self.log("map/val", mapmetric)
         print("\nMAP: ", mapmetric)
         self.map_metric.reset()
+        
+    def predict_step(self, batch, batch_idx):
+        x, targets, paths = batch
+        outputs = self.forward(x, sliding=self.sliding)
+        preds = self.post_process(outputs, x)
+        return preds

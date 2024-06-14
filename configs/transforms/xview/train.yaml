@@ -7,7 +7,7 @@ transforms:
     - _target_: torchvision.transforms.v2.RandomPhotometricDistort
       p: 1
     - _target_: torchvision.transforms.v2.RandomCrop
-      size: 504
+      size: 224
     - _target_: torchvision.transforms.v2.SanitizeBoundingBoxes
     - _target_: torchvision.transforms.v2.Normalize
       mean: [0.5,0.5,0.5]

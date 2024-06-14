@@ -51,6 +51,7 @@ class DecoderLinear(nn.Module):
 
     def forward(self, x, h):
         x = self.head(x)
+        print(x.shape)
         x = rearrange(x, "b (h w) c -> b c h w", h=h//self.patch_size)
         return x
 

@@ -7,6 +7,8 @@ import torch
 import torchvision.transforms.v2 as v2
 import rasterio
 import numpy as np
+import enum
+from functools import reduce
 
 from dl_toolbox.utils import label, merge_labels
 
@@ -83,6 +85,19 @@ def list_of_dicts_to_dict_of_lists(list_of_dicts):
             dict_of_lists[key].append(value)
     return dict(dict_of_lists)
 
+all60 = [label(v, (0, int(255-k), 255), {k}) for k, v in LABEL_TO_STRING.items()]
+
+building = [label("building", (0, 255, 0), {73})]
+
+
+classes = enum.Enum(
+    "xViewClasses",
+    {
+        "all": all60,
+        "building": building,
+    },
+)
+
 class xView1(Dataset):
     """
     Requires the `COCO API to be installed <https://github.com/pdollar/coco/tree/master/PythonAPI>`_.
@@ -91,21 +106,33 @@ class xView1(Dataset):
         root (str or ``pathlib.Path``): Root directory where images are downloaded to.
         annFile (string): Path to json annotation file.
     """
-    classes = [label(v, (0, int(255-k), 255), {k}) for k, v in LABEL_TO_STRING.items()]
+    classes = classes
 
-    def __init__(self, root, annFile, transforms=None):
+    def __init__(self, root, annFile, transforms=None, merge='all'):
         self.root = Path(root)
         self.transforms = transforms
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
         self.ids = list(sorted(self.coco.imgs.keys()))
-        self.merges = [list(l.values) for l in self.classes]
         self.transforms = v2.ToDtype(
             dtype={tv_tensors.Image: torch.float32, "others":None},
             scale=True
         )
         if transforms:
             self.transforms = v2.Compose([self.transforms, transforms])
+        self.class_list = self.classes[merge].value
+        self.merges = [list(l.values) for l in self.class_list]
+        
+    def merge(self, labels, boxes):
+        merged_labels = []
+        merged_boxes = []
+        for i, l in enumerate(self.class_list):
+            idx = reduce(torch.logical_or, [labels == v for v in l.values])
+            merged_labels.append(i * torch.ones_like(labels[idx]))
+            merged_boxes.append(boxes[idx])
+        merged_labels = torch.cat(merged_labels, dim=0)
+        merged_boxes = torch.cat(merged_boxes, dim=0)
+        return merged_labels, merged_boxes
 
     def __getitem__(self, index):
         id = self.ids[index]
@@ -116,14 +143,16 @@ class xView1(Dataset):
                 
         target = self.coco.loadAnns(self.coco.getAnnIds(id))
         target = list_of_dicts_to_dict_of_lists(target)
+        labels = torch.tensor(target["category_id"])
+        boxes = torch.as_tensor(target["bbox"]).float()
+        merged_labels, merged_boxes = self.merge(labels, boxes)
         tv_target = {}
         tv_target["boxes"] = tv_tensors.BoundingBoxes(
-            target["bbox"],
+            merged_boxes,
             format=tv_tensors.BoundingBoxFormat.XYWH,
             canvas_size=tuple(F.get_size(tv_image)),
         )
-        labels = torch.tensor(target["category_id"])
-        tv_target['labels'] = merge_labels(labels, self.merges).long()
+        tv_target['labels'] = merged_labels.long()
         if self.transforms is not None:
             tv_image, tv_target = self.transforms(tv_image, tv_target)
         return tv_image, tv_target, path

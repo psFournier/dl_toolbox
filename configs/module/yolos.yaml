@@ -7,4 +7,5 @@ defaults:
 
 _target_: dl_toolbox.modules.Yolos
 backbone: 'vit_small_patch14_dinov2'
-det_token_num: 100
+det_token_num: 10
+pred_thresh: 0.

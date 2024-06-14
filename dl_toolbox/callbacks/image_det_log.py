@@ -24,15 +24,20 @@ def process_boxes(boxes, colors, names, with_scores):
 def display_det_batch(trainer, module, batch, prefix):
     x, tgt, p = batch
     nb = min(4, x.shape[0])
-    imgs = x.mul(255.).to(torch.uint8).detach().cpu()[:nb]
+    imgs = list(x.detach().cpu()[:nb])
+    mins = [i.view(3, -1).min(1)[0].view(3, 1, 1) for i in imgs]
+    maxs = [i.view(3, -1).max(1)[0].view(3, 1, 1) for i in imgs]
+    unnorm_imgs = [(i-m)/(M-m) for i,m,M in zip(imgs, mins, maxs)]
+    int_imgs = [img.mul(255.).to(torch.uint8) for img in unnorm_imgs]
     targets = tgt[:nb]
-    #outputs = module.forward(x).detach().cpu()
-    #preds = module.post_process(outputs, x)
-    preds = [{**t, **{'scores': 1.}} for t in targets] #to change
+    outputs = module.forward(x)
+    outputs.update({k: v.detach().cpu() for k, v in outputs.items()})
+    preds = module.post_process(outputs, x)
+    #preds = [{**t, **{'scores': 1.}} for t in targets] #to change
     colors = trainer.datamodule.class_colors
     names = trainer.datamodule.class_names
-    processed_preds = zip(list(imgs), *process_boxes(preds, colors, names, False))
-    processed_targets = zip(list(imgs), *process_boxes(targets, colors, names, False))
+    processed_preds = zip(int_imgs, *process_boxes(preds, colors, names, False))
+    processed_targets = zip(int_imgs, *process_boxes(targets, colors, names, False))
     params = {'font': '/usr/share/fonts/truetype/ubuntu/Ubuntu-L.ttf', 'font_size': 10}
     drawn_preds = [draw_bb(img, bb, l, c, **params) for img, bb, l, c in processed_preds]
     drawn_targets = [draw_bb(img, bb, l, c, **params) for img, bb, l, c in processed_targets]

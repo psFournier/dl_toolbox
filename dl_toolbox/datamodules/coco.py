@@ -47,6 +47,7 @@ class Coco(LightningDataModule):
         path = self.data_path/'coco'
         self.train_set = datasets.Coco(path/"train2017", path/"annotations/instances_train2017.json", self.train_tf)
         self.val_set = datasets.Coco(path/"val2017", path/"annotations/instances_val2017.json", self.test_tf)
+        self.predict_set = datasets.Coco(path/"val2017", path/"annotations/instances_val2017.json", self.test_tf)
     
     def collate(self, batch, train):
         images_b, targets_b, paths_b = tuple(zip(*batch))

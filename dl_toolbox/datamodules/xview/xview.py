@@ -15,6 +15,7 @@ class xView(LightningDataModule):
     def __init__(
         self,
         data_path,
+        merge,
         train_tf,
         test_tf,
         batch_tf,
@@ -26,6 +27,7 @@ class xView(LightningDataModule):
     ):
         super().__init__()
         self.data_path = Path(data_path)
+        self.merge=merge
         self.train_tf = train_tf
         self.test_tf = test_tf
         self.batch_tf = batch_tf
@@ -33,7 +35,7 @@ class xView(LightningDataModule):
         self.in_channels = 3
         self.num_workers = num_workers
         self.pin_memory = pin_memory
-        self.classes = datasets.xView1.classes
+        self.classes = datasets.xView1.classes[merge].value
         self.num_classes = len(self.classes)
         self.class_names = [l.name for l in self.classes]
         self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
@@ -46,12 +48,16 @@ class xView(LightningDataModule):
     
     def setup(self, stage=None):
         path = self.data_path/'XVIEW1'
-        xview = datasets.xView1(path/'train_images', path/'xView_train.json', self.train_tf)
-        l,L = int(0.8*len(xview)), len(xview)
+        xview = partial(datasets.xView1, merge=self.merge, root=path/'train_images', annFile=path/'xView_train.json')
+        L = 846
+        l = int(0.8*L)
         idxs=random.sample(range(L), L)
-        self.train_set = Subset(xview, idxs[:l])
-        self.val_set = Subset(xview, idxs[l:])
-        self.val_set.transforms = self.test_tf
+        if stage in {'fit'}:
+            self.train_set = Subset(xview(transforms=self.train_tf), idxs[:l])
+        if stage in {'fit', 'validate'}:
+            self.val_set = Subset(xview(transforms=self.test_tf), idxs[l:])
+        if stage in {'predict'}:
+            self.predict_set = Subset(xview(transforms=self.test_tf), idxs[l:])
     
     def collate(self, batch, train):
         images_b, targets_b, paths_b = tuple(zip(*batch))

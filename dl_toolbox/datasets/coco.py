@@ -12,7 +12,7 @@ from torchvision.io import read_image
 from dl_toolbox.utils import label, merge_labels
 
 CAT_ID_TO_NAME = {
-    0: u'__background__',
+    #0: u'__background__',
     1: u'person',
     2: u'bicycle',
     3: u'car',
@@ -146,7 +146,7 @@ class Coco(Dataset):
         tv_target = {}
         
         tv_target["boxes"] = tv_tensors.BoundingBoxes(
-            target["bbox"] if target else torch.empty(0,4),
+            torch.as_tensor(target["bbox"]).float() if target else torch.empty(0,4).float(),
             format=tv_tensors.BoundingBoxFormat.XYWH,
             canvas_size=tuple(F.get_size(tv_image)),
         )

@@ -2,7 +2,6 @@ from itertools import product
 
 import numpy as np
 
-
 def get_tiles(
     nols,
     nrows,
