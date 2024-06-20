@@ -17,9 +17,7 @@ def display_seg_batch(trainer, module, batch, prefix):
     y = tgt["masks"].cpu()
     colors = trainer.datamodule.class_colors
     y_rgb = labels_to_rgb(y, colors=colors).transpose((0, 3, 1, 2))
-    y_rgb = torch.from_numpy(y_rgb)
     pred_rgb = labels_to_rgb(pred, colors=colors).transpose((0, 3, 1, 2))
-    pred_rgb = torch.from_numpy(pred_rgb)
     nb = min(4, x.shape[0])
     imgs = torchvision.utils.make_grid(img[:nb, ...], normalize=True)
     masks = torchvision.utils.make_grid(y_rgb[:nb, ...]).float() / 255.

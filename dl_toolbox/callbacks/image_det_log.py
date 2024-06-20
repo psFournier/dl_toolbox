@@ -6,7 +6,6 @@ import torchvision
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities import rank_zero_warn
 
-from dl_toolbox.utils import labels_to_rgb
 from torchvision.utils import draw_bounding_boxes as draw_bb
 from torchvision.ops import box_convert
 
