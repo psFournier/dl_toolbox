@@ -39,20 +39,22 @@ def init_weights(m):
         nn.init.constant_(m.weight, 1.0)
 
 class DecoderLinear(nn.Module):
-    def __init__(self, num_classes, patch_size, d_encoder):
+    def __init__(self, num_classes, patch_size, embed_dim):
         super().__init__()
-        self.d_encoder = d_encoder
+        self.embed_dim = embed_dim
         self.patch_size = patch_size
-        self.head = nn.Linear(self.d_encoder, num_classes)
+        self.head = nn.Linear(self.embed_dim, num_classes)
+        # self.apply applies to every submodule recursively, typical for init
         self.apply(init_weights)
 
     def no_weight_decay(self):
         return set()
 
-    def forward(self, x, h):
-        x = self.head(x)
-        print(x.shape)
-        x = rearrange(x, "b (h w) c -> b c h w", h=h//self.patch_size)
+    def forward(self, x, img_height):
+        x = self.head(x) # BxNpatchxEmbedDim -> BxNpatchxNcls
+        num_patch_h = img_height//self.patch_size # num_patch_per_axis Np
+        # rearrange auto computes h & w from the fixed val h; C-order enum used, see docs
+        x = rearrange(x, "b (h w) c -> b c h w", h=num_patch_h) # BxNclsxNpxNp
         return x
 
 class Segmenter(pl.LightningModule):
@@ -72,10 +74,14 @@ class Segmenter(pl.LightningModule):
     ):
         super().__init__()
         self.num_classes = num_classes
-        self.backbone = timm.create_model(backbone, pretrained=True, dynamic_img_size=True)
+        self.backbone = timm.create_model(
+            backbone, # Name of the pretrained model
+            pretrained=True,
+            dynamic_img_size=True # Deals with image sizes != from pretraining
+        )
         self.decoder = DecoderLinear(
             num_classes,
-            self.backbone.patch_embed.patch_size[0],
+            self.backbone.patch_embed.patch_size[0], # patch_size
             self.backbone.embed_dim
         )
         self.loss =  loss
@@ -84,7 +90,11 @@ class Segmenter(pl.LightningModule):
         self.onehot = onehot
         self.tta = tta
         self.sliding = sliding
-        self.metric_args = {'task':'multiclass', 'num_classes':num_classes, 'ignore_index':metric_ignore_index}
+        self.metric_args = {
+            'task':'multiclass',
+            'num_classes':num_classes,
+            'ignore_index':metric_ignore_index # should metrics (not loss) ignore an index
+        }
         self.val_accuracy = M.Accuracy(**self.metric_args)
         self.val_cm = M.ConfusionMatrix(**self.metric_args, normalize='true')
         self.val_jaccard = M.JaccardIndex(**self.metric_args)
@@ -95,8 +105,9 @@ class Segmenter(pl.LightningModule):
         nb_tot = sum([int(torch.numel(p)) for p in self.parameters()])
         print(f"Training {nb_train} params out of {nb_tot}.")
         
+        ##https://github.com/karpathy/minGPT/pull/24#issuecomment-679316025
         #if hasattr(self, 'no_weight_decay'):
-        #    wd_val = 0. #self.optimizer.weight_decay
+        #    wd_val = 0. #weight_decay value for params that undergo it, right now no decay
         #    nwd_params = self.no_weight_decay()
         #    train_params = param_groups_weight_decay(train_params, wd_val, nwd_params)
         #    print(f"{len(train_params[0]['params'])} are not affected by weight decay.")
@@ -106,6 +117,8 @@ class Segmenter(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def no_weight_decay(self):
+        """The names in this module of the parameters we should remove weight decay from must be taken from their names in the timm lib or in the decoder
+        """
         def append_prefix_no_weight_decay(prefix, module):
             return set(map(lambda x: prefix + x, module.no_weight_decay()))
         nwd_params = append_prefix_no_weight_decay("backbone.", self.backbone).union(
@@ -114,19 +127,23 @@ class Segmenter(pl.LightningModule):
         return nwd_params
     
     def forward(self, x, sliding=None, tta=None):
+        # First we subdivide the image in windows, forward on each, and merge
         if sliding is not None:
             auxs = [self.forward(aux, tta=tta) for aux in sliding(x)]
             return sliding.merge(auxs)
+        # For each window, we apply norma+tta and merge
         elif tta is not None:
             auxs = [self.forward(aux) for aux in tta(x)]
             logits = self.forward(x)
             return torch.stack([logits] + self.tta.revert(auxs)).sum(dim=0)
         else:
+            # Base forward
             return self._forward(x)
 
     def _forward(self, im):
         H, W = im.size(2), im.size(3)
         x = self.backbone.forward_features(im)
+        # We ignore non-patch tokens when recovering a segmentation by decoding
         x = x[:,self.backbone.num_prefix_tokens:,...]
         masks = self.decoder(x, H)
         masks = F.interpolate(masks, size=(H, W), mode="bilinear")
@@ -139,7 +156,7 @@ class Segmenter(pl.LightningModule):
         x, tgt, p = batch["sup"]
         y = tgt['masks']
         if self.onehot: y = self._onehot(y)
-        logits = self.forward(x)
+        logits = self.forward(x) #without sliding nor tta
         loss = self.loss(logits, y)
         self.log("Total loss/train", loss)
         return loss
@@ -147,7 +164,7 @@ class Segmenter(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, tgt, p = batch
         y = tgt['masks']
-        logits = self.forward(x)
+        logits = self.forward(x) # no slide, no tta
         loss = self.loss(logits, y)
         self.log("Total loss/val", loss)
         probs = self.loss.prob(logits)
