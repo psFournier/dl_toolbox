@@ -18,10 +18,7 @@ class SetCriterion(nn.Module):
         """ Create the criterion.
         Parameters:
             num_classes: number of object categories, omitting the special no-object category
-            matcher: module able to compute a matching between targets and proposals
-            weight_dict: dict containing as key the names of the losses and as values their relative weight.
             eos_coef: relative classification weight applied to the no-object category
-            losses: list of all the losses to be applied. See get_loss for list of available losses.
         """
         super().__init__()
         self.num_classes = num_classes
@@ -30,51 +27,83 @@ class SetCriterion(nn.Module):
         empty_weight[-1] = self.eos_coef
         self.register_buffer('empty_weight', empty_weight)
 
-    def loss_labels(self, outputs, targets, indices, num_boxes, log=True):
-        src_logits = outputs['pred_logits']
-        idx = self._get_src_permutation_idx(indices)
-        target_classes_o = torch.cat([t["labels"][J] for t, (_, J) in zip(targets, indices)])
-        target_classes = torch.full(src_logits.shape[:2], self.num_classes,
-                                    dtype=torch.int64, device=src_logits.device)
-        target_classes[idx] = target_classes_o
-        loss_ce = F.cross_entropy(src_logits.transpose(1, 2), target_classes, self.empty_weight)
+    def loss_labels(self, outputs, targets, matches, num_boxes, log=True):
+        """
+        Params:
+            matches: list of batch_size pairs (I, J) of arrays such that output bbox I[n] must be matched with target bbox J[n]
+        """
+                
+        # all N tgt labels are reordered following the matches and concatenated  
+        reordered_labels = [t["labels"][J] for t, (_, J) in zip(targets, matches)]
+        reordered_labels = torch.cat(reordered_labels) # Nx1
+        
+        # batch_idxs[i] is the idx in the batch of the img to which the i-th elem in the new order corresponds
+        batch_idxs = [torch.full_like(pred, i) for i, (pred, _) in enumerate(matches)]
+        batch_idxs = torch.cat(batch_idxs) # Nx1
+        
+        # src_idxs[i] is the idx of the preds for img batch_idxs[i] to which the i-th elem in the new order corresponds
+        pred_idxs = torch.cat([pred for (pred, _) in matches]) # Nx1
+        
+        # target_classes is of shape batch_size x num det tokens, and is num_classes everywhere, except for each token that is matched to a tgt bb, where it is the label of the matched tgt
+        pred_logits = outputs['pred_logits'] #BxNdetTokxNcls
+        target_classes = torch.full(
+            pred_logits.shape[:2], #Shape BxNdetTok
+            self.num_classes, #Filled with num_cls
+            dtype=torch.int64, 
+            device=pred_logits.device
+        )
+        target_classes[(batch_idxs, pred_idxs)] = reordered_labels
+        
+        loss_ce = F.cross_entropy(pred_logits.transpose(1, 2), target_classes, self.empty_weight)
         losses = {'loss_ce': loss_ce}
         return losses
 
-    def loss_boxes(self, outputs, targets, indices, num_boxes):
+    def loss_boxes(self, outputs, targets, matches, num_boxes):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
            targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
            The target boxes are expected in format (center_x, center_y, w, h), normalized by the image size.
         """
-        idx = self._get_src_permutation_idx(indices)
-        src_boxes = outputs['pred_boxes'][idx]
-        target_boxes = torch.cat([t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
-        loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
+        reordered_target_boxes = [t['boxes'][i] for t, (_, i) in zip(targets, matches)]
+        reordered_target_boxes = torch.cat(reordered_target_boxes) # Nx4
+        
+        # batch_idxs[i] is the idx in the batch of the img to which the i-th elem in the new order corresponds
+        batch_idxs = [torch.full_like(pred, i) for i, (pred, _) in enumerate(matches)]
+        batch_idxs = torch.cat(batch_idxs) # Nx1
+        
+        # src_idxs[i] is the idx of the preds for img batch_idxs[i] to which the i-th elem in the new order corresponds
+        pred_idxs = torch.cat([pred for (pred, _) in matches]) # Nx1
+        
+        pred_boxes = outputs['pred_boxes'] # BxNdetTokx4
+        reordered_pred_boxes = pred_boxes[(batch_idxs, pred_idxs)] # Nx4
+
         losses = {}
+        loss_bbox = F.l1_loss(
+            reordered_pred_boxes,
+            reordered_target_boxes,
+            reduction='none'
+        )
         losses['loss_bbox'] = loss_bbox.sum() / num_boxes
         loss_giou = 1 - torch.diag(generalized_box_iou(
-            box_convert(src_boxes, 'xywh', 'xyxy'),
-            box_convert(target_boxes, 'xywh', 'xyxy')))
+            box_convert(reordered_pred_boxes, 'xywh', 'xyxy'),
+            box_convert(reordered_target_boxes, 'xywh', 'xyxy')))
         losses['loss_giou'] = loss_giou.sum() / num_boxes
         return losses
-
-    def _get_src_permutation_idx(self, indices):
-        # permute predictions following indices
-        batch_idx = torch.cat([torch.full_like(src, i) for i, (src, _) in enumerate(indices)])
-        src_idx = torch.cat([src for (src, _) in indices])
-        return batch_idx, src_idx
 
     def forward(self, outputs, targets, matches):
         """ This performs the loss computation.
         Parameters:
-             outputs: dict of tensors, see the output specification of the model for the format
-             targets: list of dicts, such that len(targets) == batch_size.
-                      The expected keys in each dict depends on the losses applied, see each loss' doc
+            outputs: dict of tensors, see the output specification of the model for the format
+            targets: list of dicts, such that len(targets) == batch_size. The expected keys in each dict depends on the losses applied, see each loss' doc
+            matches: list of batch_size pairs (I, J) of arrays such that for pair (I,J) output bbox I[n] must be matched with target bbox J[n]
         """
-        # Compute the average number of target boxes accross all nodes, for normalization purposes
+        # Compute the average (?) number of target boxes accross all nodes, for normalization purposes
         num_boxes = sum(len(t["labels"]) for t in targets)
-        dev = next(iter(outputs.values())).device
-        num_boxes = torch.as_tensor([num_boxes], dtype=torch.float, device=dev)
+        device = next(iter(outputs.values())).device
+        num_boxes = torch.as_tensor(
+            [num_boxes],
+            dtype=torch.float,
+            device=device
+        )
         # Compute all the requested losses
         losses = {}
         losses.update(self.loss_labels(outputs, targets, matches, num_boxes))
@@ -97,25 +126,60 @@ class Yolos(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-        self.backbone = timm.create_model(backbone, pretrained=True, dynamic_img_size=True)
-        hdim = self.backbone.embed_dim 
+        self.backbone = timm.create_model(
+            backbone,
+            pretrained=True,
+            dynamic_img_size=True #Deals with inputs of other size than pretraining
+        )
+        self.embed_dim = self.backbone.embed_dim 
         self.det_token_num = det_token_num
         self.add_det_tokens_to_backbone()
-        self.class_embed = torchvision.ops.MLP(hdim, [hdim,hdim,num_classes+1])
-        self.bbox_embed = torchvision.ops.MLP(hdim, [hdim,hdim,4])
-        self.loss = SetCriterion(num_classes, 0.5)
+        self.class_embed = torchvision.ops.MLP(
+            self.embed_dim,
+            [self.embed_dim, self.embed_dim, num_classes+1]
+        ) #Num_classes + 1 to deal with no_obj category
+        self.bbox_embed = torchvision.ops.MLP(
+            self.embed_dim,
+            [self.embed_dim, self.embed_dim, 4]
+        )
+        self.loss = SetCriterion(
+            num_classes,
+            0.5 #Coeff of no-obj category
+        )
         self.num_classes = num_classes
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.map_metric = MeanAveragePrecision(box_format='xywh', backend='faster_coco_eval')
+        self.map_metric = MeanAveragePrecision(
+            box_format='xywh',
+            backend='faster_coco_eval'
+        )
         self.sliding = sliding
         self.pred_thresh = pred_thresh
         
     def add_det_tokens_to_backbone(self):
-        det_token = nn.Parameter(torch.zeros(1, self.det_token_num, self.backbone.embed_dim))
-        self.det_token = torch.nn.init.trunc_normal_(det_token, std=.02)
-        det_pos_embed = nn.Parameter(torch.zeros(1, self.det_token_num, self.backbone.embed_dim))
-        self.det_pos_embed = torch.nn.init.trunc_normal_(det_pos_embed, std=.02)
+        det_token = nn.Parameter(
+            torch.zeros(
+                1,
+                self.det_token_num,
+                self.backbone.embed_dim
+            )
+        )
+        self.det_token = torch.nn.init.trunc_normal_(
+            det_token,
+            std=.02
+        )
+        det_pos_embed = nn.Parameter(
+            torch.zeros(
+                1,
+                self.det_token_num,
+                self.backbone.embed_dim
+            )
+        )
+        self.det_pos_embed = torch.nn.init.trunc_normal_(
+            det_pos_embed,
+            std=.02
+        )
+        #The ViT needs to know how many input tokens are not for patch embeddings
         self.backbone.num_prefix_tokens += self.det_token_num
     
     def configure_optimizers(self):
