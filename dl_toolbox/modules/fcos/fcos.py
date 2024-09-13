@@ -73,8 +73,6 @@ def _prepare_labels(locations, targets_batch, reg_dists):
     return torch.stack(all_cls_targets), torch.stack(all_reg_targets)
 
 
-
-
 class FCOS(pl.LightningModule):
     def __init__(
         self,

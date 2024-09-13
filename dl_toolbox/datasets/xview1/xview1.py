@@ -124,11 +124,20 @@ class xView1(Dataset):
         self.merges = [list(l.values) for l in self.class_list]
         
     def merge(self, labels, boxes):
+        """
+        Args: 
+            labels: tensor shape L
+            boxes: tensor shape Lx4
+        Returns:
+            
+        """
         merged_labels = []
         merged_boxes = []
-        for i, l in enumerate(self.class_list):
+        for i, l in enumerate(self.class_list): 
+            # indices of tgts whose label belongs to the i-th merge
             idx = reduce(torch.logical_or, [labels == v for v in l.values])
-            merged_labels.append(i * torch.ones_like(labels[idx]))
+            # i+1 because in detection, class label 0 should be left for no-obj in algos
+            merged_labels.append((i+1) * torch.ones_like(labels[idx]))
             merged_boxes.append(boxes[idx])
         merged_labels = torch.cat(merged_labels, dim=0)
         merged_boxes = torch.cat(merged_boxes, dim=0)

@@ -106,6 +106,7 @@ class Segmenter(pl.LightningModule):
         print(f"Training {nb_train} params out of {nb_tot}.")
         
         ##https://github.com/karpathy/minGPT/pull/24#issuecomment-679316025
+        ##https://stats.stackexchange.com/questions/576463/why-not-perform-weight-decay-on-layernorm-embedding
         #if hasattr(self, 'no_weight_decay'):
         #    wd_val = 0. #weight_decay value for params that undergo it, right now no decay
         #    nwd_params = self.no_weight_decay()
