@@ -1,9 +1,10 @@
-from torchvision.models import resnet50
+from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models.feature_extraction import create_feature_extractor
 from torchvision.ops.feature_pyramid_network import FeaturePyramidNetwork, LastLevelP6P7
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+import math
 
 class Scale(nn.Module):
 
@@ -20,18 +21,30 @@ class Head(nn.Module):
     def __init__(self, in_channels, n_classes, n_share_convs=4, n_feat_levels=5):
         super().__init__()
 
-        tower = []
+        #tower = []
+        cls_tower = []
+        bbox_tower = []
         for _ in range(n_share_convs):
-            tower.append(
+            cls_tower.append(
                 nn.Conv2d(in_channels,
                           in_channels,
                           kernel_size=3,
                           stride=1,
                           padding=1,
                           bias=True))
-            tower.append(nn.GroupNorm(32, in_channels))
-            tower.append(nn.ReLU())
-        self.shared_layers = nn.Sequential(*tower)
+            cls_tower.append(nn.GroupNorm(32, in_channels))
+            cls_tower.append(nn.ReLU())
+            bbox_tower.append(
+                nn.Conv2d(in_channels,
+                          in_channels,
+                          kernel_size=3,
+                          stride=1,
+                          padding=1,
+                          bias=True))
+            bbox_tower.append(nn.GroupNorm(32, in_channels))
+            bbox_tower.append(nn.ReLU())
+        self.cls_layers = nn.Sequential(*cls_tower)
+        self.bbox_layers = nn.Sequential(*bbox_tower)
 
         self.cls_logits = nn.Conv2d(in_channels,
                                     n_classes,
@@ -48,21 +61,25 @@ class Head(nn.Module):
                                  kernel_size=3,
                                  stride=1,
                                  padding=1)
-        
-        # What is this ?
         self.scales = nn.ModuleList([Scale(init_value=1.0) for _ in range(n_feat_levels)])
+
+        # initialize the bias for focal loss
+        prior_prob = 0.01
+        bias_value = -math.log((1 - prior_prob) / prior_prob)
+        torch.nn.init.constant_(self.cls_logits.bias, bias_value)
 
     def forward(self, x):
         cls_logits = []
         bbox_preds = []
         cness_preds = []
         for l, features in enumerate(x):
-            features = self.shared_layers(features) # BxinChannelsxfeatSize
-            cls_logits.append(self.cls_logits(features).flatten(-2)) # BxNumClsxFeatSize
-            cness_preds.append(self.ctrness(features).flatten(-2)) # Bx1xFeatSize
-            reg = self.bbox_pred(features) # Bx4xFeatSize
+            cls_features = self.cls_layers(features) # BxinChannelsxfeatSize
+            bbox_features = self.bbox_layers(features)
+            cls_logits.append(self.cls_logits(cls_features).flatten(-2)) # BxNumClsxFeatSize
+            cness_preds.append(self.ctrness(bbox_features).flatten(-2)) # Bx1xFeatSize
+            reg = self.bbox_pred(bbox_features) # Bx4xFeatSize
             reg = self.scales[l](reg)
-            bbox_preds.append(F.relu(reg).flatten(-2))
+            bbox_preds.append(torch.exp(reg).flatten(-2))
         all_logits = torch.cat(cls_logits, dim=-1).permute(0,2,1) # BxNumAnchorsxC
         all_box_regs = torch.cat(bbox_preds, dim=-1).permute(0,2,1) # BxNumAnchorsx4
         all_cness = torch.cat(cness_preds, dim=-1).permute(0,2,1) # BxNumAnchorsx1
@@ -77,7 +94,7 @@ class ResnetDet(nn.Module):
         # Here we extract only C3, C4 and C5 following retinaNet
         # conv1 of resnet50 div by 2 feat maps, layer1 by 2, layer2 by 2 
         self.backbone = create_feature_extractor(
-            resnet50(), 
+            resnet50(weights=ResNet50_Weights.IMAGENET1K_V2), 
             {
                 'layer2.3.relu_2': 'layer2', # 1/8th feat map
                 'layer3.5.relu_2': 'layer3', # 1/16
@@ -98,11 +115,12 @@ class ResnetDet(nn.Module):
             extra_blocks=LastLevelP6P7(out_channels,out_channels)
         )
         self.features = nn.Sequential(self.backbone, fpn)
-        inp = torch.randn(2, 3, 224, 224)
+        inp = torch.randn(2, 3, 640, 640)
         with torch.no_grad():
             out = self.features(inp)
         # feat_sizes is the list of feature size of each stage of the FPN
         self.feat_sizes = [o.shape[2:] for o in out.values()]
+        print(self.feat_sizes)
         self.head = Head(out_channels, num_classes)
         
     def forward(self, x):
