@@ -9,16 +9,16 @@ from pytorch_lightning.utilities import rank_zero_warn
 from torchvision.utils import draw_bounding_boxes as draw_bb
 from torchvision.ops import box_convert
 
-def process_boxes(boxes, colors, names, with_scores):
-    p_boxes = [box_convert(p['boxes'].detach().cpu(), 'xywh', 'xyxy') for p in boxes]
-    p_labels = [p['labels'].detach().cpu() for p in boxes]
-    p_colors = [[colors[l][1] for l in p] for p in p_labels]
+def process_detections(detections, color_table, names, with_scores):
+    batch_boxes = [box_convert(det['boxes'].detach().cpu(), 'xywh', 'xyxy') for det in detections]
+    batch_labels = [det['labels'].detach().cpu()-1 for det in detections]
+    batch_colors = [[color_table[l][1] for l in label] for label in batch_labels]
     if with_scores:
-        p_scores = [p['scores'].detach().cpu() for p in boxes]
-        p_legends = [[f"{names[l]}: {s:.2f}" for l,s in p] for p in zip(p_labels, p_scores)]
+        batch_scores = [det['scores'].detach().cpu() for det in detections]
+        batch_legends = [[f"{names[l]}: {s:.2f}" for l,s in p] for p in zip(batch_labels, batch_scores)]
     else:
-        p_legends = [[f"{names[l]}: 1." for l in p] for p in p_labels]
-    return p_boxes, p_legends, p_colors
+        batch_legends = [[f"{names[l]}: 1." for l in p] for p in batch_labels]
+    return batch_boxes, batch_legends, batch_colors
     
 def display_det_batch(trainer, module, batch, prefix):
     x, tgt, p = batch
@@ -35,8 +35,8 @@ def display_det_batch(trainer, module, batch, prefix):
     #preds = [{**t, **{'scores': 1.}} for t in targets] #to change
     colors = trainer.datamodule.class_colors
     names = trainer.datamodule.class_names
-    processed_preds = zip(int_imgs, *process_boxes(preds, colors, names, False))
-    processed_targets = zip(int_imgs, *process_boxes(targets, colors, names, False))
+    processed_preds = zip(int_imgs, *process_detections(preds, colors, names, False))
+    processed_targets = zip(int_imgs, *process_detections(targets, colors, names, False))
     params = {'font': '/usr/share/fonts/truetype/ubuntu/Ubuntu-L.ttf', 'font_size': 10}
     drawn_preds = [draw_bb(img, bb, l, c, **params) for img, bb, l, c in processed_preds]
     drawn_targets = [draw_bb(img, bb, l, c, **params) for img, bb, l, c in processed_targets]

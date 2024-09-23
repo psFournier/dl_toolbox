@@ -8,9 +8,8 @@ import torchvision.transforms.v2 as v2
 import rasterio
 import numpy as np
 import enum
-from functools import reduce
 
-from dl_toolbox.utils import label, merge_labels
+from dl_toolbox.utils import label, merge_labels_boxes
 
 
 
@@ -123,25 +122,25 @@ class xView1(Dataset):
         self.class_list = self.classes[merge].value
         self.merges = [list(l.values) for l in self.class_list]
         
-    def merge(self, labels, boxes):
-        """
-        Args: 
-            labels: tensor shape L
-            boxes: tensor shape Lx4
-        Returns:
-            
-        """
-        merged_labels = []
-        merged_boxes = []
-        for i, l in enumerate(self.class_list): 
-            # indices of tgts whose label belongs to the i-th merge
-            idx = reduce(torch.logical_or, [labels == v for v in l.values])
-            # i+1 because in detection, class label 0 should be left for no-obj in algos
-            merged_labels.append((i+1) * torch.ones_like(labels[idx]))
-            merged_boxes.append(boxes[idx])
-        merged_labels = torch.cat(merged_labels, dim=0)
-        merged_boxes = torch.cat(merged_boxes, dim=0)
-        return merged_labels, merged_boxes
+    #def merge(self, labels, boxes):
+    #    """
+    #    Args: 
+    #        labels: tensor shape L
+    #        boxes: tensor shape Lx4
+    #    Returns:
+    #        
+    #    """
+    #    merged_labels = []
+    #    merged_boxes = []
+    #    for i, l in enumerate(self.class_list): 
+    #        # indices of tgts whose label belongs to the i-th merge
+    #        idx = reduce(torch.logical_or, [labels == v for v in l.values])
+    #        # i+1 because in detection, class label 0 should be left for no-obj in algos
+    #        merged_labels.append((i+1) * torch.ones_like(labels[idx]))
+    #        merged_boxes.append(boxes[idx])
+    #    merged_labels = torch.cat(merged_labels, dim=0)
+    #    merged_boxes = torch.cat(merged_boxes, dim=0)
+    #    return merged_labels, merged_boxes
 
     def __getitem__(self, index):
         id = self.ids[index]
@@ -152,10 +151,12 @@ class xView1(Dataset):
                 
         target = self.coco.loadAnns(self.coco.getAnnIds(id))
         target = list_of_dicts_to_dict_of_lists(target)
+        tv_target = {}
+        
         labels = torch.tensor(target["category_id"])
         boxes = torch.as_tensor(target["bbox"]).float()
-        merged_labels, merged_boxes = self.merge(labels, boxes)
-        tv_target = {}
+        merged_labels, merged_boxes = merge_labels_boxes(labels, boxes, self.class_list)
+        
         tv_target["boxes"] = tv_tensors.BoundingBoxes(
             merged_boxes,
             format=tv_tensors.BoundingBoxFormat.XYWH,

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from collections import namedtuple
+from functools import reduce
 
 
 label = namedtuple("label", ["name", "color", "values"])
@@ -11,6 +12,26 @@ def merge_labels(labels, merge):
         for j in val:
             ret[labels == j] = i
     return ret
+
+def merge_labels_boxes(labels, boxes, merge):
+    """
+    Args: 
+        labels: tensor shape L
+        boxes: tensor shape Lx4
+    Returns:
+
+    """
+    merged_labels = []
+    merged_boxes = []
+    for i, l in enumerate(merge, 1): 
+        # indices of tgts whose label belongs to the i-th merge
+        idx = reduce(torch.logical_or, [labels == v for v in l.values])
+        # i+1 because in detection, class label 0 should be left for no-obj in algos
+        merged_labels.append(i * torch.ones_like(labels[idx]))
+        merged_boxes.append(boxes[idx])
+    merged_labels = torch.cat(merged_labels, dim=0)
+    merged_boxes = torch.cat(merged_boxes, dim=0)
+    return merged_labels, merged_boxes
 
 def labels_to_rgb(labels, colors):
     rgb = torch.zeros((*labels.shape, 3), dtype=torch.uint8)

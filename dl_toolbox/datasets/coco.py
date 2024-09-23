@@ -9,7 +9,7 @@ import rasterio
 import numpy as np
 from torchvision.io import read_image
 
-from dl_toolbox.utils import label, merge_labels
+from dl_toolbox.utils import label, merge_labels_boxes
 
 CAT_ID_TO_NAME = {
     #0: u'__background__',
@@ -145,17 +145,36 @@ class Coco(Dataset):
         target = list_of_dicts_to_dict_of_lists(target)
         tv_target = {}
         
+        #labels = torch.tensor(target["category_id"])
+        labels = torch.tensor(target["category_id"]) if target else torch.empty(0,)
+        #boxes = torch.as_tensor(target["bbox"]).float()
+        boxes = torch.as_tensor(target["bbox"]).float() if target else torch.empty(0,4).float()
+        merged_labels, merged_boxes = merge_labels_boxes(labels, boxes, self.classes)
+        
         tv_target["boxes"] = tv_tensors.BoundingBoxes(
-            torch.as_tensor(target["bbox"]).float() if target else torch.empty(0,4).float(),
+            merged_boxes,
             format=tv_tensors.BoundingBoxFormat.XYWH,
             canvas_size=tuple(F.get_size(tv_image)),
         )
-        labels = torch.tensor(target["category_id"]) if target else torch.empty(0,)
-            
-        tv_target['labels'] = merge_labels(labels, self.merges).long()
+        tv_target['labels'] = merged_labels.long()
         if self.transforms is not None:
             tv_image, tv_target = self.transforms(tv_image, tv_target)
         return tv_image, tv_target, path
+
+        
+        
+        
+        #tv_target["boxes"] = tv_tensors.BoundingBoxes(
+        #    torch.as_tensor(target["bbox"]).float() if target else torch.empty(0,4).float(),
+        #    format=tv_tensors.BoundingBoxFormat.XYWH,
+        #    canvas_size=tuple(F.get_size(tv_image)),
+        #)
+        #labels = torch.tensor(target["category_id"]) if target else torch.empty(0,)
+            
+        #tv_target['labels'] = merge_labels(labels, self.merges).long()
+        #if self.transforms is not None:
+        #    tv_image, tv_target = self.transforms(tv_image, tv_target)
+        #return tv_image, tv_target, path
 
     def __len__(self):
         return len(self.ids)
