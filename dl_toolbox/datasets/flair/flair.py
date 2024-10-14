@@ -79,24 +79,23 @@ hierarchical6 = [
     label("herbaceous", hex2color(lut_colors[10]), {10}),
 ]
 
-classes = enum.Enum(
-    "FlairClasses",
-    {
-        "all19": all19,
-        "main13": main13,
-        "hierarchical6": hierarchical6
-    },
-)
-
 class Flair(Dataset):
     
-    classes = classes
+    all_class_lists = classes = enum.Enum(
+        "FlairClasses",
+        {
+            "all19": all19,
+            "main13": main13,
+            "hierarchical6": hierarchical6
+        },
+    )
+
 
     def __init__(self, imgs, msks, bands, merge, transforms):
         self.imgs = imgs
         self.msks = msks
         self.bands = bands
-        self.class_list = self.classes[merge].value
+        self.class_list = self.all_class_lists[merge].value
         self.merges = [list(l.values) for l in self.class_list]
         self.transforms = v2.ToDtype(dtype={
             tv_tensors.Image: torch.float32,
@@ -110,18 +109,23 @@ class Flair(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        p = self.imgs[idx]
-        with rasterio.open(p, "r") as file:
-            image = file.read(out_dtype=np.uint8, indexes=self.bands)
+        
+        image_path = self.imgs[idx]
+        with rasterio.open(image_path, "r") as file:
+            image = file.read(indexes=self.bands)
         image = tv_tensors.Image(torch.from_numpy(image))
+        
         target = None
         if self.msks:
-            target = {}
-            with rasterio.open(self.msks[idx], "r") as file:
+            mask_path = self.msks[idx]
+            with rasterio.open(mask_path, "r") as file:
                 mask = file.read(out_dtype=np.uint8)
-            mask = merge_labels(torch.from_numpy(mask), self.merges) 
-            target['masks'] = tv_tensors.Mask(mask)
+            mask = torch.from_numpy(mask)
+            mask = merge_labels(mask, self.merges)
+            target = tv_tensors.Mask(mask)
+            
         image, target = self.transforms(image, target)
         if self.msks:
-            target['masks'] = target['masks'].squeeze()
-        return image, target, p
+            target = target.squeeze()
+            
+        return {'image':image, 'target':target, 'image_path':image_path}

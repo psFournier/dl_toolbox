@@ -1,6 +1,6 @@
 model_checkpoint:
   _target_: pytorch_lightning.callbacks.ModelCheckpoint
-  monitor: Total loss/val # name of the logged metric which determines when model is improving
+  monitor: Loss/val # name of the logged metric which determines when model is improving
   mode: min
   save_top_k: 1
   dirpath: ${hydra:run.dir}/checkpoints

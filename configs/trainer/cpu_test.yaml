@@ -1,8 +1,0 @@
-defaults:
-  - default.yaml
-
-accelerator: cpu
-devices: 1
-max_epochs: 10
-limit_train_batches: 1
-limit_val_batches: 1

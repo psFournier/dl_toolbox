@@ -1,15 +1,10 @@
 defaults:
-    - /transforms@to_0_1: from_0_255
     - /transforms@train_tf: resisc_train
     - /transforms@test_tf: resisc_test
 
 _target_: dl_toolbox.datamodules.Resisc
 data_path: ${paths.data}
-sup: 1
-unsup: -1
-batch_size_s: 8
-batch_size_u: 8
-steps_per_epoch: 250
-num_workers: 16
+batch_size: 16
+num_workers: 6
 merge: all45
 pin_memory: True

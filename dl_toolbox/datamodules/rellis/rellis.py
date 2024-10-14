@@ -4,13 +4,15 @@ from pathlib import Path
 from functools import partial
 
 import numpy as np
+import torch
+
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader, Subset
 from torch.utils.data._utils.collate import default_collate
 
 import dl_toolbox.datasets as datasets
-
+from dl_toolbox.utils import list_of_dicts_to_dict_of_lists
 
 class Rellis(LightningDataModule):
     
@@ -26,11 +28,8 @@ class Rellis(LightningDataModule):
         self,
         data_path,
         merge,
-        sup,
-        unsup,
         train_tf,
         test_tf,
-        batch_tf,
         batch_size,
         num_workers,
         pin_memory,
@@ -40,16 +39,10 @@ class Rellis(LightningDataModule):
         super().__init__()
         self.data_path = Path(data_path)
         self.merge = merge
-        self.sup = sup
-        self.unsup = unsup
         self.train_tf = train_tf
         self.test_tf = test_tf
-        self.batch_tf = batch_tf
         self.in_channels = 3
-        self.classes = datasets.Rellis3d.classes[merge].value
-        self.num_classes = len(self.classes)
-        self.class_names = [l.name for l in self.classes]
-        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
+        self.class_list = datasets.Rellis3d.all_class_lists[merge].value
         self.dataloader = partial(
             DataLoader,
             batch_size=batch_size,
@@ -73,12 +66,11 @@ class Rellis(LightningDataModule):
         self.train_set = Subset(rellis(self.train_tf), idxs[:l])
         self.val_set = Subset(rellis(self.test_tf), idxs[l:])
         
-    def collate(self, batch, train):
-        assert all([b[1]['masks'].shape == batch[0][1]['masks'].shape for b in batch]), print([(b[1]['masks'].shape, str(b[2])) for b in batch])
-        b_img, b_tgt = default_collate([(img, tgt) for img, tgt, path in batch])
-        if self.batch_tf and train:
-            b_img, b_tgt['masks'] = self.batch_tf(b_img, b_tgt['masks'])
-        return b_img, b_tgt, [path for _,_,path in batch]
+    def collate(self, batch):
+        batch = list_of_dicts_to_dict_of_lists(batch)
+        batch['image'] = torch.stack(batch['image'])
+        batch['target'] = torch.stack(batch['target'])
+        return batch
                        
     def train_dataloader(self):
         train_dataloaders = {}
@@ -86,7 +78,7 @@ class Rellis(LightningDataModule):
             dataset=self.train_set,
             shuffle=True,
             drop_last=True,
-            collate_fn=partial(self.collate, train=True)
+            collate_fn=self.collate
         )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
@@ -95,7 +87,7 @@ class Rellis(LightningDataModule):
             dataset=self.val_set,
             shuffle=False,
             drop_last=False,
-            collate_fn=partial(self.collate, train=False)
+            collate_fn=self.collate
         )
 
     def predict_dataloader(self):
@@ -103,5 +95,5 @@ class Rellis(LightningDataModule):
             dataset=self.predict_set,
             shuffle=False,
             drop_last=False,
-            collate_fn=partial(self.collate, train=False)
+            collate_fn=self.collate
         )

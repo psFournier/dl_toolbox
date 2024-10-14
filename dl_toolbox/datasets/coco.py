@@ -157,8 +157,7 @@ class Coco(Dataset):
             canvas_size=tuple(F.get_size(tv_image)),
         )
         tv_target['labels'] = merged_labels.long()
-        if self.transforms is not None:
-            tv_image, tv_target = self.transforms(tv_image, tv_target)
+        tv_image, tv_target = self.transforms(tv_image, tv_target)
         return tv_image, tv_target, path
 
         

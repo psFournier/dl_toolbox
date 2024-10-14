@@ -7,8 +7,8 @@ import numpy as np
 import torch
 from PIL import Image
 from torchvision.datasets.folder import DatasetFolder
-
-import dl_toolbox.transforms as transforms
+import torchvision.transforms.v2 as v2
+from torchvision import tv_tensors
 
 from dl_toolbox.utils import label
 
@@ -21,14 +21,6 @@ test = [
     label("water", None, {44})
 ]
 
-classes = enum.Enum(
-    "Resisc",
-    {
-        "all45": all45,
-        "test": test
-    },
-)
-
 def pil_to_torch_loader(path: str):
     with open(path, "rb") as f:
         img = np.array(Image.open(f))
@@ -38,14 +30,25 @@ def pil_to_torch_loader(path: str):
 
 class Resisc(DatasetFolder):
     
-    classes = classes
+    all_class_lists = enum.Enum(
+        "Resisc",
+        {
+            "all45": all45,
+            "test": test
+        },
+    )
     
     def __init__(self, data_path, transforms, merge):
-        self.class_list = self.classes[merge].value
+        self.class_list = self.all_class_lists[merge].value
         super().__init__(
             root=data_path, loader=pil_to_torch_loader, extensions=("jpg",)
         )
-        self.transforms = transforms
+        self.transforms = v2.ToDtype(
+            dtype={tv_tensors.Image: torch.float32, "others":None},
+            scale=True
+        )
+        if transforms:
+            self.transforms = v2.Compose([self.transforms, transforms])
 
     def find_classes(self, directory):
         names = [cls_names[i] for label in self.class_list for i in label.values]
@@ -64,12 +67,10 @@ class Resisc(DatasetFolder):
 
     def __getitem__(self, idx):
         path, label = self.samples[idx]
-        #image = self.loader(path)/255.
-        image = self.loader(path)
-        #image = self.transforms(image)
+        image = tv_tensors.Image(self.loader(path))
         image = self.transforms(image) 
         return {
             "image": image,
-            "label": torch.tensor(label),
+            "target": torch.tensor(label),
             "path": path
         }

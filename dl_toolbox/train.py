@@ -18,7 +18,7 @@ def train(cfg: DictConfig) -> None:
     datamodule = hydra.utils.instantiate(cfg.datamodule)
     module = hydra.utils.instantiate(
         cfg.module,
-        num_classes=datamodule.num_classes
+        class_list=datamodule.class_list
     )
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     dsm = pl.callbacks.DeviceStatsMonitor()
@@ -26,10 +26,6 @@ def train(cfg: DictConfig) -> None:
         logger=tensorboard,
         callbacks=list(callbacks.values())+[dsm]
     )
-    
-    gc.collect()
-    torch.cuda.empty_cache()
-    gc.collect()
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
     
 if __name__ == "__main__":

@@ -1,4 +1,0 @@
-seg_preds_visu:
-  _target_: dl_toolbox.callbacks.SegmentationImagesVisualisation
-  freq: 10
-

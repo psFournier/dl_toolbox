@@ -1,5 +1,5 @@
 lora:
     _target_: dl_toolbox.callbacks.Lora
-    module_name: backbone
+    module_name: feature_extractor
     rank: 4
     activated: False

@@ -1,21 +1,20 @@
 # @package _global_
-
+experiment_name: default
 # specify here default configuration
 # order of defaults determines the order in which configs override each other
 defaults:
   - _self_
   - datamodule: resisc/resisc
-  - module: supervised
+  - module: base_classifier
   - callbacks:
       - model_checkpoint
-      - seg_preds_visu
-      - det_preds_visu
+      - preds_visu
       - lr_monitor
       - lora
       - finetuning
       - calibration
   - paths: qdtis056z
-  - trainer: gpu
+  - trainer: default
   - hydra: default
   - hparams_search: null
 

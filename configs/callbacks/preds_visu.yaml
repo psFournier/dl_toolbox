@@ -1,0 +1,5 @@
+preds_visu:
+  _target_: dl_toolbox.callbacks.PredictionsVisu
+  freq: 10
+  mode: classification
+

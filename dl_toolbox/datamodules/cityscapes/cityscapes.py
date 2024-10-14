@@ -1,13 +1,18 @@
-from pathlib import Path
 import os
+import random
+from pathlib import Path
 from functools import partial
+
+import numpy as np
+import torch
+
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, RandomSampler, ConcatDataset
+from torch.utils.data import DataLoader, Subset
+from torch.utils.data._utils.collate import default_collate
 
 import dl_toolbox.datasets as datasets
-from dl_toolbox.utils import CustomCollate
-from dl_toolbox.transforms import Compose, NoOp, RandomCrop2
+from dl_toolbox.utils import list_of_dicts_to_dict_of_lists
 
 
 class Cityscapes(LightningDataModule):
@@ -15,44 +20,30 @@ class Cityscapes(LightningDataModule):
         self,
         data_path,
         merge,
-        sup,
-        unsup,
-        to_0_1,
         train_tf,
         test_tf,
-        batch_size_s,
-        batch_size_u,
-        steps_per_epoch,
+        batch_size,
         num_workers,
         pin_memory,
-        class_weights=None,
+        *args,
+        **kwargs
     ):
         super().__init__()
         self.data_path = Path(data_path)
         self.merge = merge
-        self.sup = sup
-        self.unsup = unsup
-        self.to_0_1 = to_0_1
         self.train_tf = train_tf
         self.test_tf = test_tf
-        self.batch_size_s = batch_size_s
-        self.batch_size_u = batch_size_u
-        self.steps_per_epoch = steps_per_epoch
-        self.num_workers = num_workers
-        self.pin_memory = pin_memory
         self.in_channels = 3
-        self.classes = datasets.Cityscapes.classes[merge].value
-        self.num_classes = len(self.classes)
-        self.class_names = [l.name for l in self.classes]
-        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
-        self.class_weights = (
-            [1.0] * self.num_classes if class_weights is None else class_weights
+        self.class_list = datasets.Cityscapes.all_class_lists[merge].value
+        self.dataloader = partial(
+            DataLoader,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory
         )
         
-    def prepare_data(self):
-        self.dict_train = {"IMG": [], "MSK": [], "WIN": []}
-        self.dict_train_unlabeled = {"IMG": [], "MSK": [], "WIN": []}
-        self.dict_val = {"IMG": [], "MSK": [], "WIN": []}
+    def setup(self, stage):
+        
         def get_split_data(split):
             imgs = []
             msks = []
@@ -65,82 +56,41 @@ class Cityscapes(LightningDataModule):
                     )
                     imgs.append(img_dir/city/file_name)
                     msks.append(msk_dir/city/target_name)
-            return zip(imgs, msks)
-        for i, (img, msk) in enumerate(get_split_data('train')):
-            if self.sup <= i%16 < self.sup + self.unsup:
-                self.dict_train_unlabeled["IMG"].append(img)
-            if i%16 < self.sup:
-                self.dict_train["IMG"].append(img)
-                self.dict_train["MSK"].append(msk)
-        for img, msk in get_split_data('val'):
-            self.dict_val["IMG"].append(img)
-            self.dict_val["MSK"].append(msk)
+            return imgs, msks
+        
+        train_imgs, train_msks = get_split_data('train')
+        self.train_set = datasets.Cityscapes(train_imgs, train_msks, self.merge, self.train_tf)
+        val_imgs, val_msks = get_split_data('val')
+        self.val_set = datasets.Cityscapes(val_imgs, val_msks, self.merge, self.test_tf)      
 
-    def setup(self, stage):
-        if stage in ("fit", "validate"):
-            self.train_s_set = datasets.Cityscapes(
-                self.dict_train['IMG'],
-                self.dict_train['MSK'],
-                merge=self.merge,
-                transforms=Compose([self.to_0_1, self.train_tf])
-            )
-
-            self.val_set = datasets.Cityscapes(
-                self.dict_val['IMG'],
-                self.dict_val['MSK'],
-                merge=self.merge,
-                transforms=Compose([self.to_0_1, self.test_tf]),
-            )
-            if self.unsup > 0:
-                self.train_u_set = datasets.Cityscapes(
-                    self.dict_train_unlabeled["IMG"],
-                    [],
-                    self.merge,
-                    transforms=Compose([self.to_0_1, self.train_tf])
-                )
-
-    def dataloader(self, dataset):
-        return partial(
-            DataLoader,
-            dataset=dataset,
-            collate_fn=CustomCollate(),
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory
-        )
+    def collate(self, batch):
+        batch = list_of_dicts_to_dict_of_lists(batch)
+        batch['image'] = torch.stack(batch['image'])
+        batch['target'] = torch.stack(batch['target'])
+        return batch
                        
     def train_dataloader(self):
         train_dataloaders = {}
-        train_dataloaders["sup"] = self.dataloader(self.train_s_set)(
-            sampler=RandomSampler(
-                self.train_s_set,
-                replacement=True,
-                num_samples=self.steps_per_epoch*self.batch_size_s
-            ),
+        train_dataloaders["sup"] = self.dataloader(
+            dataset=self.train_set,
+            shuffle=True,
             drop_last=True,
-            batch_size=self.batch_size_s
+            collate_fn=self.collate
         )
-        if self.unsup > 0:
-            train_dataloaders["unsup"] = self.dataloader(self.train_u_set)(
-                sampler=RandomSampler(
-                    self.train_u_set,
-                    replacement=True,
-                    num_samples=self.steps_per_epoch*self.batch_size_u
-                ),
-                drop_last=True,
-                batch_size=self.batch_size_u
-            )
         return CombinedLoader(train_dataloaders, mode="max_size_cycle")
     
     def val_dataloader(self):
-        return self.dataloader(self.val_set)(
+        return self.dataloader(
+            dataset=self.val_set,
             shuffle=False,
             drop_last=False,
-            batch_size=self.batch_size_s
+            collate_fn=self.collate
         )
-    
-    def test_dataloader(self):
-        return self.dataloader(self.test_set)(
+
+    def predict_dataloader(self):
+        return self.dataloader(
+            dataset=self.predict_set,
             shuffle=False,
             drop_last=False,
-            batch_size=self.batch_size_s
+            collate_fn=self.collate
         )

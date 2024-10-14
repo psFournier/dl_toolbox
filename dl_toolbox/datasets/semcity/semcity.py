@@ -5,26 +5,28 @@ import enum
 
 from torch.utils.data import Dataset
 from rasterio.windows import Window
-from dl_toolbox.utils import label, get_tiles, merge_labels
+from dl_toolbox.utils import label, merge_labels
+import torchvision.transforms.v2 as v2
+from torchvision import tv_tensors
 
 
 all7 = [
     label("void", (255, 255, 255), {0}),
-    label("impervious surface", (38, 38, 38), {1}),
+    label("impervious", (38, 38, 38), {1}),
     label("building", (238, 118, 33), {2}),
-    label("pervious surface", (34, 139, 34), {3}),
-    label("high vegetation", (0, 222, 137), {4}),
+    label("pervious", (34, 139, 34), {3}),
+    label("high vege", (0, 222, 137), {4}),
     label("car", (255, 0, 0), {5}),
     label("water", (0, 0, 238), {6}),
-    label("sport venue", (160, 30, 230), {7}),
+    label("sport", (160, 30, 230), {7}),
 ]
 
 main5 = [
     label("void", (255, 255, 255), {0,7}),
-    label("impervious surface", (38, 38, 38), {1,5}),
+    label("impervious", (38, 38, 38), {1,5}),
     label("building", (238, 118, 33), {2}),
-    label("pervious surface", (34, 139, 34), {3}),
-    label("high vegetation", (0, 222, 137), {4}),
+    label("pervious", (34, 139, 34), {3}),
+    label("high vege", (0, 222, 137), {4}),
     label("water", (0, 0, 238), {6})
 ]
 
@@ -33,19 +35,19 @@ building = [
     label("building", (238, 118, 33), {2})
 ]
 
-classes = enum.Enum(
-    "SemcityClasses",
-    {
-        "all7": all7,
-        "main5": main5,
-        "building": building
-    },
-)
-
 
 class Semcity(Dataset):
     
-    classes = classes
+    all_class_lists = enum.Enum(
+        "SemcityClasses",
+        {
+            "all7": all7,
+            "main5": main5,
+            "building": building
+        },
+    )
+    # RGB = bands 4,3,2
+    max_val_per_bands = np.array([652.,732.,1078.,1131.,756.,1089.,1125.,1046.])
     
     def __init__(
         self,
@@ -60,36 +62,41 @@ class Semcity(Dataset):
         self.msks = msks
         self.windows = windows
         self.bands = bands
-        self.class_list = self.classes[merge].value
+        self.class_list = self.all_class_lists[merge].value
         self.merges = [list(l.values) for l in self.class_list]
-        self.transforms = transforms
+        self.transforms = v2.ToDtype(dtype={
+            tv_tensors.Image: torch.float32,
+            tv_tensors.Mask: torch.int64,
+            "others":None
+        }, scale=True)
+        if transforms is not None:
+            self.transforms = v2.Compose([self.transforms, transforms])
 
     def __len__(self):
         return len(self.imgs)
-
+    
     def __getitem__(self, idx):
-        #img = self.imgs[idx // len(self.crops)]
-        #crop = self.crops[idx % len(self.crops)]
-        img = self.imgs[idx]
-        win = self.windows[idx]
-        window = Window(*win)
-        with rasterio.open(img, "r") as file:
-            image = file.read(window=window, out_dtype=np.float32, indexes=self.bands)
-        #image = torch.from_numpy(image)/255.
-        image = torch.from_numpy(image)
-        label = None
+        
+        image_path = self.imgs[idx]
+        window = self.windows[idx]
+        with rasterio.open(image_path, "r") as file:
+            image = file.read(out_dtype=np.float32, window=Window(*window), indexes=self.bands)
+        # images are uint16, but dividing by 2**16 makes them too dark
+        max_vals_per_band = self.max_val_per_bands[[b-1 for b in self.bands]]
+        image /= max_vals_per_band.reshape(-1,1,1)
+        image = tv_tensors.Image(torch.from_numpy(image))
+        
+        target = None
         if self.msks:
-            #msk = self.msks[idx // len(self.crops)]
-            msk = self.msks[idx]
-            with rasterio.open(msk, "r") as file:
-                label = file.read(window=window, out_dtype=np.uint8)
-            label = merge_labels(label, self.merges)
-            label = torch.from_numpy(label).long()
-        image, label = self.transforms(image, label)
-        return {
-            "image": image,
-            "label": None if label is None else label.squeeze(),
-            "image_path": img,
-            "window": win,
-            "label_path": None if label is None else msk
-        }
+            mask_path = self.msks[idx]
+            with rasterio.open(mask_path, "r") as file:
+                mask = file.read(window=Window(*window), out_dtype=np.uint8)
+            mask = torch.from_numpy(mask)
+            mask = merge_labels(mask, self.merges)
+            target = tv_tensors.Mask(mask)
+            
+        image, target = self.transforms(image, target)
+        if self.msks:
+            target = target.squeeze()
+            
+        return {'image':image, 'target':target, 'image_path':image_path, 'window':window}

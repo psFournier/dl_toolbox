@@ -1,0 +1,8 @@
+defaults:
+  - /optimizer: sgd
+  - /scheduler: constant
+  - /transforms@tta: null
+  - _self_
+
+_target_: dl_toolbox.modules.BaseClassifier
+encoder: efficientnet_b0

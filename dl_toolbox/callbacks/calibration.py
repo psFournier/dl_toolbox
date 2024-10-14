@@ -9,17 +9,6 @@ import torch
 # Necessary for imshow to run on machines with no graphical interface.
 plt.switch_backend("agg")
 
-def plot_reliability_diagram(acc_bin, conf_bin):
-    figure = plt.figure(figsize=(8, 8))
-    plt.plot([0, 1], [0, 1], "k:", label="Perfectly calibrated")
-    plt.plot(conf_bin, acc_bin, "s-", label="Model")
-    plt.xlabel("Confidence")
-    plt.ylabel("Accuracy")
-    plt.legend(loc="lower right")
-    plt.title("Calibration curve")
-    plt.show()
-    return figure
-
 def plot_calib(count_bins, acc_bins, conf_bins, max_points):
     acc, conf = [], []
     total_count = torch.sum(count_bins)
@@ -90,20 +79,17 @@ class CalibrationLogger(pl.Callback):
         super().__init__(*args, **kwargs)
         self.freq = freq
         self.n_bins = 100
-        self.initialize()
-        
-    def initialize(self):
         self.labels = []
         self.confs = []
         self.preds = []        
 
     def on_validation_batch_end(self, trainer, module, outputs, batch, batch_idx):
         if self.freq>0 and trainer.current_epoch % self.freq == 0 and batch_idx < 100:
-            x, tgt, p = batch
-            logits = module.forward(x).cpu()
-            prob = module.loss.prob(logits)
-            conf, pred = module.loss.pred(prob)
-            y = tgt["masks"].cpu()
+            x = batch['image']
+            logits = module.forward(x).cpu().detach()
+            prob = module.logits_to_probas(logits)
+            conf, pred = torch.max(prob, dim=1)
+            y = batch["target"].cpu()
             self.labels.append(y.flatten())
             self.confs.append(conf.flatten())
             self.preds.append(pred.flatten())
@@ -121,4 +107,6 @@ class CalibrationLogger(pl.Callback):
                 f"Calibration", figure, global_step=trainer.global_step
             )
             #figure.savefig('calib')
-            self.initialize()
+            self.labels.clear()
+            self.confs.clear()
+            self.preds.clear()

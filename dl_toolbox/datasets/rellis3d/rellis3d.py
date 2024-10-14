@@ -5,6 +5,7 @@ from torchvision.io import read_image
 from torchvision import tv_tensors
 from torch.utils.data import Dataset
 import torchvision.transforms.v2 as v2 
+from torchvision import tv_tensors
 
 from dl_toolbox.utils import merge_labels, label
 
@@ -14,21 +15,19 @@ onto1 = {0: [0, 0, 0], 1: [108, 64, 20], 3: [0, 102, 0], 4: [0, 255, 0], 5: [0, 
 
 all20 = [label(v, tuple(onto1[k]), {k}) for k, v in onto0.items()]
 
-classes = enum.Enum(
-    "Rellis3dClasses",
-    {
-        "all20": all20,
-    },
-)
-
 class Rellis3d(Dataset):
     
-    classes = classes
+    all_class_lists = enum.Enum(
+        "Rellis3dClasses",
+        {
+            "all20": all20,
+        },
+    )
 
     def __init__(self, imgs, msks, merge, transforms):
         self.imgs = imgs
         self.msks = msks
-        self.class_list = self.classes[merge].value
+        self.class_list = self.all_class_lists[merge].value
         self.merges = [list(l.values) for l in self.class_list]
         self.transforms = v2.ToDtype(dtype={
             tv_tensors.Image: torch.float32,
@@ -42,16 +41,14 @@ class Rellis3d(Dataset):
         return len(self.imgs)
 
     def __getitem__(self, idx):
-        p = self.imgs[idx]
-        image = tv_tensors.Image(read_image(p))
+        image_path = self.imgs[idx]
+        image = tv_tensors.Image(read_image(image_path))
         target = None
         if self.msks:
-            target = {}
             mask = read_image(self.msks[idx])
             mask = merge_labels(mask, self.merges)
-            mask = tv_tensors.Mask(mask)
-            target['masks'] = mask
+            target = tv_tensors.Mask(mask)
         image, target = self.transforms(image, target)
         if self.msks:
-            target['masks'] = target['masks'].squeeze()
-        return image, target, p
+            target = target.squeeze()
+        return {'image':image, 'target':target, 'image_path':image_path}
