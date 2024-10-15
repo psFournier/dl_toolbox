@@ -8,26 +8,9 @@ import timm
 from timm.models.layers import trunc_normal_
 from einops import rearrange
 
-from dl_toolbox.utils import plot_confusion_matrix
+from dl_toolbox.utils import plot_confusion_matrix, param_groups_weight_decay
+from torchvision.models.feature_extraction import create_feature_extractor
 
-
-def param_groups_weight_decay(
-        params,
-        weight_decay=1e-5,
-        no_weight_decay_list=()
-):
-    no_weight_decay_list = set(no_weight_decay_list)
-    decay = []
-    no_decay = []
-    for name, param in params:
-        if param.ndim <= 1 or name.endswith(".bias") or name in no_weight_decay_list:
-            no_decay.append(param)
-        else:
-            decay.append(param)
-    return [
-        {'params': no_decay, 'weight_decay': 0.},
-        {'params': decay, 'weight_decay': weight_decay}
-    ]
 
 def init_weights(m):
     if isinstance(m, nn.Linear):
@@ -37,7 +20,7 @@ def init_weights(m):
     elif isinstance(m, nn.LayerNorm):
         nn.init.constant_(m.bias, 0)
         nn.init.constant_(m.weight, 1.0)
-
+        
 class DecoderLinear(nn.Module):
     def __init__(self, num_classes, patch_size, embed_dim):
         super().__init__()
@@ -57,15 +40,13 @@ class DecoderLinear(nn.Module):
         x = rearrange(x, "b (h w) c -> b c h w", h=num_patch_h) # BxNclsxNpxNp
         return x
 
-class Segmenter(pl.LightningModule):
+class SegmenterLinear(pl.LightningModule):
     def __init__(
         self,
-        num_classes,
-        backbone,
+        encoder,
+        class_list,
         optimizer,
         scheduler,
-        onehot,
-        loss,
         metric_ignore_index,
         tta=None,
         sliding=None,
@@ -73,26 +54,37 @@ class Segmenter(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-        self.num_classes = num_classes
-        self.backbone = timm.create_model(
-            backbone, # Name of the pretrained model
+        self.class_list = class_list
+        self.num_classes = len(class_list)
+        encoder = timm.create_model(
+            encoder, # Name of the pretrained model
             pretrained=True,
-            dynamic_img_size=True # Deals with image sizes != from pretraining
+            dynamic_img_size=False # True deals with image sizes != from pretraining, but cause an issue with create_feature_extractor
+        )
+        self.num_prefix_tokens = encoder.num_prefix_tokens
+        self.feature_extractor = create_feature_extractor(
+            encoder,
+            {'norm': 'features'}
         )
         self.decoder = DecoderLinear(
-            num_classes,
-            self.backbone.patch_embed.patch_size[0], # patch_size
-            self.backbone.embed_dim
+            self.num_classes,
+            encoder.patch_embed.patch_size[0], # patch_size
+            encoder.embed_dim
         )
-        self.loss =  loss
+        self.loss = torch.nn.CrossEntropyLoss(
+            ignore_index=-1,
+            reduction='mean',
+            weight=None,
+            label_smoothing=0.
+        )
+        self.logits_to_probas = nn.Softmax(dim=1)
         self.optimizer = optimizer
         self.scheduler = scheduler
-        self.onehot = onehot
         self.tta = tta
         self.sliding = sliding
         self.metric_args = {
             'task':'multiclass',
-            'num_classes':num_classes,
+            'num_classes':self.num_classes,
             'ignore_index':metric_ignore_index # should metrics (not loss) ignore an index
         }
         self.val_accuracy = M.Accuracy(**self.metric_args)
@@ -138,56 +130,46 @@ class Segmenter(pl.LightningModule):
             logits = self.forward(x)
             return torch.stack([logits] + self.tta.revert(auxs)).sum(dim=0)
         else:
-            # Base forward
-            return self._forward(x)
-
-    def _forward(self, im):
-        H, W = im.size(2), im.size(3)
-        x = self.backbone.forward_features(im)
-        # We ignore non-patch tokens when recovering a segmentation by decoding
-        x = x[:,self.backbone.num_prefix_tokens:,...]
-        masks = self.decoder(x, H)
-        masks = F.interpolate(masks, size=(H, W), mode="bilinear")
-        return masks
-    
-    def _onehot(self, y):
-        return torch.movedim(F.one_hot(y, self.num_classes),-1,1).float()
+            features = self.feature_extractor(x)['features']
+            # We ignore non-patch tokens when recovering a segmentation by decoding
+            features = features[:,self.num_prefix_tokens:,...]
+            H, W = x.size(2), x.size(3)
+            masks = self.decoder(features, H)
+            masks = F.interpolate(masks, size=(H, W), mode="bilinear")
+            return masks
     
     def training_step(self, batch, batch_idx):
-        x, tgt, p = batch["sup"]
-        y = tgt['masks']
-        if self.onehot: y = self._onehot(y)
-        logits = self.forward(x) #without sliding nor tta
-        loss = self.loss(logits, y)
-        self.log("Total loss/train", loss)
+        batch = batch["sup"]
+        x = batch["image"]
+        y = batch["target"]
+        logits_x = self.forward(x)
+        loss = self.loss(logits_x, y)
+        self.log(f"Cross Entropy/train", loss)
+        self.log(f"Loss/train", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, tgt, p = batch
-        y = tgt['masks']
-        logits = self.forward(x) # no slide, no tta
-        loss = self.loss(logits, y)
-        self.log("Total loss/val", loss)
-        probs = self.loss.prob(logits)
-        _, preds = self.loss.pred(probs)
+        x = batch["image"]
+        y = batch["target"]
+        logits_x = self.forward(x)                    
+        loss = self.loss(logits_x, y)
+        self.log(f"Cross Entropy/val", loss)
+        self.log(f"Loss/val", loss)
+        probs = self.logits_to_probas(logits_x)
+        pred_probs, preds = torch.max(probs, dim=1)
         self.val_accuracy.update(preds, y)
         self.val_cm.update(preds, y)
         self.val_jaccard.update(preds, y)
         
     def on_validation_epoch_end(self):
-        self.log("accuracy/val", self.val_accuracy.compute())
-        self.log("iou/val", self.val_jaccard.compute())
+        self.log("Accuracy/val", self.val_accuracy.compute())
+        self.log("IoU/val", self.val_jaccard.compute())
         confmat = self.val_cm.compute().detach().cpu()
         self.val_accuracy.reset()
         self.val_jaccard.reset()
         self.val_cm.reset()
-        class_names = self.trainer.datamodule.class_names
+        class_names = [l.name for l in self.class_list]
         logger = self.trainer.logger
         fs = 12 - 2*(self.num_classes//10)
         fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
-        logger.experiment.add_figure("confmat/val", fig, global_step=self.trainer.global_step)
-        
-    def predict_step(self, batch, batch_idx):
-        x, y, p = batch
-        logits = self.forward(x, sliding=self.sliding, tta=self.tta)
-        return self.loss.prob(logits)
+        logger.experiment.add_figure("Confusion Matrix/val", fig, global_step=self.trainer.global_step)

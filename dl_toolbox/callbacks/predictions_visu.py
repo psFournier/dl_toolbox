@@ -4,7 +4,7 @@ import pytorch_lightning as pl
 import torch
 import torchvision
 
-from dl_toolbox.utils import show_classifications
+from dl_toolbox.utils import show_classifications, show_segmentations, show_detections
 
 def display_batch(trainer, module, batch, prefix, mode):
     x = batch['image']

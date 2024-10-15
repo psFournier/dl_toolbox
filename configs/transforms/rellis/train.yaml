@@ -1,7 +1,7 @@
 _target_: torchvision.transforms.v2.Compose
 transforms: 
     - _target_: torchvision.transforms.v2.RandomCrop
-      size: 420
+      size: 518
     - _target_: torchvision.transforms.v2.RandomHorizontalFlip
       p: 0.5
     - _target_: torchvision.transforms.v2.RandomVerticalFlip

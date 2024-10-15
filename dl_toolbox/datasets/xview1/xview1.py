@@ -165,7 +165,7 @@ class xView1(Dataset):
         tv_target['labels'] = merged_labels.long()
         if self.transforms is not None:
             tv_image, tv_target = self.transforms(tv_image, tv_target)
-        return tv_image, tv_target, path
+        return {'image': tv_image, 'target': tv_target, 'path': path}
 
     def __len__(self):
         return len(self.ids)

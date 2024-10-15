@@ -5,7 +5,6 @@ defaults:
   - /transforms@tta: null
   - _self_
 
-_target_: dl_toolbox.modules.Yolos
+_target_: dl_toolbox.modules.SegmenterLinear
 encoder: 'vit_small_patch14_dinov2'
-det_token_num: 10
-pred_thresh: 0.1
+metric_ignore_index: null

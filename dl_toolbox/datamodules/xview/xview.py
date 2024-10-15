@@ -8,6 +8,7 @@ import dl_toolbox.datasets as datasets
 import torch
 import random
 from pytorch_lightning.utilities import CombinedLoader
+from dl_toolbox.utils import list_of_dicts_to_dict_of_lists
 
 
 class xView(LightningDataModule):
@@ -18,7 +19,6 @@ class xView(LightningDataModule):
         merge,
         train_tf,
         test_tf,
-        batch_tf,
         batch_size,
         num_workers,
         pin_memory,
@@ -30,15 +30,10 @@ class xView(LightningDataModule):
         self.merge=merge
         self.train_tf = train_tf
         self.test_tf = test_tf
-        self.batch_tf = batch_tf
         self.batch_size = batch_size
-        self.in_channels = 3
         self.num_workers = num_workers
         self.pin_memory = pin_memory
-        self.classes = datasets.xView1.classes[merge].value
-        self.num_classes = len(self.classes)
-        self.class_names = [l.name for l in self.classes]
-        self.class_colors = [(i, l.color) for i, l in enumerate(self.classes)]
+        self.class_list = datasets.xView1.classes[merge].value
         self.dataloader = partial(
             DataLoader,
             batch_size=batch_size,
@@ -60,10 +55,14 @@ class xView(LightningDataModule):
             self.predict_set = Subset(xview(transforms=self.test_tf), idxs[l:])
     
     def collate(self, batch, train):
-        images_b, targets_b, paths_b = tuple(zip(*batch))
+        batch = list_of_dicts_to_dict_of_lists(batch)
+        batch['image'] = torch.stack(batch['image'])
+        # don't stack targets because each batch elem may not have the same nb of bb
+        return batch
+        #images_b, targets_b, paths_b = tuple(zip(*batch))
         # ignore batch_tf for detection 
         # don't stack bb because each batch elem may not have the same nb of bb
-        return torch.stack(images_b), targets_b, paths_b 
+        #return torch.stack(images_b), targets_b, paths_b 
     
     def train_dataloader(self):
         train_dataloaders = {}

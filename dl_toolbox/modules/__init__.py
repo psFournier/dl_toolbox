@@ -18,6 +18,6 @@ from .base_classifier import BaseClassifier
 #from .mixmatch import *
 #from .self_training import *
 #from .fcos.fcos import *
-#from .segmenter import *
-#from .yolos import *
+from .segmenter_linear import *
+from .yolos import *
 # from .module_factory import ModuleFactory

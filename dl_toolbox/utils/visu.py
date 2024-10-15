@@ -13,8 +13,10 @@ def show_classifications(imgs, classifications, class_list, targets=None):
         label_classif = class_list[classif].name
         label_target = class_list[tgt].name
         axs[0,i].imshow(img.permute(1, 2, 0).numpy())
-        axs[0,i].set_title(f'classif: {label_classif}, label: {label_target}')
+        axs[0,i].set_title(f'classif: {label_classif}')
         axs[0,i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+        axs[0,i].text(0.5, -0.1, f"label: {label_target}", size=12, 
+                      transform=axs[0,i].transAxes, horizontalalignment='center')
     plt.tight_layout()
     return fig
     
@@ -25,7 +27,10 @@ def show_detections(imgs, detections, class_list):
     for i, (img, detection) in enumerate(zip(imgs, detections)):
         tags = [class_list[label-1].name for label in detection['labels']]
         tags_colors = [class_list[label-1].color for label in detection['labels']]
-        bboxes = v2.functional.convert_bounding_box_format(detection['boxes'],  new_format='XYXY')
+        bboxes = v2.functional.convert_bounding_box_format(
+            detection['boxes'].as_subclass(torch.Tensor), 
+            new_format='XYXY', old_format='XYWH'
+        )
         img = tv_utils.draw_bounding_boxes(
             img, 
             bboxes,

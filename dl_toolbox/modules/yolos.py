@@ -9,8 +9,9 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
 from torchvision import tv_tensors
-import torchvision.transforms.v2.functional as v2F
 from torchvision.tv_tensors import BoundingBoxFormat
+from dl_toolbox.utils import *
+from torchvision.models.feature_extraction import create_feature_extractor
 
 
 class SetCriterion(nn.Module):
@@ -44,27 +45,38 @@ class SetCriterion(nn.Module):
         # src_idxs[i] is the idx of the preds for img batch_idxs[i] to which the i-th elem in the new order corresponds
         pred_idxs = torch.cat([pred for (pred, _) in matches]) # Nx1
         
-        # target_classes is of shape batch_size x num det tokens, and is num_classes everywhere, except for each token that is matched to a tgt bb, where it is the label of the matched tgt
+        # target_classes is of shape batch_size x num det tokens, and is num_classes (=no_obj) everywhere, except for each token that is matched to a tgt, where it is the label of the matched tgt
         pred_logits = outputs['pred_logits'] #BxNdetTokxNcls
         target_classes = torch.full(
-            pred_logits.shape[:2], #Shape BxNdetTok
+            pred_logits.shape[:2], #BxNdetTok
             self.num_classes, #Filled with num_cls
             dtype=torch.int64, 
             device=pred_logits.device
         )
         target_classes[(batch_idxs, pred_idxs)] = reordered_labels
+        loss_ce = F.cross_entropy(
+            pred_logits.transpose(1, 2), #BxNclsxd1xd2...
+            target_classes, #Bxd1xd2...
+            self.empty_weight
+        )
         
-        loss_ce = F.cross_entropy(pred_logits.transpose(1, 2), target_classes, self.empty_weight)
+        ## If we did as follows, then there would be no incentive for the network to output small logits for non-matched tokens
+        #reordered_pred_logits = pred_logits[(batch_idxs, pred_idxs)] # NxNcls
+        #other_loss_ce = F.cross_entropy(
+        #    reordered_pred_logits,
+        #    reordered_labels
+        #)
+        
         losses = {'loss_ce': loss_ce}
         return losses
 
     def loss_boxes(self, outputs, targets, matches, num_boxes):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
            targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
-           The target boxes are expected in format (center_x, center_y, w, h), normalized by the image size.
         """
         reordered_target_boxes = [t['boxes'][i] for t, (_, i) in zip(targets, matches)]
         reordered_target_boxes = torch.cat(reordered_target_boxes) # Nx4
+        #print(f'{reordered_target_boxes.shape =}')
         
         # batch_idxs[i] is the idx in the batch of the img to which the i-th elem in the new order corresponds
         batch_idxs = [torch.full_like(pred, i) for i, (pred, _) in enumerate(matches)]
@@ -74,7 +86,9 @@ class SetCriterion(nn.Module):
         pred_idxs = torch.cat([pred for (pred, _) in matches]) # Nx1
         
         pred_boxes = outputs['pred_boxes'] # BxNdetTokx4
+        #print(f'{pred_boxes.shape =}')
         reordered_pred_boxes = pred_boxes[(batch_idxs, pred_idxs)] # Nx4
+        #print(f'{reordered_pred_boxes.shape =}')
 
         losses = {}
         loss_bbox = F.l1_loss(
@@ -111,12 +125,13 @@ class SetCriterion(nn.Module):
         loss = sum(losses.values())
         return loss    
 
+    
 class Yolos(pl.LightningModule):
     def __init__(
         self,
-        num_classes,
+        class_list,
         det_token_num,
-        backbone,
+        encoder,
         optimizer,
         scheduler,
         pred_thresh,
@@ -127,26 +142,31 @@ class Yolos(pl.LightningModule):
     ):
         super().__init__()
         self.backbone = timm.create_model(
-            backbone,
+            encoder,
             pretrained=True,
-            dynamic_img_size=True #Deals with inputs of other size than pretraining
+            dynamic_img_size=False #Deals with inputs of other size than pretraining
         )
+        self.feature_extractor = create_feature_extractor(
+            self.backbone,
+            {'norm': 'features'}
+        )
+        self.class_list = class_list
+        self.num_classes = len(class_list)
         self.embed_dim = self.backbone.embed_dim 
         self.det_token_num = det_token_num
         self.add_det_tokens_to_backbone()
         self.class_embed = torchvision.ops.MLP(
             self.embed_dim,
-            [self.embed_dim, self.embed_dim, num_classes+1]
+            [self.embed_dim, self.embed_dim, self.num_classes+1]
         ) #Num_classes + 1 to deal with no_obj category
         self.bbox_embed = torchvision.ops.MLP(
             self.embed_dim,
             [self.embed_dim, self.embed_dim, 4]
         )
         self.loss = SetCriterion(
-            num_classes,
+            self.num_classes,
             0.5 #Coeff of no-obj category
         )
-        self.num_classes = num_classes
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.map_metric = MeanAveragePrecision(
@@ -183,25 +203,26 @@ class Yolos(pl.LightningModule):
         self.backbone.num_prefix_tokens += self.det_token_num
     
     def configure_optimizers(self):
-        train_params = list(filter(lambda p: p[1].requires_grad, self.named_parameters()))
+        trainable = lambda p: p[1].requires_grad
+        train_params = list(filter(trainable, self.named_parameters()))
         nb_train = sum([int(torch.numel(p[1])) for p in train_params])
         nb_tot = sum([int(torch.numel(p)) for p in self.parameters()])
-        #print(f"Training {nb_train} params out of {nb_tot}: {[p[0] for p in train_params]}")
-        print(f"Training {nb_train} params out of {nb_tot}")
-        
+        print(f"Training {nb_train} trainable params out of {nb_tot}")
         #if hasattr(self, 'no_weight_decay'):
         #    wd_val = 0. #self.optimizer.weight_decay
         #    nwd_params = self.no_weight_decay()
         #    train_params = param_groups_weight_decay(train_params, wd_val, nwd_params)
         #    print(f"{len(train_params[0]['params'])} are not affected by weight decay.")
-        
         optimizer = self.optimizer(params=[p[1] for p in train_params])
         scheduler = self.scheduler(optimizer)
         return [optimizer], [scheduler]
     
     def raw_logits_and_bboxs(self, x):
+        """ This code relies on class_token=True in ViT
+        """
         x = self.backbone.patch_embed(x)
-        # If cls token in backbone
+        
+        # Inserting position embedding for detection tokens and resampling if dynamic
         cls_pos_embed = self.backbone.pos_embed[:, 0, :][:,None] # size 1x1xembed_dim
         patch_pos_embed = self.backbone.pos_embed[:, 1:, :] # 1xnum_patchxembed_dim
         pos_embed = torch.cat((cls_pos_embed, self.det_pos_embed, patch_pos_embed), dim=1)
@@ -213,19 +234,25 @@ class Yolos(pl.LightningModule):
                 num_prefix_tokens=self.backbone.num_prefix_tokens,
             )
             x = x.view(B, -1, C)
-        # If cls token in backbone
+            
+        # Inserting detection tokens    
         cls_token = self.backbone.cls_token.expand(x.shape[0], -1, -1) 
         det_token = self.det_token.expand(x.shape[0], -1, -1)
         x = torch.cat([cls_token, det_token, x], dim=1)
+        
+        # Forward ViT
         x += pos_embed
         x = self.backbone.pos_drop(x)
         x = self.backbone.patch_drop(x)
         x = self.backbone.norm_pre(x)
         x = self.backbone.blocks(x)
         x = self.backbone.norm(x)
+        
+        # Extracting processed detection tokens + forward heads
         x = x[:,1:1+self.det_token_num,...]
         outputs_class = self.class_embed(x)
         outputs_coord = self.bbox_embed(x).sigmoid()
+        
         out = {'pred_logits': outputs_class, 'pred_boxes': outputs_coord}
         return out
     
@@ -283,26 +310,32 @@ class Yolos(pl.LightningModule):
         C = C.view(bs, num_queries, -1).cpu()
 
         sizes = [len(v["boxes"]) for v in targets]
-
+        
+        # Finds the minimum cost detection token/target assignment per img
         indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]
-        return [(torch.as_tensor(i, dtype=torch.int64), torch.as_tensor(j, dtype=torch.int64)) for i, j in indices]
+        int64 = lambda x: torch.as_tensor(x, dtype=torch.int64)
+        return [(int64(i), int64(j)) for i, j in indices]
     
     @torch.no_grad()
     def post_process(self, outputs, images):
-        out_logits, out_bbox = outputs['pred_logits'], outputs['pred_boxes']
         b,c,h,w = images.shape
-        target_sizes = torch.Tensor((h,w)).repeat((b,1))
-        assert len(out_logits) == len(target_sizes)
-        assert target_sizes.shape[1] == 2
-        prob = F.softmax(out_logits, -1)
-        scores, labels = prob[..., :-1].max(-1)
-        img_h, img_w = target_sizes.unbind(1)
-        scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)
-        boxes = out_bbox * scale_fct[:, None, :].to(out_bbox.device)
-        results = [{'scores': s, 'labels': l, 'boxes': b} for s, l, b in zip(scores, labels, boxes)]
+        target_sizes = torch.Tensor((h,w)).repeat((b,1)) # shape 2 -> bx2
+        prob = F.softmax(outputs['pred_logits'], -1) # bxNdetTokxNcls
+        # Most prob cls (except no-obj) and its score per img per token
+        scores, labels = prob[..., :-1].max(-1) # bxNdetTok
+        img_h, img_w = target_sizes.unbind(dim=1) # separates heights and widths, shapes b
+        scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1)[:, None, :] # bx1x4
+        out_bbox = outputs['pred_boxes'] # bxNdetTokx4
+        # This scaling should work whether out_bb have meaning in xyxy or xywh format 
+        boxes = out_bbox * scale_fct.to(out_bbox.device)
+        results = [{'scores': s, 'labels': l, 'boxes': b}
+                   for s, l, b in zip(scores, labels, boxes)]
         return results
     
     def norm_bb(self, inpt_bb):
+        """
+        Convert bb to xyxy format for normalization and back to their initial format (xywh?)
+        """
         tensor_bb = inpt_bb.as_subclass(torch.Tensor)
         bb = tensor_bb.clone() if tensor_bb.is_floating_point() else tensor_bb.float()
         xyxy_bb = v2F.convert_bounding_box_format(
@@ -319,25 +352,34 @@ class Yolos(pl.LightningModule):
         return [{'labels':t['labels'], 'boxes':self.norm_bb(t['boxes'])} for t in targets]
     
     def training_step(self, batch, batch_idx):
-        x, targets, paths = batch["sup"]
+        batch = batch["sup"]
+        x = batch["image"]
+        y = batch["target"]
+        #x, targets, paths = batch["sup"]
         outputs = self.raw_logits_and_bboxs(x)
-        # are we sure we need to norm targets ?
-        norm_tgts = self.norm_targets(targets)
+        # Out bb corners come from a sigmoid layer, so we need tgt bb to be in [0,1] too
+        norm_tgts = self.norm_targets(y) 
         matches = self.hungarian_matching(outputs, norm_tgts)
         loss = self.loss(outputs, norm_tgts, matches)
-        self.log(f"loss/train", loss.detach().item())
+        self.log(f"Loss/train", loss.detach().item())
         return loss
         
     def validation_step(self, batch, batch_idx):
-        x, targets, paths = batch
+        x = batch["image"]
+        y = batch["target"]
+        
+        #x, targets, paths = batch
         outputs = self.forward(x, sliding=self.sliding)
-        norm_tgts = self.norm_targets(targets)
+        norm_tgts = self.norm_targets(y)
         matches = self.hungarian_matching(outputs, norm_tgts)
         loss = self.loss(outputs, norm_tgts, matches)
-        self.log(f"Total loss/val", loss.detach().item())
+        self.log(f"Loss/val", loss.detach().item())
+        # map_metric reuires a certain form for predictions
         preds = self.post_process(outputs, x)
         # map_metric does not work yet with tv_tensors
-        targets = [{'labels':t['labels'], 'boxes':t['boxes'].as_subclass(torch.Tensor)} for t in targets]
+        targets = [{'labels':t['labels'], 'boxes':t['boxes'].as_subclass(torch.Tensor)} for t in y]
+        # self.map_metric works with bb in xywh format
+        # Make sure your dataset outputs targets in XYWH format
         self.map_metric.update(preds, targets)
         
     def on_validation_epoch_end(self):
@@ -347,7 +389,9 @@ class Yolos(pl.LightningModule):
         self.map_metric.reset()
         
     def predict_step(self, batch, batch_idx):
-        x, targets, paths = batch
+        x = batch["image"]
+        y = batch["target"]
+        #x, targets, paths = batch
         outputs = self.forward(x, sliding=self.sliding)
         preds = self.post_process(outputs, x)
         return preds
