@@ -1,7 +1,6 @@
 defaults:
     - /transforms@train_tf: coco/train
     - /transforms@test_tf: coco/test
-    - /transforms@batch_tf: coco/batch
 
 _target_: dl_toolbox.datamodules.Coco
 data_path: ${paths.data}

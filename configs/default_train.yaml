@@ -13,6 +13,7 @@ defaults:
       - lora
       - finetuning
       - calibration
+      #- early_stopping
   - paths: qdtis056z
   - trainer: default
   - hydra: default

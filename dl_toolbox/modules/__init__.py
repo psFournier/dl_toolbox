@@ -1,3 +1,4 @@
+from .feature_extractor import *
 from .base_classifier import BaseClassifier
 #from segmentation.unet import *
 # from .common import BaseModule
@@ -20,4 +21,5 @@ from .base_classifier import BaseClassifier
 #from .fcos.fcos import *
 from .segmenter_linear import *
 from .yolos import *
+from .fcos import *
 # from .module_factory import ModuleFactory

@@ -215,7 +215,13 @@ class Yolos(pl.LightningModule):
         #    print(f"{len(train_params[0]['params'])} are not affected by weight decay.")
         optimizer = self.optimizer(params=[p[1] for p in train_params])
         scheduler = self.scheduler(optimizer)
-        return [optimizer], [scheduler]
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": "step"
+            },
+        }
     
     def raw_logits_and_bboxs(self, x):
         """ This code relies on class_token=True in ViT

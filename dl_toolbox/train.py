@@ -21,11 +21,12 @@ def train(cfg: DictConfig) -> None:
         class_list=datamodule.class_list
     )
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
-    dsm = pl.callbacks.DeviceStatsMonitor()
+    #dsm = pl.callbacks.DeviceStatsMonitor()
     trainer = hydra.utils.instantiate(cfg.trainer)(
         logger=tensorboard,
-        callbacks=list(callbacks.values())+[dsm]
+        callbacks=list(callbacks.values())#+[dsm]
     )
+    #module = torch.compile(module)
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
     
 if __name__ == "__main__":

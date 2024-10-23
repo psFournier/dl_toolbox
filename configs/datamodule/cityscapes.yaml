@@ -1,0 +1,10 @@
+defaults:
+    - /transforms@train_tf: cityscapes/train
+    - /transforms@test_tf: cityscapes/test
+
+_target_: dl_toolbox.datamodules.Cityscapes
+data_path: ${paths.data}
+batch_size: 4
+num_workers: 6
+merge: all19
+pin_memory: True

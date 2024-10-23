@@ -10,7 +10,7 @@ from einops import rearrange
 
 from dl_toolbox.utils import plot_confusion_matrix, param_groups_weight_decay
 from torchvision.models.feature_extraction import create_feature_extractor
-
+from dl_toolbox.modules import FeatureExtractor
 
 def init_weights(m):
     if isinstance(m, nn.Linear):
@@ -56,20 +56,14 @@ class SegmenterLinear(pl.LightningModule):
         super().__init__()
         self.class_list = class_list
         self.num_classes = len(class_list)
-        encoder = timm.create_model(
-            encoder, # Name of the pretrained model
-            pretrained=True,
-            dynamic_img_size=False # True deals with image sizes != from pretraining, but cause an issue with create_feature_extractor
-        )
-        self.num_prefix_tokens = encoder.num_prefix_tokens
-        self.feature_extractor = create_feature_extractor(
-            encoder,
-            {'norm': 'features'}
-        )
+        self.feature_extractor = FeatureExtractor(encoder)
+        self.num_prefix_tokens = self.feature_extractor.encoder.num_prefix_tokens
+        self.embed_dim = self.feature_extractor.encoder.embed_dim
+        self.patch_size = self.feature_extractor.encoder.patch_embed.patch_size[0]
         self.decoder = DecoderLinear(
             self.num_classes,
-            encoder.patch_embed.patch_size[0], # patch_size
-            encoder.embed_dim
+            self.patch_size,
+            self.embed_dim
         )
         self.loss = torch.nn.CrossEntropyLoss(
             ignore_index=-1,
@@ -107,7 +101,13 @@ class SegmenterLinear(pl.LightningModule):
             
         optimizer = self.optimizer(params=train_params)
         scheduler = self.scheduler(optimizer)
-        return [optimizer], [scheduler]
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": "epoch"
+            },
+        }
 
     def no_weight_decay(self):
         """The names in this module of the parameters we should remove weight decay from must be taken from their names in the timm lib or in the decoder
@@ -130,7 +130,7 @@ class SegmenterLinear(pl.LightningModule):
             logits = self.forward(x)
             return torch.stack([logits] + self.tta.revert(auxs)).sum(dim=0)
         else:
-            features = self.feature_extractor(x)['features']
+            features = self.feature_extractor(x)
             # We ignore non-patch tokens when recovering a segmentation by decoding
             features = features[:,self.num_prefix_tokens:,...]
             H, W = x.size(2), x.size(3)
@@ -151,7 +151,7 @@ class SegmenterLinear(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x = batch["image"]
         y = batch["target"]
-        logits_x = self.forward(x)                    
+        logits_x = self.forward(x, sliding=self.sliding)                    
         loss = self.loss(logits_x, y)
         self.log(f"Cross Entropy/val", loss)
         self.log(f"Loss/val", loss)

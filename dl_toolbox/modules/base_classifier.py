@@ -8,7 +8,39 @@ from pytorch_lightning.utilities import rank_zero_info
 import torch.nn as nn
 import math
 import timm
+from timm.models.layers import trunc_normal_
+
 from torchvision.models.feature_extraction import create_feature_extractor
+from dl_toolbox.modules import FeatureExtractor
+
+def init_weights(m):
+    if isinstance(m, nn.Linear):
+        trunc_normal_(m.weight, std=0.02)
+        if isinstance(m, nn.Linear) and m.bias is not None:
+            nn.init.constant_(m.bias, 0)
+    elif isinstance(m, nn.LayerNorm):
+        nn.init.constant_(m.bias, 0)
+        nn.init.constant_(m.weight, 1.0)
+
+
+class DecoderLinear(nn.Module):
+    def __init__(self, num_classes, embed_dim):
+        super().__init__()
+        self.embed_dim = embed_dim
+        self.fc_norm = nn.LayerNorm(embed_dim)
+        self.head = nn.Linear(self.embed_dim, num_classes)
+        self.apply(init_weights)
+
+    def no_weight_decay(self):
+        return set()
+
+    def forward(self, x):
+        #x = x[:,1:]
+        #avg = x.mean(dim=1)
+        #norm = self.fc_norm(avg)
+        x = x[:,0]
+        logits = self.head(x)
+        return logits
 
 
 class BaseClassifier(pl.LightningModule):
@@ -25,15 +57,20 @@ class BaseClassifier(pl.LightningModule):
         super().__init__()
         self.class_list = class_list
         self.num_classes = len(class_list)
-        self.model = timm.create_model(
-            encoder,
-            pretrained=True,
-            num_classes=self.num_classes
-        )
-        self.feature_extractor = create_feature_extractor(
-            self.model,
-            {'conv_head': 'features'}
-        )
+        self.feature_extractor = FeatureExtractor(encoder)
+        self.num_prefix_tokens = self.feature_extractor.encoder.num_prefix_tokens
+        self.embed_dim = self.feature_extractor.encoder.embed_dim
+        self.patch_size = self.feature_extractor.encoder.patch_embed.patch_size[0]
+        self.decoder = DecoderLinear(self.num_classes, self.embed_dim)
+        #self.model = timm.create_model(
+        #    encoder,
+        #    pretrained=True,
+        #    num_classes=self.num_classes
+        #)
+        #self.feature_extractor = create_feature_extractor(
+        #    self.model,
+        #    {'conv_head': 'features'}
+        #)
         self.loss = torch.nn.CrossEntropyLoss(
             ignore_index=-1,
             reduction='mean',
@@ -66,7 +103,7 @@ class BaseClassifier(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval": "epoch"
+                "interval": "epoch"#"step"
             },
         }
 
@@ -76,7 +113,9 @@ class BaseClassifier(pl.LightningModule):
             logits = self.forward(x)
             return torch.stack([logits] + self.tta.revert(auxs)).sum(dim=0)
         else:
-            return self.model.forward(x)
+            features = self.feature_extractor(x)
+            return self.decoder(features)
+            #return self.model.forward(x)
             
     def training_step(self, batch, batch_idx):
         batch = batch["sup"]

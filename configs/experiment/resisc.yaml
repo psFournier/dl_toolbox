@@ -1,22 +1,22 @@
 # @package _global_
 
 defaults:
-  - override /datamodule: cityscapes
-  - override /module: segmenter_linear
+  - override /datamodule: resisc
+  - override /module: base_classifier
   - override /scheduler@module.scheduler: poly
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-experiment_name: "cityscapes"
+experiment_name: "resisc"
 
 datamodule:
-    batch_size: 2
+    batch_size: 16
     
 module:
     encoder: 'vit_base_patch14_dinov2'
     optimizer:
-        lr: 0.001
+        lr: 0.01
     scheduler:
         total_iters: ${trainer.max_epochs}
     
@@ -26,7 +26,7 @@ callbacks:
         unfreeze_at: 5
         initial_denom_lr: 1000
     preds_visu:
-        mode: segmentation
+        mode: classification
     lora:
         activated: false
     #early_stopping:
@@ -34,7 +34,7 @@ callbacks:
             
 trainer:
   max_steps: 1000000
-  max_epochs: 7
+  max_epochs: 10
   limit_train_batches: 1.
   limit_val_batches: 1.
   val_check_interval: 0.1

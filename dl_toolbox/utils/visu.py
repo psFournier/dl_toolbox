@@ -13,9 +13,9 @@ def show_classifications(imgs, classifications, class_list, targets=None):
         label_classif = class_list[classif].name
         label_target = class_list[tgt].name
         axs[0,i].imshow(img.permute(1, 2, 0).numpy())
-        axs[0,i].set_title(f'classif: {label_classif}')
+        axs[0,i].set_title(f'classif: {label_classif}', size=6)
         axs[0,i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
-        axs[0,i].text(0.5, -0.1, f"label: {label_target}", size=12, 
+        axs[0,i].text(0.5, -0.1, f"label: {label_target}", size=6, 
                       transform=axs[0,i].transAxes, horizontalalignment='center')
     plt.tight_layout()
     return fig

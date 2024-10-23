@@ -26,15 +26,15 @@ def display_batch(trainer, module, batch, prefix, mode):
         labels = list(batch['target'])[:nb]
         fig = show_classifications(int_imgs, preds, class_list, labels)
     elif mode=='segmentation':
-        logits_x = module.forward(x)
+        logits_x = module.forward(x, sliding=module.sliding)
         probs = module.logits_to_probas(logits_x)
         pred_probs, preds = torch.max(probs, dim=1)
         preds = list(preds.detach().cpu()[:nb])
         fig = show_segmentations(int_imgs, preds, class_list, alpha=0.5)
     elif mode=='detection':
-        outputs = module.forward(x)
-        outputs.update({k: v.detach().cpu() for k, v in outputs.items()})
-        preds = module.post_process(outputs, x)
+        cls_logits, bbox_reg, centerness = module.forward(x)
+        preds = module.post_process(cls_logits, bbox_reg, centerness, x.shape[-1])
+        preds = [{k: v.detach().cpu() for k, v in p.items()} for p in preds]
         fig = show_detections(int_imgs, preds, class_list)    
     
     trainer.logger.experiment.add_figure(

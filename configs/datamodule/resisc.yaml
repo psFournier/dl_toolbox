@@ -1,6 +1,6 @@
 defaults:
-    - /transforms@train_tf: resisc_train
-    - /transforms@test_tf: resisc_test
+    - /transforms@train_tf: resisc/resisc_train
+    - /transforms@test_tf: resisc/resisc_test
 
 _target_: dl_toolbox.datamodules.Resisc
 data_path: ${paths.data}

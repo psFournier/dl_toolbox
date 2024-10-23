@@ -7,3 +7,4 @@ from .bboxes import *
 #from .timing import *
 from .visu import *
 from .misc import *
+from .fcos import *

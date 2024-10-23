@@ -1,5 +1,4 @@
 defaults:
-  - /network: fcos
   - /optimizer: sgd
   - /scheduler: poly
   - _self_
