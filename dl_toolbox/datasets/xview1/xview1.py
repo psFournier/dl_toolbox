@@ -112,15 +112,17 @@ class xView1(Dataset):
         self.transforms = transforms
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
-        self.ids = list(sorted(self.coco.imgs.keys()))
+        self.ids = []
+        self.class_list = self.classes[merge].value
+        self.merges = [list(l.values) for l in self.class_list]
+        for merge in self.merges:
+            self.ids += self.coco.getImgIds(catIds=merge)
         self.transforms = v2.ToDtype(
             dtype={tv_tensors.Image: torch.float32, "others":None},
             scale=True
         )
         if transforms:
             self.transforms = v2.Compose([self.transforms, transforms])
-        self.class_list = self.classes[merge].value
-        self.merges = [list(l.values) for l in self.class_list]
         
     #def merge(self, labels, boxes):
     #    """

@@ -8,6 +8,7 @@ import torchvision.transforms.v2 as v2
 import rasterio
 import numpy as np
 from torchvision.io import read_image
+import enum
 
 from dl_toolbox.utils import label, merge_labels_boxes
 
@@ -117,18 +118,33 @@ def list_of_dicts_to_dict_of_lists(list_of_dicts):
             dict_of_lists[key].append(value)
     return dict(dict_of_lists)
 
+all90 = [label(v, (0, int(255-k), 255), {k}) for k, v in CAT_ID_TO_NAME.items()]
+
+mouse_cat = [label(u"cat", (0, 255, 0), {17}), label(u"mouse", (0, 255, 0), {74})]
+
 class Coco(Dataset):
     
-    classes = [label(v, (0, 255, 255), {k}) for k, v in CAT_ID_TO_NAME.items()]
+    classes =  enum.Enum(
+        "coco_classes",
+        {
+            "all": all90,
+            "mouse_cat": mouse_cat,
+        },
+    )
 
-    def __init__(self, root, annFile, transforms, empty=None):
+    def __init__(self, root, annFile, transforms, empty=None, merge='all'):
         self.root = Path(root)
         self.transforms = transforms
         from pycocotools.coco import COCO
         self.coco = COCO(annFile)
+        self.class_list = self.classes[merge].value
+        self.merges = [list(l.values) for l in self.class_list]
+        self.ids = []
+        for merge in self.merges:
+            self.ids += self.coco.getImgIds(catIds=merge)
         #self.ids = list(sorted(set(self.coco.imgs.keys()) - empty))
-        self.ids = list(sorted(self.coco.imgs.keys()))
-        self.merges = [list(l.values) for l in self.classes]
+        #self.ids = list(sorted(self.coco.imgs.keys()))
+        
         self.transforms = v2.ToDtype(
             dtype={tv_tensors.Image: torch.float32, "others":None},
             scale=True
@@ -149,7 +165,7 @@ class Coco(Dataset):
         labels = torch.tensor(target["category_id"]) if target else torch.empty(0,)
         #boxes = torch.as_tensor(target["bbox"]).float()
         boxes = torch.as_tensor(target["bbox"]).float() if target else torch.empty(0,4).float()
-        merged_labels, merged_boxes = merge_labels_boxes(labels, boxes, self.classes)
+        merged_labels, merged_boxes = merge_labels_boxes(labels, boxes, self.class_list)
         
         tv_target["boxes"] = tv_tensors.BoundingBoxes(
             merged_boxes,

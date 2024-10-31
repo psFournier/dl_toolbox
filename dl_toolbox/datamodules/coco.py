@@ -15,6 +15,7 @@ class Coco(LightningDataModule):
     def __init__(
         self,
         data_path,
+        merge,
         train_tf,
         test_tf,
         batch_size,
@@ -30,7 +31,7 @@ class Coco(LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
-        self.class_list = datasets.Coco.classes
+        self.class_list = datasets.Coco.classes[merge].value
         self.dataloader = partial(
             DataLoader,
             batch_size=batch_size,

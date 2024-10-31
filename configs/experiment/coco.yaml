@@ -2,7 +2,7 @@
 
 defaults:
   - override /datamodule: coco
-  - override /module: fcos
+  - override /module: yolos
   - override /scheduler@module.scheduler: poly
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -11,10 +11,10 @@ defaults:
 experiment_name: "coco"
 
 datamodule:
-    batch_size: 4
+    batch_size: 8
     
 module:
-    #encoder: 'vit_base_patch14_dinov2'
+    encoder: 'vit_small_patch16_224'
     optimizer:
         lr: 0.01
     scheduler:
@@ -23,7 +23,7 @@ module:
 callbacks:
     finetuning:
         activated: true
-        unfreeze_at: 5
+        unfreeze_at: 1
         initial_denom_lr: 1000
     preds_visu:
         mode: detection
@@ -33,13 +33,13 @@ callbacks:
     #    patience: 10000
             
 trainer:
-  max_steps: 1000000
-  max_epochs: 10
+  max_steps: 5000000
+  max_epochs: 2
   limit_train_batches: 1.
   limit_val_batches: 1.
-  val_check_interval: 0.1
+  val_check_interval: 1000
   check_val_every_n_epoch: 1
-  log_every_n_steps: 100
+  log_every_n_steps: 500
   precision: 16
   #accelerator: cpu
     
@@ -49,6 +49,7 @@ hydra:
   sweeper:
     params:
       seed: 1
+      module.optimizer.lr: 0.1,0.01,0.001
   sweep:
     dir: ${paths.output_dir}/${experiment_name}/${now:%Y-%m-%d_%H%M%S}
      

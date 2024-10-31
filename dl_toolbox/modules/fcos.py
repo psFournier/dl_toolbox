@@ -323,6 +323,11 @@ class FCOS(pl.LightningModule):
                        zip(all_boxes, all_scores, all_classes)]
         return predictions
     
+    def predict(self, x):
+        cls_logits, bbox_reg, centerness = self.forward(x)
+        preds = self.post_process(cls_logits, bbox_reg, centerness, x.shape[-1])
+        return preds
+    
     def training_step(self, batch, batch_idx):
         b = batch['sup']
         cls_logits, bbox_reg, centerness = self.forward(b['image']) # BxNumAnchorsxC, BxNumAnchorsx4, BxNumx1

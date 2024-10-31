@@ -12,6 +12,7 @@ from torchvision import tv_tensors
 from torchvision.tv_tensors import BoundingBoxFormat
 from dl_toolbox.utils import *
 from torchvision.models.feature_extraction import create_feature_extractor
+from dl_toolbox.modules import FeatureExtractor
 
 
 class SetCriterion(nn.Module):
@@ -135,26 +136,34 @@ class Yolos(pl.LightningModule):
         optimizer,
         scheduler,
         pred_thresh,
-        tta=None,
-        sliding=None,
+        #tta=None,
+        #sliding=None,
         *args,
         **kwargs
     ):
         super().__init__()
-        self.backbone = timm.create_model(
-            encoder,
-            pretrained=True,
-            dynamic_img_size=False #Deals with inputs of other size than pretraining
-        )
-        self.feature_extractor = create_feature_extractor(
-            self.backbone,
-            {'norm': 'features'}
-        )
         self.class_list = class_list
         self.num_classes = len(class_list)
-        self.embed_dim = self.backbone.embed_dim 
         self.det_token_num = det_token_num
-        self.add_det_tokens_to_backbone()
+        
+        self.feature_extractor = FeatureExtractor(encoder)
+        self.num_prefix_tokens = self.feature_extractor.encoder.num_prefix_tokens
+        self.embed_dim = self.feature_extractor.encoder.embed_dim
+        self.patch_size = self.feature_extractor.encoder.patch_embed.patch_size[0]
+        
+        #self.backbone = timm.create_model(
+        #    encoder,
+        #    pretrained=True,
+        #    dynamic_img_size=False #Deals with inputs of other size than pretraining
+        #)
+        #self.feature_extractor = create_feature_extractor(
+        #    self.backbone,
+        #    {'norm': 'features'}
+        #)
+        #self.embed_dim = self.backbone.embed_dim 
+        #self.num_prefix_tokens = self.backbone.num_prefix_tokens
+        
+        self.add_detection_tokens()
         self.class_embed = torchvision.ops.MLP(
             self.embed_dim,
             [self.embed_dim, self.embed_dim, self.num_classes+1]
@@ -173,15 +182,15 @@ class Yolos(pl.LightningModule):
             box_format='xywh',
             backend='faster_coco_eval'
         )
-        self.sliding = sliding
+        #self.sliding = sliding
         self.pred_thresh = pred_thresh
         
-    def add_det_tokens_to_backbone(self):
+    def add_detection_tokens(self):
         det_token = nn.Parameter(
             torch.zeros(
                 1,
                 self.det_token_num,
-                self.backbone.embed_dim
+                self.embed_dim
             )
         )
         self.det_token = torch.nn.init.trunc_normal_(
@@ -192,7 +201,7 @@ class Yolos(pl.LightningModule):
             torch.zeros(
                 1,
                 self.det_token_num,
-                self.backbone.embed_dim
+                self.embed_dim
             )
         )
         self.det_pos_embed = torch.nn.init.trunc_normal_(
@@ -200,7 +209,7 @@ class Yolos(pl.LightningModule):
             std=.02
         )
         #The ViT needs to know how many input tokens are not for patch embeddings
-        self.backbone.num_prefix_tokens += self.det_token_num
+        self.num_prefix_tokens += self.det_token_num
     
     def configure_optimizers(self):
         trainable = lambda p: p[1].requires_grad
@@ -219,40 +228,40 @@ class Yolos(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval": "step"
+                "interval": "epoch"
             },
         }
     
     def raw_logits_and_bboxs(self, x):
         """ This code relies on class_token=True in ViT
         """
-        x = self.backbone.patch_embed(x)
+        x = self.feature_extractor.encoder.patch_embed(x)
         
         # Inserting position embedding for detection tokens and resampling if dynamic
-        cls_pos_embed = self.backbone.pos_embed[:, 0, :][:,None] # size 1x1xembed_dim
-        patch_pos_embed = self.backbone.pos_embed[:, 1:, :] # 1xnum_patchxembed_dim
+        cls_pos_embed = self.feature_extractor.encoder.pos_embed[:, 0, :][:,None] # size 1x1xembed_dim
+        patch_pos_embed = self.feature_extractor.encoder.pos_embed[:, 1:, :] # 1xnum_patchxembed_dim
         pos_embed = torch.cat((cls_pos_embed, self.det_pos_embed, patch_pos_embed), dim=1)
-        if self.backbone.dynamic_img_size:
+        if self.feature_extractor.encoder.dynamic_img_size:
             B, H, W, C = x.shape
             pos_embed = resample_abs_pos_embed(
                 pos_embed,
                 (H, W),
-                num_prefix_tokens=self.backbone.num_prefix_tokens,
+                num_prefix_tokens=self.num_prefix_tokens,
             )
             x = x.view(B, -1, C)
             
         # Inserting detection tokens    
-        cls_token = self.backbone.cls_token.expand(x.shape[0], -1, -1) 
+        cls_token = self.feature_extractor.encoder.cls_token.expand(x.shape[0], -1, -1) 
         det_token = self.det_token.expand(x.shape[0], -1, -1)
         x = torch.cat([cls_token, det_token, x], dim=1)
         
         # Forward ViT
         x += pos_embed
-        x = self.backbone.pos_drop(x)
-        x = self.backbone.patch_drop(x)
-        x = self.backbone.norm_pre(x)
-        x = self.backbone.blocks(x)
-        x = self.backbone.norm(x)
+        x = self.feature_extractor.encoder.pos_drop(x)
+        x = self.feature_extractor.encoder.patch_drop(x)
+        x = self.feature_extractor.encoder.norm_pre(x)
+        x = self.feature_extractor.encoder.blocks(x)
+        x = self.feature_extractor.encoder.norm(x)
         
         # Extracting processed detection tokens + forward heads
         x = x[:,1:1+self.det_token_num,...]
@@ -338,6 +347,11 @@ class Yolos(pl.LightningModule):
                    for s, l, b in zip(scores, labels, boxes)]
         return results
     
+    def predict(self, x):
+        outputs = self.forward(x)
+        preds = self.post_process(outputs, x)
+        return preds
+    
     def norm_bb(self, inpt_bb):
         """
         Convert bb to xyxy format for normalization and back to their initial format (xywh?)
@@ -375,7 +389,7 @@ class Yolos(pl.LightningModule):
         y = batch["target"]
         
         #x, targets, paths = batch
-        outputs = self.forward(x, sliding=self.sliding)
+        outputs = self.forward(x)
         norm_tgts = self.norm_targets(y)
         matches = self.hungarian_matching(outputs, norm_tgts)
         loss = self.loss(outputs, norm_tgts, matches)
@@ -398,6 +412,6 @@ class Yolos(pl.LightningModule):
         x = batch["image"]
         y = batch["target"]
         #x, targets, paths = batch
-        outputs = self.forward(x, sliding=self.sliding)
+        outputs = self.forward(x)
         preds = self.post_process(outputs, x)
         return preds
