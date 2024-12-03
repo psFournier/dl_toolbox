@@ -117,12 +117,15 @@ class xView1(Dataset):
         self.merges = [list(l.values) for l in self.class_list]
         for merge in self.merges:
             self.ids += self.coco.getImgIds(catIds=merge)
+        self.init_tf(transforms)
+        
+    def init_tf(self, tf):
         self.transforms = v2.ToDtype(
             dtype={tv_tensors.Image: torch.float32, "others":None},
             scale=True
         )
-        if transforms:
-            self.transforms = v2.Compose([self.transforms, transforms])
+        if tf:
+            self.transforms = v2.Compose([self.transforms, tf])
         
     #def merge(self, labels, boxes):
     #    """

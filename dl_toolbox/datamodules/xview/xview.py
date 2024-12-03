@@ -9,7 +9,7 @@ import torch
 import random
 from pytorch_lightning.utilities import CombinedLoader
 from dl_toolbox.utils import list_of_dicts_to_dict_of_lists
-
+import copy
 
 class xView(LightningDataModule):
     
@@ -43,16 +43,20 @@ class xView(LightningDataModule):
     
     def setup(self, stage=None):
         path = self.data_path/'XVIEW1'
-        xview = partial(datasets.xView1, merge=self.merge, root=path/'train_images', annFile=path/'xView_train.json')
-        L = 846
-        l = int(0.8*L)
-        idxs=random.sample(range(L), L)
+        xview = datasets.xView1(
+            merge=self.merge,
+            root=path/'train_images',
+            annFile=path/'xView_train.json'
+        )
+        L = len(xview)
         if stage in {'fit'}:
-            self.train_set = Subset(xview(transforms=self.train_tf), idxs[:l])
+            train_set = copy.deepcopy(xview)
+            train_set.init_tf(self.train_tf)
+            self.train_set = Subset(train_set, range(int(0.7*L)))
         if stage in {'fit', 'validate'}:
-            self.val_set = Subset(xview(transforms=self.test_tf), idxs[l:])
-        if stage in {'predict'}:
-            self.predict_set = Subset(xview(transforms=self.test_tf), idxs[l:])
+            val_set = copy.deepcopy(xview)
+            val_set.init_tf(self.test_tf)
+            self.val_set = Subset(val_set, range(int(0.7*L), int(0.8*L)))
     
     def collate(self, batch, train):
         batch = list_of_dicts_to_dict_of_lists(batch)
@@ -77,14 +81,6 @@ class xView(LightningDataModule):
     def val_dataloader(self):
         return self.dataloader(
             dataset=self.val_set,
-            shuffle=False,
-            drop_last=False,
-            collate_fn=partial(self.collate, train=False)
-        )
-
-    def predict_dataloader(self):
-        return self.dataloader(
-            dataset=self.predict_set,
             shuffle=False,
             drop_last=False,
             collate_fn=partial(self.collate, train=False)

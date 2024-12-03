@@ -26,6 +26,7 @@ class Coco(LightningDataModule):
     ):
         super().__init__()
         self.data_path = Path(data_path)
+        self.merge = merge
         self.train_tf = train_tf
         self.test_tf = test_tf
         self.batch_size = batch_size
@@ -41,9 +42,18 @@ class Coco(LightningDataModule):
     
     def setup(self, stage=None):
         path = self.data_path/'coco'
-        self.train_set = datasets.Coco(path/"train2017", path/"annotations/instances_train2017.json", self.train_tf)
-        self.val_set = datasets.Coco(path/"val2017", path/"annotations/instances_val2017.json", self.test_tf)
-        self.predict_set = datasets.Coco(path/"val2017", path/"annotations/instances_val2017.json", self.test_tf)
+        self.train_set = datasets.Coco(
+            path/"train2017",
+            path/"annotations/instances_train2017.json",
+            self.train_tf,
+            merge=self.merge
+        )
+        self.val_set = datasets.Coco(
+            path/"val2017",
+            path/"annotations/instances_val2017.json",
+            self.test_tf,
+            merge=self.merge
+        )
         
     def collate(self, batch, train):
         batch = list_of_dicts_to_dict_of_lists(batch)
@@ -64,14 +74,6 @@ class Coco(LightningDataModule):
     def val_dataloader(self):
         return self.dataloader(
             dataset=self.val_set,
-            shuffle=False,
-            drop_last=False,
-            collate_fn=partial(self.collate, train=False)
-        )
-
-    def predict_dataloader(self):
-        return self.dataloader(
-            dataset=self.predict_set,
             shuffle=False,
             drop_last=False,
             collate_fn=partial(self.collate, train=False)

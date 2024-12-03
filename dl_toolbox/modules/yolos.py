@@ -310,10 +310,10 @@ class Yolos(pl.LightningModule):
         # Compute the classification cost. Contrary to the loss, we don't use the NLL,
         # but approximate it in 1 - proba[target class].
         # The 1 is a constant that doesn't change the matching, it can be ommitted.
-        cost_class = -out_prob[:, tgt_ids]
+        cost_class = -out_prob[:, tgt_ids] # bs*num_q x tot num targets over batch
 
         # Compute the L1 cost between boxes
-        cost_bbox = torch.cdist(out_bbox, tgt_bbox, p=1)
+        cost_bbox = torch.cdist(out_bbox, tgt_bbox, p=1) # bs*num_q x tot num targets over batch
         
         # Compute the giou cost betwen boxes
         out_bbox = box_convert(out_bbox, 'xywh', 'xyxy')
@@ -322,9 +322,9 @@ class Yolos(pl.LightningModule):
 
         # Final cost matrix
         C = cost_bbox + cost_class + cost_giou
-        C = C.view(bs, num_queries, -1).cpu()
+        C = C.view(bs, num_queries, -1).cpu() # bs x num_q x tot num targets over batch
 
-        sizes = [len(v["boxes"]) for v in targets]
+        sizes = [len(v["boxes"]) for v in targets] # num_tgt per img 
         
         # Finds the minimum cost detection token/target assignment per img
         indices = [linear_sum_assignment(c[i]) for i, c in enumerate(C.split(sizes, -1))]
