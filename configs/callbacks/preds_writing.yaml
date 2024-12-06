@@ -1,0 +1,7 @@
+preds_writing:
+  _target_: dl_toolbox.callbacks.PredictionsWriting
+  every_n_batch: 1
+  mode: segmentation
+  out_path: ${hydra:run.dir}/preds
+  base_path: ${datamodule.data_path}
+

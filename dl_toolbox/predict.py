@@ -1,5 +1,4 @@
 import logging
-
 import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
@@ -15,7 +14,7 @@ def main(cfg: DictConfig) -> None:
     datamodule = hydra.utils.instantiate(cfg.datamodule)
     module = hydra.utils.instantiate(
         cfg.module,
-        num_classes=datamodule.num_classes,
+        class_list=datamodule.class_list
     )
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     callbacks['preds_writer'] = hydra.utils.instantiate(cfg.preds_writer)

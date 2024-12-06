@@ -51,20 +51,21 @@ class Rellis(LightningDataModule):
         )
 
     def setup(self, stage):
-        imgs = []
-        msks = []
-        for s in self.sequences:
-            img_dir = self.data_path/'Rellis-3D'/f'{s}'/'pylon_camera_node'
-            msk_dir = self.data_path/'Rellis-3D'/f'{s}'/'pylon_camera_node_label_id'
-            for msk_name in os.listdir(msk_dir):
-                img_name = "{}.{}".format(msk_name.split('.')[0], "jpg")
-                imgs.append(img_dir/img_name)
-                msks.append(msk_dir/msk_name)
-        rellis = partial(datasets.Rellis3d, imgs, msks, self.merge)
-        l, L = int(0.8*len(imgs)), len(imgs)
-        idxs=random.sample(range(L), L)
-        self.train_set = Subset(rellis(self.train_tf), idxs[:l])
-        self.val_set = Subset(rellis(self.test_tf), idxs[l:])
+        def get_split(seqs):
+            imgs = []
+            msks = []
+            for s in seqs:
+                img_dir = self.data_path/'Rellis-3D'/f'{s}'/'pylon_camera_node'
+                msk_dir = self.data_path/'Rellis-3D'/f'{s}'/'pylon_camera_node_label_id'
+                for msk_name in os.listdir(msk_dir):
+                    img_name = "{}.{}".format(msk_name.split('.')[0], "jpg")
+                    imgs.append(img_dir/img_name)
+                    msks.append(msk_dir/msk_name)
+            return imgs, msks
+        train_imgs, train_msks = get_split(self.sequences[:3])
+        self.train_set = datasets.Rellis3d(train_imgs, train_msks, self.merge, self.train_tf)
+        val_imgs, val_msks = get_split(self.sequences[3:])
+        self.val_set = datasets.Rellis3d(val_imgs, val_msks, self.merge, self.test_tf)
         
     def collate(self, batch):
         batch = list_of_dicts_to_dict_of_lists(batch)

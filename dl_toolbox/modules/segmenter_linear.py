@@ -173,3 +173,36 @@ class SegmenterLinear(pl.LightningModule):
         fs = 12 - 2*(self.num_classes//10)
         fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
         logger.experiment.add_figure("Confusion Matrix/val", fig, global_step=self.trainer.global_step)
+        
+    def test_step(self, batch, batch_idx):
+        x = batch["image"]
+        y = batch["target"]
+        logits_x = self.forward(x, sliding=self.sliding)                    
+        loss = self.loss(logits_x, y)
+        self.log(f"Cross Entropy/test", loss)
+        self.log(f"Loss/test", loss)
+        probs = self.logits_to_probas(logits_x)
+        pred_probs, preds = torch.max(probs, dim=1)
+        self.test_accuracy.update(preds, y)
+        self.test_cm.update(preds, y)
+        self.test_jaccard.update(preds, y)
+        
+    def on_test_epoch_end(self):
+        self.log("Accuracy/test", self.test_accuracy.compute())
+        self.log("IoU/test", self.test_jaccard.compute())
+        confmat = self.test_cm.compute().detach().cpu()
+        self.test_accuracy.reset()
+        self.test_jaccard.reset()
+        self.test_cm.reset()
+        class_names = [l.name for l in self.class_list]
+        logger = self.trainer.logger
+        fs = 12 - 2*(self.num_classes//10)
+        fig = plot_confusion_matrix(confmat, class_names, norm=None, fontsize=fs)
+        logger.experiment.add_figure("Confusion Matrix/test", fig, global_step=self.trainer.global_step)
+        
+    def predict_step(self, batch, batch_idx):
+        x = batch["image"]
+        logits_x = self.forward(x, sliding=self.sliding)  
+        probs = self.logits_to_probas(logits_x)
+        pred_probs, preds = torch.max(probs, dim=1)
+        return probs

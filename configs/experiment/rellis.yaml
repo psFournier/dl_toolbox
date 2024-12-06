@@ -1,0 +1,57 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: rellis
+  - override /module: segmenter_linear
+  - override /scheduler@module.scheduler: poly
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+experiment_name: "rellis"
+
+datamodule:
+    batch_size: 4
+    
+module:
+    encoder: 'vit_base_patch14_dinov2'
+    optimizer:
+        lr: 0.001
+    scheduler:
+        total_iters: ${trainer.max_epochs}
+    
+callbacks:
+    finetuning:
+        activated: true
+        unfreeze_at: 5
+        initial_denom_lr: 1000
+    preds_visu:
+        mode: segmentation
+    lora:
+        activated: false
+    preds_writing:
+        base_path: ${datamodule.data_path}
+    #early_stopping:
+    #    patience: 10000
+            
+trainer:
+  max_steps: 1000000
+  max_epochs: 1
+  limit_train_batches: 1
+  limit_val_batches: 2
+  val_check_interval: 1
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 100
+  precision: 16
+    
+hydra:
+  run:
+    dir: ${paths.output_dir}/${experiment_name}/${now:%Y-%m-%d_%H%M%S}
+  sweeper:
+    params:
+      seed: 1
+  sweep:
+    dir: ${paths.output_dir}/${experiment_name}/${now:%Y-%m-%d_%H%M%S}
+     
+callbacks.model_checkpoint.dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
+callbacks.preds_writing.out_path: ${hydra:sweep.dir}/${hydra:sweep.subdir}/preds

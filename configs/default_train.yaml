@@ -13,6 +13,7 @@ defaults:
       - lora
       - finetuning
       - calibration
+      - preds_writing
       #- early_stopping
   - paths: qdtis056z
   - trainer: default

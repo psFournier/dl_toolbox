@@ -3,7 +3,6 @@ import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
 import torch
-import gc
 
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision('high')
@@ -12,9 +11,6 @@ torch.set_float32_matmul_precision('high')
 def train(cfg: DictConfig) -> None:   
     pl.seed_everything(cfg.seed)
     logger.info("\n" + OmegaConf.to_yaml(cfg))
-    tensorboard = pl.loggers.TensorBoardLogger(
-        ".", "", "", default_hp_metric=False
-    )
     datamodule = hydra.utils.instantiate(cfg.datamodule)
     module = hydra.utils.instantiate(
         cfg.module,
@@ -23,11 +19,14 @@ def train(cfg: DictConfig) -> None:
     callbacks = {key: hydra.utils.instantiate(cb) for key, cb in cfg.callbacks.items()}
     #dsm = pl.callbacks.DeviceStatsMonitor()
     trainer = hydra.utils.instantiate(cfg.trainer)(
-        logger=tensorboard,
+        logger=pl.loggers.TensorBoardLogger(
+            ".", "", "", default_hp_metric=False
+        ),
         callbacks=list(callbacks.values())#+[dsm]
     )
     #module = torch.compile(module)
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
+    trainer.predict(module, dataloaders=[datamodule.val_dataloader()])
     
 if __name__ == "__main__":
     train()

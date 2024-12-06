@@ -7,3 +7,4 @@ from .progress_bar import ProgressBar
 #from .classif_preds_writer import *
 from .finetuning import *
 from .lora import *
+from .predictions_writing import *
