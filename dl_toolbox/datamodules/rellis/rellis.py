@@ -51,7 +51,7 @@ class Rellis(LightningDataModule):
         )
 
     def setup(self, stage):
-        def get_split(seqs):
+        def get_imgs_msks(seqs):
             imgs = []
             msks = []
             for s in seqs:
@@ -62,9 +62,10 @@ class Rellis(LightningDataModule):
                     imgs.append(img_dir/img_name)
                     msks.append(msk_dir/msk_name)
             return imgs, msks
-        train_imgs, train_msks = get_split(self.sequences[:3])
-        self.train_set = datasets.Rellis3d(train_imgs, train_msks, self.merge, self.train_tf)
-        val_imgs, val_msks = get_split(self.sequences[3:])
+        train_imgs, train_msks = get_imgs_msks(self.sequences[:3])
+        train_set = datasets.Rellis3d(train_imgs, train_msks, self.merge, self.train_tf)
+        self.train_set = Subset(train_set, indices=list(range(0, len(train_set), 10)))
+        val_imgs, val_msks = get_imgs_msks(self.sequences[3:])
         self.val_set = datasets.Rellis3d(val_imgs, val_msks, self.merge, self.test_tf)
         
     def collate(self, batch):

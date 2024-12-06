@@ -23,12 +23,12 @@ module:
 callbacks:
     finetuning:
         activated: true
-        unfreeze_at: 5
+        unfreeze_at: 10
         initial_denom_lr: 1000
-    preds_visu:
-        mode: segmentation
     lora:
         activated: false
+    preds_visu:
+        mode: segmentation
     preds_writing:
         base_path: ${datamodule.data_path}
     #early_stopping:
@@ -36,10 +36,10 @@ callbacks:
             
 trainer:
   max_steps: 1000000
-  max_epochs: 1
-  limit_train_batches: 1
-  limit_val_batches: 2
-  val_check_interval: 1
+  max_epochs: 20
+  limit_train_batches: 1.
+  limit_val_batches: 1.
+  val_check_interval: null
   check_val_every_n_epoch: 1
   log_every_n_steps: 100
   precision: 16
