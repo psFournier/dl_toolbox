@@ -26,7 +26,7 @@ def display_batch(trainer, module, batch, prefix, mode):
         labels = list(batch['target'])[:nb]
         fig = show_classifications(int_imgs, preds, class_list, labels)
     elif mode=='segmentation':
-        logits_x = module.forward(x, sliding=module.sliding)
+        logits_x = module.forward(x)
         probs = module.logits_to_probas(logits_x)
         pred_probs, preds = torch.max(probs, dim=1)
         preds = list(preds.detach().cpu()[:nb])

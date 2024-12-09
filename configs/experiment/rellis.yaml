@@ -4,6 +4,7 @@ defaults:
   - override /datamodule: rellis
   - override /module: segmenter_linear
   - override /scheduler@module.scheduler: poly
+  - override /transforms@module.sliding: rellis/sliding
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -29,14 +30,16 @@ callbacks:
         activated: false
     preds_visu:
         mode: segmentation
+        freq: 0
     preds_writing:
+        every_n_batch: 50
         base_path: ${datamodule.data_path}
     #early_stopping:
     #    patience: 10000
             
 trainer:
   max_steps: 1000000
-  max_epochs: 20
+  max_epochs: 1
   limit_train_batches: 1.
   limit_val_batches: 1.
   val_check_interval: null
