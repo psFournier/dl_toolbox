@@ -30,10 +30,11 @@ class PredictionsWriting(BasePredictionWriter):
         for msk, pred, conf, path in zip(y, preds, confs, paths):
             acc = metrics.accuracy(pred, msk, **module.metric_args)
             rel_path = Path(path).relative_to(self.base_path)    
-            pred_path = self.out_path/rel_path
+            pred_path = self.out_path/rel_path.with_suffix('.png')
             pred_path.parent.mkdir(exist_ok=True, parents=True)
             im = Image.fromarray(pred.numpy().astype(np.uint8))
             im.save(fp=str(pred_path))
+            print(pred_path, np.max(im), np.max(np.array(Image.open(str(pred_path)))))
             self.stats['pred_path'].append(pred_path)
             self.stats['img_path'].append(path)
             self.stats['conf'].append(float(conf.mean()))

@@ -13,6 +13,9 @@ def merge_labels(labels, merge):
             ret[labels == j] = i
     return ret
 
+#def get_prediction_merge(merge):
+    
+
 def merge_labels_boxes(labels, boxes, merge):
     """
     Args: 

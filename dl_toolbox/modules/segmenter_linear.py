@@ -151,7 +151,7 @@ class SegmenterLinear(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x = batch["image"]
         y = batch["target"]
-        logits_x = self.forward(x, sliding=self.sliding)                    
+        logits_x = self.forward(x)                    
         loss = self.loss(logits_x, y)
         self.log(f"Cross Entropy/val", loss)
         self.log(f"Loss/val", loss)

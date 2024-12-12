@@ -1,6 +1,7 @@
 defaults:
     - /transforms@train_tf: rellis/train
     - /transforms@test_tf: rellis/test
+    - /transforms@val_tf: rellis/val
 
 _target_: dl_toolbox.datamodules.Rellis
 data_path: ${paths.data}

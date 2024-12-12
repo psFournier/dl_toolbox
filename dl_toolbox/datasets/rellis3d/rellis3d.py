@@ -27,8 +27,6 @@ class Rellis3d(Dataset):
     def __init__(self, imgs, msks, merge, transforms):
         self.imgs = imgs
         self.msks = msks
-        self.class_list = self.all_class_lists[merge].value
-        self.merges = [list(l.values) for l in self.class_list]
         self.transforms = v2.ToDtype(dtype={
             tv_tensors.Image: torch.float32,
             tv_tensors.Mask: torch.int64,
@@ -36,6 +34,10 @@ class Rellis3d(Dataset):
         }, scale=True)
         if transforms is not None:
             self.transforms = v2.Compose([self.transforms, transforms])
+        self.merges = None
+        if merge:
+            self.class_list = self.all_class_lists[merge].value
+            self.merges = [list(l.values) for l in self.class_list]
 
     def __len__(self):
         return len(self.imgs)
@@ -46,7 +48,8 @@ class Rellis3d(Dataset):
         target = None
         if self.msks:
             mask = read_image(self.msks[idx])
-            mask = merge_labels(mask, self.merges)
+            if self.merges:
+                mask = merge_labels(mask, self.merges)
             target = tv_tensors.Mask(mask)
         image, target = self.transforms(image, target)
         if self.msks:
