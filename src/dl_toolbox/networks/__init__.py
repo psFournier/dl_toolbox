@@ -5,6 +5,6 @@ from .vgg import Vgg
 from .flair import *
 from .encode_then_upsample import *
 from .efficientnet import *
-from .ViT import *
+#from .ViT import *
 #from .fcos import FCOS
 from .fcos_from_tv import *

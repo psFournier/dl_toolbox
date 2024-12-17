@@ -9,6 +9,7 @@ max_epochs: 10000
 fast_dev_run: False
 limit_train_batches: 1.
 limit_val_batches: 1.
+limit_predict_batches: 1.
 num_sanity_val_steps: 1
 val_check_interval: 1000
 check_val_every_n_epoch: null

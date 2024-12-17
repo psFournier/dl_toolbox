@@ -1,10 +1,12 @@
+numpy
 torch
-pytorch-lightning
 torchvision
-hydra
+timm
+pillow
+pytorch-lightning
+hydra-core
 hydra-submitit-launcher
 hydra-colorlog
-transformers
 segmentation-models-pytorch
 tensorboard
 einops
@@ -13,3 +15,7 @@ rasterio
 pandas
 scipy
 seaborn
+faster-coco-eval
+pycocotools
+schedulefree
+minlora @ git+https://github.com/cccntu/minLoRA.git
