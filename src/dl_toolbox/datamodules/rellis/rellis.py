@@ -33,6 +33,7 @@ class Rellis(LightningDataModule):
         test_tf,
         batch_size,
         epoch_steps,
+        num_frames,
         num_workers,
         pin_memory,
         *args,
@@ -54,8 +55,10 @@ class Rellis(LightningDataModule):
             pin_memory=pin_memory
         )
         self.epoch_steps = epoch_steps
+        self.num_frames = num_frames
 
     def setup(self, stage):
+        
         def get_imgs_msks(seqs, start, end):
             imgs = []
             msks = []
@@ -67,9 +70,11 @@ class Rellis(LightningDataModule):
                     imgs.append(img_dir/img_name)
                     msks.append(msk_dir/msk_name)
             return imgs, msks
-        train_imgs, train_msks = get_imgs_msks(self.sequences, 0, 500)
+        
+        train_imgs, train_msks = get_imgs_msks(self.sequences, 0, self.num_frames)
         train_set = datasets.Rellis3d(train_imgs, train_msks, self.merge, self.train_tf)
         self.train_set = Subset(train_set, indices=list(range(0, len(train_set), 1)))   
+        
         val_imgs, val_msks = get_imgs_msks(self.sequences, 700, -1)
         val_set = datasets.Rellis3d(val_imgs, val_msks, self.merge, self.val_tf)
         self.val_set = Subset(val_set, indices=list(range(0, len(val_set), 1)))

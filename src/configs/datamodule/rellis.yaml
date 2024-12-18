@@ -10,3 +10,4 @@ num_workers: 6
 merge: all20
 pin_memory: True
 epoch_steps: 1000
+num_frames: 500

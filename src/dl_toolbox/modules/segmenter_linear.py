@@ -11,6 +11,7 @@ from einops import rearrange
 from dl_toolbox.utils import plot_confusion_matrix, param_groups_weight_decay
 from torchvision.models.feature_extraction import create_feature_extractor
 from dl_toolbox.modules import FeatureExtractor
+import torchvision.transforms.v2 as v2
 
 def init_weights(m):
     if isinstance(m, nn.Linear):
@@ -45,6 +46,7 @@ class SegmenterLinear(pl.LightningModule):
         self,
         encoder,
         class_list,
+        cutmix,
         optimizer,
         scheduler,
         metric_ignore_index,
@@ -71,6 +73,12 @@ class SegmenterLinear(pl.LightningModule):
             weight=None,
             label_smoothing=0.
         )
+        self.cutmix = None
+        if cutmix is not None:
+            self.cutmix = v2.CutMix(
+                num_classes=self.num_classes,
+                alpha=cutmix
+            )
         self.logits_to_probas = nn.Softmax(dim=1)
         self.optimizer = optimizer
         self.scheduler = scheduler
@@ -142,6 +150,8 @@ class SegmenterLinear(pl.LightningModule):
         batch = batch["sup"]
         x = batch["image"]
         y = batch["target"]
+        if self.cutmix is not None:
+            x, y = self.cutmix(x, y)
         logits_x = self.forward(x)
         loss = self.loss(logits_x, y)
         self.log(f"Cross Entropy/train", loss)

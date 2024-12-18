@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, RandomSampler
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import get_tiles, list_of_dicts_to_dict_of_lists
@@ -25,10 +25,12 @@ class Semcity(LightningDataModule):
         self,
         data_path,
         merge,
-        bands,
         train_tf,
+        val_tf,
         test_tf,
         batch_size,
+        num_windows,
+        epoch_steps,
         num_workers,
         pin_memory,
         *args,
@@ -37,13 +39,11 @@ class Semcity(LightningDataModule):
         super().__init__()
         self.data_path = Path(data_path)
         self.merge = merge
-        self.bands = bands
         self.train_tf = train_tf
+        self.val_tf = val_tf
         self.test_tf = test_tf
         self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.pin_memory = pin_memory
-        self.in_channels = len(self.bands)
+        self.in_channels = 3 #len(bands)
         self.class_list = datasets.Semcity.all_class_lists[merge].value
         self.dataloader = partial(
             DataLoader,
@@ -51,6 +51,8 @@ class Semcity(LightningDataModule):
             num_workers=num_workers,
             pin_memory=pin_memory
         )
+        self.epoch_steps = epoch_steps
+        self.num_windows = num_windows
     
     def setup(self, stage):
         
@@ -61,14 +63,18 @@ class Semcity(LightningDataModule):
         
         windows = list(get_tiles(3504, 3452, 876, 863))
         imgs_msks = [paths(i) for i in range(1,17)]
-        all_img_msk_win = [(img,msk,w) for img,msk in imgs_msks for w in windows]
-        imgs, msks, windows = tuple(zip(*all_img_msk_win))
         
-        semcity = partial(datasets.Semcity, imgs, msks, windows, self.bands, self.merge)
-        l, L = int(0.8*len(imgs)), len(imgs)
-        idxs=random.sample(range(L), L)
-        self.train_set = Subset(semcity(self.train_tf), idxs[:l])
-        self.val_set = Subset(semcity(self.test_tf), idxs[l:])
+        train_windows = windows[:self.num_windows]
+        train_img_msk_win = [(img,msk,w) for img,msk in imgs_msks for w in train_windows]
+        train_img, train_msk, train_win = tuple(zip(*train_img_msk_win))
+        self.train_set = datasets.Semcity(train_img, train_msk, train_win, [1,2,3], self.merge, self.train_tf)
+        
+        val_windows = windows[-4:]
+        val_img_msk_win = [(img,msk,w) for img,msk in imgs_msks for w in val_windows]
+        val_img, val_msk, val_win = tuple(zip(*val_img_msk_win))
+        self.val_set = datasets.Semcity(val_img, val_msk, val_win, [1,2,3], self.merge, self.val_tf)
+        
+        self.pred_set = datasets.Semcity(val_img, val_msk, val_win, [1,2,3], self.merge, self.test_tf)
                 
     def collate(self, batch):
         batch = list_of_dicts_to_dict_of_lists(batch)
@@ -80,7 +86,11 @@ class Semcity(LightningDataModule):
         train_dataloaders = {}
         train_dataloaders["sup"] = self.dataloader(
             dataset=self.train_set,
-            shuffle=True,
+            sampler=RandomSampler(
+                self.train_set,
+                replacement=True,
+                num_samples=self.epoch_steps*self.batch_size
+            ),
             drop_last=True,
             collate_fn=self.collate
         )
@@ -96,7 +106,7 @@ class Semcity(LightningDataModule):
 
     def predict_dataloader(self):
         return self.dataloader(
-            dataset=self.predict_set,
+            dataset=self.pred_set,
             shuffle=False,
             drop_last=False,
             collate_fn=self.collate

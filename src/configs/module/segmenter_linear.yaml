@@ -8,3 +8,4 @@ defaults:
 _target_: dl_toolbox.modules.SegmenterLinear
 encoder: 'vit_tiny_patch16_224' # vit_small_patch14_dinov2
 metric_ignore_index: null
+cutmix: null

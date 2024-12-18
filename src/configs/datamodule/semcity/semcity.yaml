@@ -1,16 +1,13 @@
 defaults:
-    - /transforms@to_0_1: to_0_1
-    - /transforms@train_tf: crop
-    - /transforms@test_tf: none
+    - /transforms@train_tf: semcity/train
+    - /transforms@test_tf: semcity/test
+    - /transforms@val_tf: semcity/val
 
 _target_: dl_toolbox.datamodules.Semcity
 data_path: ${paths.data}
-sup: 1
-unsup: 1
-batch_size_s: 8
-batch_size_u: 8
-steps_per_epoch: 250
-bands: [1,2,3]
-num_workers: 6
+num_windows: 12
 merge: main5
-pin_memory: False
+batch_size: 4
+num_workers: 6
+pin_memory: True
+epoch_steps: 1000
