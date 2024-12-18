@@ -8,7 +8,7 @@ import torch
 
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, RandomSampler
 from torch.utils.data._utils.collate import default_collate
 
 import dl_toolbox.datasets as datasets
@@ -32,6 +32,7 @@ class Rellis(LightningDataModule):
         val_tf,
         test_tf,
         batch_size,
+        epoch_steps,
         num_workers,
         pin_memory,
         *args,
@@ -43,6 +44,7 @@ class Rellis(LightningDataModule):
         self.train_tf = train_tf
         self.val_tf = val_tf
         self.test_tf = test_tf
+        self.batch_size = batch_size
         self.in_channels = 3
         self.class_list = datasets.Rellis3d.all_class_lists[merge].value
         self.dataloader = partial(
@@ -51,6 +53,7 @@ class Rellis(LightningDataModule):
             num_workers=num_workers,
             pin_memory=pin_memory
         )
+        self.epoch_steps = epoch_steps
 
     def setup(self, stage):
         def get_imgs_msks(seqs, start, end):
@@ -84,7 +87,11 @@ class Rellis(LightningDataModule):
         train_dataloaders = {}
         train_dataloaders["sup"] = self.dataloader(
             dataset=self.train_set,
-            shuffle=True,
+            sampler=RandomSampler(
+                self.train_set,
+                replacement=True,
+                num_samples=self.epoch_steps*self.batch_size
+            ),
             drop_last=True,
             collate_fn=self.collate
         )

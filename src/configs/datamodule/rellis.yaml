@@ -9,3 +9,4 @@ batch_size: 4
 num_workers: 6
 merge: all20
 pin_memory: True
+epoch_steps: 1000
