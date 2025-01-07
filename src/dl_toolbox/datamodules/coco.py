@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Subset, RandomSampler
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -17,8 +17,10 @@ class Coco(LightningDataModule):
         data_path,
         merge,
         train_tf,
+        val_tf,
         test_tf,
         batch_size,
+        epoch_steps,
         num_workers,
         pin_memory,
         *args,
@@ -28,6 +30,7 @@ class Coco(LightningDataModule):
         self.data_path = Path(data_path)
         self.merge = merge
         self.train_tf = train_tf
+        self.val_tf = val_tf
         self.test_tf = test_tf
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -39,6 +42,8 @@ class Coco(LightningDataModule):
             num_workers=num_workers,
             pin_memory=pin_memory
         )
+        self.epoch_steps = epoch_steps
+
     
     def setup(self, stage=None):
         path = self.data_path/'coco'
@@ -51,9 +56,16 @@ class Coco(LightningDataModule):
         self.val_set = datasets.Coco(
             path/"val2017",
             path/"annotations/instances_val2017.json",
+            self.val_tf,
+            merge=self.merge
+        )
+        self.pred_set = datasets.Coco(
+            path/"val2017",
+            path/"annotations/instances_val2017.json",
             self.test_tf,
             merge=self.merge
         )
+            
         
     def collate(self, batch, train):
         batch = list_of_dicts_to_dict_of_lists(batch)
@@ -65,7 +77,11 @@ class Coco(LightningDataModule):
         train_dataloaders = {}
         train_dataloaders["sup"] = self.dataloader(
             dataset=self.train_set,
-            shuffle=True,
+            sampler=RandomSampler(
+                self.train_set,
+                replacement=True,
+                num_samples=self.epoch_steps*self.batch_size
+            ),
             drop_last=True,
             collate_fn=partial(self.collate, train=True)
         )
@@ -74,6 +90,14 @@ class Coco(LightningDataModule):
     def val_dataloader(self):
         return self.dataloader(
             dataset=self.val_set,
+            shuffle=False,
+            drop_last=False,
+            collate_fn=partial(self.collate, train=False)
+        )
+    
+    def predict_dataloader(self):
+        return self.dataloader(
+            dataset=self.pred_set,
             shuffle=False,
             drop_last=False,
             collate_fn=partial(self.collate, train=False)

@@ -26,7 +26,7 @@ def train(cfg: DictConfig) -> None:
     )
     #module = torch.compile(module)
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
-    trainer.predict(module, datamodule=datamodule)
+    trainer.predict(module, datamodule=datamodule, return_predictions=False)
     
 if __name__ == "__main__":
     train()

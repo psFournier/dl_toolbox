@@ -9,6 +9,7 @@ import torchvision
 from pytorch_lightning.callbacks import BasePredictionWriter
 import rasterio.windows as W
 import torchmetrics.functional.classification as metrics
+import gc
 
 class PredictionsWriting(BasePredictionWriter):
 
@@ -43,6 +44,9 @@ class PredictionsWriting(BasePredictionWriter):
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         if self.freq>0 and batch_idx % self.freq == 0:
             self.write_batch(trainer, pl_module, outputs, batch)
+        # Clear the predictions to save CPU memory. https://github.com/Lightning-AI/pytorch-lightning/issues/15656
+        trainer.predict_loop._predictions = [[] for _ in range(trainer.predict_loop.num_dataloaders)]
+        gc.collect()
             
     def on_predict_epoch_end(self, trainer, pl_module):
         stats = pd.DataFrame(self.stats, columns=['img_path', 'pred_path', 'conf', 'acc'])

@@ -1,10 +1,12 @@
 defaults:
     - /transforms@train_tf: coco/train
+    - /transforms@val_tf: coco/val
     - /transforms@test_tf: coco/test
 
 _target_: dl_toolbox.datamodules.Coco
 data_path: ${paths.data}
-merge: mouse_cat
+merge: all
 batch_size: 4
 num_workers: 6
 pin_memory: False
+epoch_steps: 10000

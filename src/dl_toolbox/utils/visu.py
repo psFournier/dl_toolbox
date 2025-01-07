@@ -59,9 +59,9 @@ def show_segmentations(imgs, segmentations, class_list, alpha):
         axs[0,i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
     # Creating legend with color box 
     color_legends = [mpatches.Patch(color=tuple(c/255. for c in l.color), label=l.name) for l in class_list]
-    fig.legend(handles=color_legends, loc='center right') 
+    fig.legend(handles=color_legends, loc='lower center',  fontsize='small', ncols=len(color_legends), bbox_to_anchor=(0.5,0.15)) 
     fig.tight_layout()
-    fig.subplots_adjust(right=0.75)
+    fig.subplots_adjust(bottom=0.1, top=1.)
     return fig
     
     

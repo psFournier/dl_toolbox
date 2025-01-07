@@ -3,7 +3,7 @@
 defaults:
   - override /datamodule: rellis
   - override /module: segmenter_linear
-  - override /scheduler@module.scheduler: multistep
+  - override /scheduler@module.scheduler: linear
   - override /transforms@module.sliding: rellis/sliding
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -13,23 +13,22 @@ experiment_name: "rellis"
 
 datamodule:
     batch_size: 4
+    epoch_steps: 200
     
 module:
     encoder: 'vit_base_patch14_dinov2'
     optimizer:
         lr: 0.001
-    scheduler:
-        milestones: [20,40]
             
 trainer:
   max_steps: 1000000
-  max_epochs: 60
+  max_epochs: 100
   limit_train_batches: 1.
   limit_val_batches: 1.
   val_check_interval: null
   check_val_every_n_epoch: 1
   log_every_n_steps: 100
-  precision: 16
+  precision: 16-mixed
     
 hydra:
   run:
@@ -37,14 +36,16 @@ hydra:
   sweeper:
     params:
       seed: 1
+      datamodule.num_frames: 500
+      module.encoder: vit_base_patch14_dinov2, vit_base_patch32_224, vit_base_patch16_224, vit_base_patch8_224, vit_large_patch14_224, vit_huge_patch14_224
   sweep:
     dir: ${paths.output_dir}/${experiment_name}/${now:%Y-%m-%d_%H%M%S}
     
 callbacks:
     finetuning:
         activated: true
-        unfreeze_at: 10
-        initial_denom_lr: 1000
+        unfreeze_at: 1000
+        initial_denom_lr: 100
     lora:
         activated: false
     preds_visu:
