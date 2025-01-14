@@ -335,7 +335,7 @@ class FCOS(pl.LightningModule):
             b['target'], self.anchors, self.anchor_sizes) # BxNumAnchors, BxNumAnchorsx4
         losses = self.loss(cls_logits, bbox_reg, centerness, cls_tgts, reg_tgts)
         train_loss = losses["combined_loss"]
-        self.log(f"loss/train", train_loss.detach().item())
+        self.log(f"Loss/train", train_loss.detach().item())
         self.train_losses.append(train_loss.detach().item())
         #preds = self.post_process(cls_logits, bbox_reg, centerness, x.shape[-1])
         #self.map_metric.update(preds, targets)
@@ -347,7 +347,7 @@ class FCOS(pl.LightningModule):
             batch['target'], self.anchors, self.anchor_sizes) # BxNumAnchors, BxNumAnchorsx4
         losses = self.loss(cls_logits, bbox_reg, centerness, cls_tgts, reg_tgts)
         val_loss = losses["combined_loss"]
-        self.log(f"Total loss/val", val_loss.detach().item())
+        self.log(f"Loss/val", val_loss.detach().item())
         preds = self.post_process(cls_logits, bbox_reg, centerness, batch['image'].shape[-1])
         self.map_metric.update(preds, batch['target'])
         self.val_losses.append(val_loss.detach().item())

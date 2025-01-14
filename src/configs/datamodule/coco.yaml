@@ -5,7 +5,7 @@ defaults:
 
 _target_: dl_toolbox.datamodules.Coco
 data_path: ${paths.data}
-merge: all
+merge: mouse_cat
 batch_size: 4
 num_workers: 6
 pin_memory: False

@@ -1,3 +1,4 @@
+from .common import Base
 from .flair.flair import *
 #from .digitanie.digitanie_ai4geo import *
 #from .digitanie.digitanie import *
@@ -12,7 +13,7 @@ from .cityscapes.cityscapes import *
 #from .digitanie.digitanie import *
 #from .digitanie.digitanie_unlabeled_toa import *
 #from .digitanie.digitanie_sublabeled_toa import *
-from .rellis.rellis import *
+from .rellis import *
 #from .pascalvoc.pascalvoc import *
 from .xview.xview import *
 from .coco import Coco

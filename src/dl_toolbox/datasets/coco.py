@@ -153,11 +153,11 @@ class Coco(Dataset):
             self.transforms = v2.Compose([self.transforms, transforms])
 
     def __getitem__(self, index):
-        id = self.ids[index]
-        path = self.root/self.coco.loadImgs(id)[0]["file_name"]
+        image_id = self.ids[index]
+        path = self.root/self.coco.loadImgs(image_id)[0]["file_name"]
         tv_image = tv_tensors.Image(read_image(path))
         
-        target = self.coco.loadAnns(self.coco.getAnnIds(id))
+        target = self.coco.loadAnns(self.coco.getAnnIds(image_id))
         target = list_of_dicts_to_dict_of_lists(target)
         tv_target = {}
         
@@ -174,7 +174,7 @@ class Coco(Dataset):
         )
         tv_target['labels'] = merged_labels.long()
         tv_image, tv_target = self.transforms(tv_image, tv_target)
-        return {'image': tv_image, 'target': tv_target, 'path': path}
+        return {'image': tv_image, 'target': tv_target, 'path': path, 'image_id': image_id}
 
         
         
