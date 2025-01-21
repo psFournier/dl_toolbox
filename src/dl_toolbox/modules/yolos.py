@@ -144,12 +144,7 @@ class Yolos(pl.LightningModule):
         super().__init__()
         self.class_list = class_list
         self.num_classes = len(class_list)
-        self.det_token_num = det_token_num
-        
-        self.feature_extractor = FeatureExtractor(encoder)
-        self.num_prefix_tokens = self.feature_extractor.encoder.num_prefix_tokens
-        self.embed_dim = self.feature_extractor.encoder.embed_dim
-        self.patch_size = self.feature_extractor.encoder.patch_embed.patch_size[0]
+         
         
         #self.backbone = timm.create_model(
         #    encoder,
