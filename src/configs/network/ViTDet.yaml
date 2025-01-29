@@ -1,0 +1,3 @@
+_target_: dl_toolbox.networks.ViTDet
+_partial_: True
+out_channels: 256

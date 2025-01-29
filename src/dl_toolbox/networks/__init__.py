@@ -8,3 +8,4 @@ from .efficientnet import *
 #from .ViT import *
 #from .fcos import FCOS
 from .fcos_from_tv import *
+from .ViTDet import *
