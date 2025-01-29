@@ -17,6 +17,7 @@ from .rellis import *
 #from .pascalvoc.pascalvoc import *
 from .xview.xview import *
 from .coco import Coco
+from .penn_fudan import *
 
 # from .splitfile_sup import SplitfileSup
 # from .splitfile_semisup import SplitfileSemisup

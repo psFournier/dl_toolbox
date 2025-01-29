@@ -1,0 +1,12 @@
+defaults:
+    - /transforms@train_tf: penn_fudan/train
+    - /transforms@test_tf: penn_fudan/train
+    - /transforms@val_tf: penn_fudan/train
+
+_target_: dl_toolbox.datamodules.PennFudan
+data_path: ${paths.data}
+merge: 'all'
+batch_size: 4
+num_workers: 6
+pin_memory: False
+epoch_steps: 100

@@ -1,4 +1,5 @@
 defaults:
+  - /network@model: ViTDet
   - /optimizer: sgd
   - /scheduler: poly
   - _self_

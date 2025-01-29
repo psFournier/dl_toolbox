@@ -4,13 +4,21 @@ import torch
 from torchvision.io import read_image
 from torchvision.ops.boxes import masks_to_boxes
 from torchvision import tv_tensors
-from torchvision.transforms.v2 import functional as F
+from torchvision.transforms import v2 as T
+from dl_toolbox.utils import label
+from dl_toolbox.utils import list_of_dicts_to_dict_of_lists
+
 
 
 class PennFudanDataset(torch.utils.data.Dataset):
     def __init__(self, root, transforms):
         self.root = root
-        self.transforms = transforms
+        self.transforms = T.ToDtype(
+            dtype={tv_tensors.Image: torch.float32, "others":None},
+            scale=True
+        )
+        if transforms:
+            self.transforms = T.Compose([self.transforms, transforms])
         # load all image files, sorting them to
         # ensure that they are aligned
         self.imgs = list(sorted(os.listdir(os.path.join(root, "PNGImages"))))
@@ -45,9 +53,9 @@ class PennFudanDataset(torch.utils.data.Dataset):
 
         # Wrap sample and targets into torchvision tv_tensors:
         img = tv_tensors.Image(img)
-
+        h, w = T.functional.get_size(img)
         target = {}
-        target["boxes"] = tv_tensors.BoundingBoxes(boxes, format="XYXY", canvas_size=F.get_size(img))
+        target["boxes"] = tv_tensors.BoundingBoxes(boxes, format="XYXY", canvas_size=(h,w))
         target["masks"] = tv_tensors.Mask(masks)
         target["labels"] = labels
         target["image_id"] = image_id
@@ -57,7 +65,13 @@ class PennFudanDataset(torch.utils.data.Dataset):
         if self.transforms is not None:
             img, target = self.transforms(img, target)
 
-        return img, target
-
+        return {'image': img, 'target': target}
+    
     def __len__(self):
         return len(self.imgs)
+    
+    @classmethod
+    def collate(cls, batch):
+        batch = list_of_dicts_to_dict_of_lists(batch)
+        batch['image'] = torch.stack(batch['image'])
+        return batch

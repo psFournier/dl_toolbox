@@ -1,0 +1,15 @@
+_target_: torchvision.transforms.v2.Compose
+transforms: 
+    - _target_: torchvision.transforms.v2.Resize
+      size: 480
+      max_size: 640
+    - _target_: torchvision.transforms.v2.RandomCrop
+      size: [640,640]
+      pad_if_needed: true
+      fill: 0
+    - _target_: torchvision.transforms.v2.ConvertBoundingBoxFormat
+      format: 'XYWH'
+    - _target_: torchvision.transforms.v2.SanitizeBoundingBoxes
+    - _target_: torchvision.transforms.v2.Normalize
+      mean: [0.5,0.5,0.5]
+      std: [0.5,0.5,0.5]

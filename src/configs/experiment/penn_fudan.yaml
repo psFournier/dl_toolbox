@@ -1,0 +1,49 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: penn_fudan
+  - override /module: fcos
+  - override /scheduler@module.scheduler: linear
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+experiment_name: "penn_fudan"
+            
+trainer:
+  max_steps: 1000000
+  max_epochs: 2
+  limit_train_batches: 1
+  limit_val_batches: 1
+  val_check_interval: null
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 100
+  precision: 16-mixed
+    
+hydra:
+  run:
+    dir: ${paths.output_dir}/${experiment_name}/${now:%Y-%m-%d_%H%M%S}
+  sweeper:
+    params:
+      seed: 1
+  sweep:
+    dir: ${paths.output_dir}/${experiment_name}/${now:%Y-%m-%d_%H%M%S}
+    
+callbacks:
+    finetuning:
+        activated: false
+        unfreeze_at: 1000
+        initial_denom_lr: 100
+    lora:
+        activated: false
+    preds_visu:
+        mode: detection
+        freq: 0
+    preds_writing:
+        every_n_batch: 0
+        base_path: ${datamodule.data_path}
+        out_path: ${hydra:sweep.dir}/${hydra:sweep.subdir}/preds
+    model_checkpoint:
+        dirpath: ${hydra:sweep.dir}/${hydra:sweep.subdir}/checkpoints
+    #early_stopping:
+    #    patience: 10000

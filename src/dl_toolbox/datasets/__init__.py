@@ -9,3 +9,4 @@ from .rellis3d.rellis3d import *
 from .pascalvoc.pascalvoc import *
 from .xview1.xview1 import xView1
 from .coco import Coco
+from .penn_fudan.penn_fudan import *
