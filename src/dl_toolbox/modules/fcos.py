@@ -210,6 +210,7 @@ class FCOS(pl.LightningModule):
         model,
         optimizer,
         scheduler,
+        input_size,
         pre_nms_thresh=0.3,
         pre_nms_top_n=100000,
         nms_thresh=0.45,
@@ -260,10 +261,11 @@ class FCOS(pl.LightningModule):
         #bb_sizes = [64, 128, 256, 512] 
         #anchors, anchor_sizes = get_all_anchors_bb_sizes(
         #    fm_sizes, fm_strides, bb_sizes)
-        
+        strides=[4, 8, 16, 32]
+        feature_maps_sizes = [(input_size//s,input_size//s) for s in strides]
         anchors, anchor_sizes = get_all_anchors_bb_sizes(
-            fm_sizes=[(160,160),(80,80),(40,40),(20,20)], # 640/16 * [4,2,1,0.5]
-            fm_strides=[4, 8, 16, 32],
+            fm_sizes=feature_maps_sizes, # 640/16 * [4,2,1,0.5]
+            fm_strides=strides,
             bb_sizes=[128, 256, 512]
         )
         self.register_buffer('anchors', anchors) # Lx2

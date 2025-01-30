@@ -126,26 +126,6 @@ class xView1(Dataset):
         )
         if tf:
             self.transforms = v2.Compose([self.transforms, tf])
-        
-    #def merge(self, labels, boxes):
-    #    """
-    #    Args: 
-    #        labels: tensor shape L
-    #        boxes: tensor shape Lx4
-    #    Returns:
-    #        
-    #    """
-    #    merged_labels = []
-    #    merged_boxes = []
-    #    for i, l in enumerate(self.class_list): 
-    #        # indices of tgts whose label belongs to the i-th merge
-    #        idx = reduce(torch.logical_or, [labels == v for v in l.values])
-    #        # i+1 because in detection, class label 0 should be left for no-obj in algos
-    #        merged_labels.append((i+1) * torch.ones_like(labels[idx]))
-    #        merged_boxes.append(boxes[idx])
-    #    merged_labels = torch.cat(merged_labels, dim=0)
-    #    merged_boxes = torch.cat(merged_boxes, dim=0)
-    #    return merged_labels, merged_boxes
 
     def __getitem__(self, index):
         id = self.ids[index]
@@ -174,3 +154,9 @@ class xView1(Dataset):
 
     def __len__(self):
         return len(self.ids)
+    
+    @classmethod
+    def collate(cls, batch):
+        batch = list_of_dicts_to_dict_of_lists(batch)
+        batch['image'] = torch.stack(batch['image'])
+        return batch

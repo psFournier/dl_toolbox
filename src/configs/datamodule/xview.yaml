@@ -1,10 +1,12 @@
 defaults:
     - /transforms@train_tf: xview/train
+    - /transforms@val_tf: xview/test
     - /transforms@test_tf: xview/test
 
 _target_: dl_toolbox.datamodules.xView
 merge: building
 data_path: ${paths.data}
-batch_size: 4
+batch_size: 2
 num_workers: 6
 pin_memory: False
+epoch_steps: 100

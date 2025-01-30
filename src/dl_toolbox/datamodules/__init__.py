@@ -15,7 +15,7 @@ from .cityscapes.cityscapes import *
 #from .digitanie.digitanie_sublabeled_toa import *
 from .rellis import *
 #from .pascalvoc.pascalvoc import *
-from .xview.xview import *
+from .xview import *
 from .coco import Coco
 from .penn_fudan import *
 
