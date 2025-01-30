@@ -2,9 +2,8 @@ import random
 from pathlib import Path
 from functools import partial
 
-from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import CustomCollate

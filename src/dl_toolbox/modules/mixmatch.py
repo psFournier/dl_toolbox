@@ -1,8 +1,5 @@
-import pytorch_lightning as pl
 import torch
-import torch.nn as nn
 
-from torch.nn.functional import one_hot
 from .supervised import Supervised
 
 

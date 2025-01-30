@@ -1,8 +1,6 @@
 # Third-party libraries
-import numpy as np
 import pytorch_lightning as pl
 import torch
-import torchvision
 
 from dl_toolbox.utils import show_classifications, show_segmentations, show_detections
 

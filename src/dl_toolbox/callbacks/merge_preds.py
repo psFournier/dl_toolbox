@@ -1,10 +1,6 @@
-import os
 from functools import partial
-from pathlib import Path
 
 import numpy as np
-import rasterio
-import rasterio.windows as windows
 import torch
 from pytorch_lightning import Callback
 

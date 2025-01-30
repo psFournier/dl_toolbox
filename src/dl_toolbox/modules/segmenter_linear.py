@@ -1,15 +1,12 @@
 import pytorch_lightning as pl
 import torchmetrics as M
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import timm
 from timm.models.layers import trunc_normal_
 from einops import rearrange
 
-from dl_toolbox.utils import plot_confusion_matrix, param_groups_weight_decay
-from torchvision.models.feature_extraction import create_feature_extractor
+from dl_toolbox.utils import plot_confusion_matrix
 from dl_toolbox.modules import FeatureExtractor
 import torchvision.transforms.v2 as v2
 

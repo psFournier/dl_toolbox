@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch import nn, Tensor
-from torchvision.models._api import register_model, Weights, WeightsEnum
+from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import (
     _make_divisible,

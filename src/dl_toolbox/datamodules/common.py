@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader, Subset, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler
 from pathlib import Path
 from pytorch_lightning import LightningDataModule
 from functools import partial

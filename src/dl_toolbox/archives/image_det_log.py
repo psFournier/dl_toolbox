@@ -1,10 +1,7 @@
 # Third-party libraries
-import numpy as np
 import pytorch_lightning as pl
 import torch
 import torchvision
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.utilities import rank_zero_warn
 
 from torchvision.utils import draw_bounding_boxes as draw_bb
 from torchvision.ops import box_convert

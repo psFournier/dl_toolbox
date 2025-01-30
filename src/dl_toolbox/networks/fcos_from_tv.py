@@ -1,6 +1,4 @@
-from torchvision.models import resnet50, ResNet50_Weights
 from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
-from torchvision.models.feature_extraction import get_graph_node_names
 from torchvision.models.feature_extraction import create_feature_extractor
 from torchvision.ops.feature_pyramid_network import FeaturePyramidNetwork, LastLevelP6P7
 from dl_toolbox.networks.fcos import Head

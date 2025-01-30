@@ -1,4 +1,3 @@
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import torch.nn as nn
 import math
 

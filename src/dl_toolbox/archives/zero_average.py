@@ -1,7 +1,5 @@
-import numpy as np
 from torch import Tensor
 
-from .utils import stretch_to_minmax
 
 
 class ZeroAverageCommon:

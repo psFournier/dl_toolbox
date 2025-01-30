@@ -6,7 +6,6 @@ import torch
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
 from torch.utils.data import DataLoader, Subset
-from torch.utils.data._utils.collate import default_collate
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.datamodules.flair.utils import flair_gather_data

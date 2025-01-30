@@ -3,7 +3,6 @@ from torchvision.models.feature_extraction import create_feature_extractor
 from torchvision.ops.feature_pyramid_network import FeaturePyramidNetwork, LastLevelP6P7
 import torch.nn as nn
 import torch
-import torch.nn.functional as F
 import math
 
 class Scale(nn.Module):

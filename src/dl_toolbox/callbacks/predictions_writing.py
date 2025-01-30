@@ -1,13 +1,9 @@
-import os
 from pathlib import Path
 from PIL import Image
 import numpy as np
 import pandas as pd
-import rasterio
 import torch
-import torchvision
 from pytorch_lightning.callbacks import BasePredictionWriter
-import rasterio.windows as W
 import torchmetrics.functional.classification as metrics
 import gc
 

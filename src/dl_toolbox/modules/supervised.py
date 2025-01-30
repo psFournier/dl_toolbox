@@ -2,12 +2,8 @@ import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torchmetrics as M
-import matplotlib.pyplot as plt
 from dl_toolbox.utils import plot_confusion_matrix
 from pytorch_lightning.utilities import rank_zero_info
-import torch.nn as nn
-import math
-from dl_toolbox.transforms import Mixup
 
 class Supervised(pl.LightningModule):
     def __init__(

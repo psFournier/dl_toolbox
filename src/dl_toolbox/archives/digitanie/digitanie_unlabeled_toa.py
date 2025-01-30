@@ -1,16 +1,8 @@
 import numpy as np
 import rasterio
 import torch
-import enum
-import random
-from torch.utils.data import Dataset
 
-from dl_toolbox.utils import label, get_tiles, merge_labels
-import rasterio.windows as W
-from fiona.transform import transform as f_transform
 import rasterio.warp
-from shapely.geometry import box
-from rasterio.enums import Resampling
 
 from .digitanie import Digitanie
     

@@ -1,15 +1,12 @@
 import os
-import random
 from pathlib import Path
 from functools import partial
 
-import numpy as np
 import torch
 
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, Subset
-from torch.utils.data._utils.collate import default_collate
+from torch.utils.data import DataLoader
 
 import dl_toolbox.datasets as datasets
 from dl_toolbox.utils import list_of_dicts_to_dict_of_lists

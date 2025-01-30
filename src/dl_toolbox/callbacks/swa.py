@@ -1,5 +1,3 @@
-import pytorch_lightning as pl
-import torch
 import torchmetrics as M
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 

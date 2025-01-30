@@ -1,7 +1,6 @@
 from pathlib import Path
 from functools import partial
 import random
-import numpy as np
 import torch
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities import CombinedLoader

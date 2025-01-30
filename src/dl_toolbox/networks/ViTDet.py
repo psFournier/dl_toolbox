@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 from torch import Tensor
-from torchvision.ops.feature_pyramid_network import LastLevelP6P7, ExtraFPNBlock
+from torchvision.ops.feature_pyramid_network import ExtraFPNBlock
 from torchvision.ops.misc import Conv2dNormActivation
 from collections import OrderedDict
 
 import timm
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, Optional
 
 
 class Scale(nn.Module):

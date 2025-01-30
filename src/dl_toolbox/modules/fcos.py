@@ -3,11 +3,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
 import torchvision
-from torchvision.models.feature_extraction import create_feature_extractor
-from torchvision.ops.feature_pyramid_network import FeaturePyramidNetwork, LastLevelP6P7
-from torchvision.models import resnet50, ResNet50_Weights
 from dl_toolbox.utils import associate_targets_to_anchors, get_all_anchors_bb_sizes
-import math
 
 ## LOSS
 

@@ -2,7 +2,6 @@ import random
 
 import albumentations as A
 import numpy as np
-from albumentations import functional as F
 from albumentations.core.transforms_interface import ImageOnlyTransform
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader

@@ -1,13 +1,7 @@
-from argparse import ArgumentParser
 
-import torch
-from torch.utils.data import DataLoader, RandomSampler
-from torch.utils.data._utils.collate import default_collate
 
 from dl_toolbox.lightning_datamodules import SemisupDm
-from dl_toolbox.torch_collate import CustomCollate
 
-from dl_toolbox.utils import worker_init_function
 from dl_toolbox.torch_datasets import *
 
 

@@ -1,8 +1,6 @@
 import glob
-from functools import partial
 
 import numpy as np
-import torch
 from lightning_datamodules import BaseSemisupDatamodule, BaseSupervisedDatamodule
 from torch.utils.data import ConcatDataset
 from torch_datasets import MiniworldCityDs

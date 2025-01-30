@@ -1,11 +1,8 @@
 from argparse import ArgumentParser
 
-import torch
-from augmentations import get_transforms
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, RandomSampler
-from torch.utils.data._utils.collate import default_collate
 from torch_collate import CustomCollate
 
 from utils import worker_init_function

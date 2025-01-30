@@ -5,7 +5,6 @@ import torch
 
 from torch.utils.data import Dataset
 
-import dl_toolbox.transforms as transforms
 from dl_toolbox.utils import merge_labels, label, rgb_to_labels
 
 class_list = [

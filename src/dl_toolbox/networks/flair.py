@@ -1,7 +1,6 @@
 import segmentation_models_pytorch as smp
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class mtd_MLP(nn.Module):

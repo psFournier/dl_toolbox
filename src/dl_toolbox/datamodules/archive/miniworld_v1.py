@@ -1,5 +1,3 @@
-from lightning_datamodules import BaseSemisupDatamodule, BaseSupervisedDatamodule
-from torch_datasets import *
 
 # cities_labeled = {
 #     'christchurch': ChristchurchLabeled,

@@ -1,12 +1,5 @@
-from copy import deepcopy
-import pytorch_lightning as pl
 import torch
-import torch.nn as nn
-import torchmetrics as M
-import matplotlib.pyplot as plt
 
-from dl_toolbox.losses import DiceLoss, ProbOhemCrossEntropy2d
-from dl_toolbox.utils import plot_confusion_matrix
 from .supervised import Supervised
 
 

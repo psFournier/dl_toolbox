@@ -2,7 +2,7 @@ import pandas as pd
 from .semcity import Semcity
 import dl_toolbox.datasets as datasets
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader
 from dl_toolbox.utils import CustomCollate
 from pathlib import Path
 

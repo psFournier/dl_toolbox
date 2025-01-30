@@ -2,11 +2,9 @@ import os
 from argparse import ArgumentParser
 
 import numpy as np
-import torch
 
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import ConcatDataset, DataLoader, RandomSampler
-from torch.utils.data._utils.collate import default_collate
 
 from dl_toolbox.torch_collate import CustomCollate
 from dl_toolbox.torch_datasets import DigitanieDs

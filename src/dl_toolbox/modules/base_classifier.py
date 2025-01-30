@@ -1,16 +1,11 @@
 import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
 import torchmetrics as M
-import matplotlib.pyplot as plt
 from dl_toolbox.utils import plot_confusion_matrix
 from pytorch_lightning.utilities import rank_zero_info
 import torch.nn as nn
-import math
-import timm
 from timm.models.layers import trunc_normal_
 
-from torchvision.models.feature_extraction import create_feature_extractor
 from dl_toolbox.modules import FeatureExtractor
 
 def init_weights(m):

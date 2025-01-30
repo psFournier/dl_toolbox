@@ -1,5 +1,5 @@
 from torchvision.transforms.v2 import functional as F, Transform
-from typing import List, Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any
 from torchvision import tv_tensors
 import torch
 

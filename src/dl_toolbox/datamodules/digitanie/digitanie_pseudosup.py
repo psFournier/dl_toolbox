@@ -2,8 +2,7 @@ import pandas as pd
 from .digitanie import Digitanie
 import dl_toolbox.datasets as datasets
 from pytorch_lightning.utilities import CombinedLoader
-from torch.utils.data import DataLoader, RandomSampler
-from dl_toolbox.utils import CustomCollate
+from torch.utils.data import RandomSampler
 from pathlib import Path
 
 class DigitaniePseudosup(Digitanie):

@@ -3,9 +3,7 @@
 
 
 ## Imports
-import os
 import random
-import re
 from pathlib import Path
 
 import matplotlib
@@ -13,7 +11,6 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
-import rasterio.plot as plot
 from matplotlib.colors import hex2color
 
 

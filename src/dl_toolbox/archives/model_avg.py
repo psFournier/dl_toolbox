@@ -13,11 +13,10 @@
 # limitations under the License.
 r"""Stochastic Weight Averaging Callback ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"""
 from copy import deepcopy
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import torch
 from torch import nn, Tensor
-import torchmetrics as M
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback

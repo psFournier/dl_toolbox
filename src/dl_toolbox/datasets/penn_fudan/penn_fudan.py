@@ -5,7 +5,6 @@ from torchvision.io import read_image
 from torchvision.ops.boxes import masks_to_boxes
 from torchvision import tv_tensors
 from torchvision.transforms import v2 as T
-from dl_toolbox.utils import label
 from dl_toolbox.utils import list_of_dicts_to_dict_of_lists
 
 

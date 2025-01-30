@@ -1,15 +1,7 @@
-from argparse import ArgumentParser
-from copy import deepcopy
 
-import numpy as np
-import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchmetrics.functional as torchmetrics
-from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import LambdaLR, MultiStepLR
 
 from utils import FGSM, VAT
 

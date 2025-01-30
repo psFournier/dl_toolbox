@@ -1,5 +1,4 @@
 import glob
-from functools import partial
 
 import numpy as np
 from lightning_datamodules import BaseSemisupDatamodule, BaseSupervisedDatamodule

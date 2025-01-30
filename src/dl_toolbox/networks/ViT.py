@@ -1,6 +1,5 @@
 from transformers import ViTForImageClassification
 import torch.nn as nn
-import math
 
 class ViT(nn.Module):
     def __init__(

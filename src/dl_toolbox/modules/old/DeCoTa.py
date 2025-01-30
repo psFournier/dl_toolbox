@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 
 from dl_toolbox.lightning_modules import BaseModel
-from dl_toolbox.torch_datasets.utils import *
-from dl_toolbox.augmentations import Mixup
 
 
 class PseudoLabelling(BaseModel):

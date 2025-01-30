@@ -1,4 +1,3 @@
-import enum
 from shapely import Polygon as P
 
 digitanie_polygons = {

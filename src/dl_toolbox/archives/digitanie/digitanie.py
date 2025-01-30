@@ -2,16 +2,11 @@ import numpy as np
 import rasterio
 import torch
 import enum
-import random
 from torch.utils.data import Dataset
 from rasterio.windows import Window
 
-from dl_toolbox.utils import label, get_tiles, merge_labels
-import rasterio.windows as W
-from fiona.transform import transform as f_transform
+from dl_toolbox.utils import label, merge_labels
 import rasterio.warp
-from shapely.geometry import box
-from rasterio.enums import Resampling
 
 _all43 = [
     label("nodata", (250, 250, 250), 0),

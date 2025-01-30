@@ -5,8 +5,6 @@ from torchvision.transforms.v2 import functional as F
 from pathlib import Path
 import torch
 import torchvision.transforms.v2 as v2
-import rasterio
-import numpy as np
 from torchvision.io import read_image
 import enum
 

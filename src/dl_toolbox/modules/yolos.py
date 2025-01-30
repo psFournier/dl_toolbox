@@ -1,4 +1,3 @@
-import timm
 import torch
 import torchvision
 from timm.layers import resample_abs_pos_embed     
@@ -11,8 +10,6 @@ from torchmetrics.detection.mean_ap import MeanAveragePrecision
 from torchvision import tv_tensors
 from torchvision.tv_tensors import BoundingBoxFormat
 from dl_toolbox.utils import *
-from torchvision.models.feature_extraction import create_feature_extractor
-from dl_toolbox.modules import FeatureExtractor
 
 
 class SetCriterion(nn.Module):
