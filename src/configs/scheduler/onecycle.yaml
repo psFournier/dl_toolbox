@@ -1,7 +1,7 @@
 _target_: torch.optim.lr_scheduler.OneCycleLR
 _partial_: True
-max_lr: 0.1
-total_steps: ${trainer.max_epochs}
-#steps_per_epoch: ${datamodule.steps_per_epoch}
-pct_start: 0.04
+max_lr: 0.001
+#total_steps: ${trainer.max_epochs}
+steps_per_epoch: ${datamodule.epoch_steps}
+epochs: 100
 verbose: True

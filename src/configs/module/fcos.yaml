@@ -6,7 +6,7 @@ defaults:
 
 _target_: dl_toolbox.modules.FCOS
 pre_nms_thresh: 0.3
-pre_nms_top_n: 1000
+pre_nms_top_n: 100000
 nms_thresh: 0.45
 fpn_post_nms_top_n: 50
 min_size: 0

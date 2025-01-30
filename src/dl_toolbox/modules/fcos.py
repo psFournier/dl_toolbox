@@ -211,7 +211,7 @@ class FCOS(pl.LightningModule):
         optimizer,
         scheduler,
         pre_nms_thresh=0.3,
-        pre_nms_top_n=1000,
+        pre_nms_top_n=100000,
         nms_thresh=0.45,
         fpn_post_nms_top_n=50,
         min_size=0,
@@ -255,11 +255,17 @@ class FCOS(pl.LightningModule):
         #print(fm_sizes)
         #
         #self.head = Head(256, self.num_classes)
-        fm_sizes=[(160,160),(80,80),(40,40),(20,20)]
-        fm_strides = [8, 16, 32, 64, 128] 
-        bb_sizes = [64, 128, 256, 512] 
+        #fm_sizes=[(160,160),(80,80),(40,40),(20,20)]
+        #fm_strides = [8, 16, 32, 64, 128] 
+        #bb_sizes = [64, 128, 256, 512] 
+        #anchors, anchor_sizes = get_all_anchors_bb_sizes(
+        #    fm_sizes, fm_strides, bb_sizes)
+        
         anchors, anchor_sizes = get_all_anchors_bb_sizes(
-            fm_sizes, fm_strides, bb_sizes)
+            fm_sizes=[(160,160),(80,80),(40,40),(20,20)], # 640/16 * [4,2,1,0.5]
+            fm_strides=[4, 8, 16, 32],
+            bb_sizes=[128, 256, 512]
+        )
         self.register_buffer('anchors', anchors) # Lx2
         self.register_buffer('anchor_sizes', anchor_sizes) # Lx2
         
@@ -282,7 +288,7 @@ class FCOS(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval": "epoch"
+                "interval": "step"
             },
         }
 
