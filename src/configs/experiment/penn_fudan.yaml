@@ -12,6 +12,7 @@ defaults:
 experiment_name: "penn_fudan"
 
 module:
+    input_size: 640
     optimizer:
         weight_decay: 0.05
             

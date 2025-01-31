@@ -22,11 +22,12 @@ def train(cfg: DictConfig) -> None:
         logger=pl.loggers.TensorBoardLogger(
             ".", "", "", default_hp_metric=False
         ),
-        callbacks=list(callbacks.values())#+[dsm]
+        callbacks=list(callbacks.values()),#+[dsm],
+        profiler="simple"
     )
     #module = torch.compile(module)
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
-    trainer.predict(module, datamodule=datamodule, return_predictions=False)
+    #trainer.predict(module, datamodule=datamodule, return_predictions=False)
     
 if __name__ == "__main__":
     train()

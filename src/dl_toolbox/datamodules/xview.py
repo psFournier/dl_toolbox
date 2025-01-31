@@ -23,7 +23,9 @@ class xView(Base):
         merges = [list(l.values) for l in self.class_list]
         for merge in merges:
             # It seems that xview annotations geojson contain bboxes for images not in train_images nor val (test set not avail?)
-            ids += [id for id in coco.getImgIds(catIds=merge) if id in coco.imgs.keys()]
+            merge_ids = [id for id in coco.getImgIds(catIds=merge) if id in coco.imgs.keys()]
+            self.root/coco.loadImgs(id)[0]["file_name"]
+            ids += merge_ids
         nb_imgs = len(ids)
         val_start, test_start = int(0.7*nb_imgs), int(0.8*nb_imgs)
         self.train_ids, self.val_ids = ids[:val_start], ids[val_start:test_start]
