@@ -107,17 +107,12 @@ class xView1(Dataset):
     """
     classes = classes
 
-    def __init__(self, root, annFile, transforms=None, merge='all'):
+    def __init__(self, root, coco_dataset, ids, transforms=None, merge='all'):
         self.root = Path(root)
-        self.transforms = transforms
-        from pycocotools.coco import COCO
-        self.coco = COCO(annFile)
-        self.ids = []
-        self.class_list = self.classes[merge].value
-        self.merges = [list(l.values) for l in self.class_list]
-        for merge in self.merges:
-            self.ids += self.coco.getImgIds(catIds=merge)
+        self.coco = coco_dataset
+        self.ids = ids
         self.init_tf(transforms)
+        self.class_list = self.classes[merge].value   
         
     def init_tf(self, tf):
         self.transforms = v2.ToDtype(

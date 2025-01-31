@@ -22,12 +22,12 @@ class LossEvaluator(nn.Module):
         cness_preds = cness_preds[pos_inds_b, pos_inds_loc, :].squeeze(-1)
         cness_tgts = self._compute_centerness_targets(reg_tgts)
         cls_loss = self._get_cls_loss(cls_logits, cls_tgts, max(num_pos, 1.))
-        reg_loss, centerness_loss = 0,0
-        if num_pos > 0:
-            reg_loss = self._get_reg_loss(
-                reg_preds, reg_tgts, cness_tgts)
-            centerness_loss = self._get_centerness_loss(
-                cness_preds, cness_tgts, num_pos)
+        #reg_loss, centerness_loss = 0,0
+        #if num_pos > 0:
+        reg_loss = self._get_reg_loss(
+            reg_preds, reg_tgts, cness_tgts)
+        centerness_loss = self._get_centerness_loss(
+            cness_preds, cness_tgts, max(num_pos, 1.))
         losses = {}
         losses["cls_loss"] = cls_loss
         losses["reg_loss"] = reg_loss
@@ -65,7 +65,7 @@ class LossEvaluator(nn.Module):
         xyxy_tgts = torch.cat([-ltrb_tgts[:,:2], ltrb_tgts[:,2:]], dim=1)
         reg_losses = torchvision.ops.distance_box_iou_loss(xyxy_preds, xyxy_tgts, reduction='none')
         sum_centerness_targets = centerness_targets.sum()
-        reg_loss = (reg_losses * centerness_targets).sum() / sum_centerness_targets
+        reg_loss = (reg_losses * centerness_targets).sum() / (sum_centerness_targets+1e-8)
         return reg_loss
 
     def _get_centerness_loss(self, centerness_preds, centerness_targets,
