@@ -1,0 +1,2 @@
+_target_: dl_toolbox.losses.FCOSLoss
+_partial_: True

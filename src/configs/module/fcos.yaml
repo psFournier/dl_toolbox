@@ -1,5 +1,6 @@
 defaults:
   - /network@model: ViTDet
+  - /loss: fcos
   - /optimizer: sgd
   - /scheduler: poly
   - _self_
