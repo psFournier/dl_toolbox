@@ -1,3 +1,6 @@
 _target_: dl_toolbox.networks.ViTDet
-_partial_: True
+_partial_: True # num_classes selected at run time
+backbone: vit_tiny_patch16_224 #samvit_base_patch16.sa1b
+in_channels: 192
 out_channels: 256
+add_extra_blocks: false

@@ -162,38 +162,6 @@ class FCOS(pl.LightningModule):
             box_format='xywh', # make sure your dataset outputs target in xywh format
             backend='faster_coco_eval'
         )
-        
-        #self.feature_extractor = create_feature_extractor(
-        #    resnet50(weights=ResNet50_Weights.IMAGENET1K_V2), 
-        #    {
-        #        'layer2.3.relu_2': 'layer2', # 1/8th feat map
-        #        'layer3.5.relu_2': 'layer3', # 1/16
-        #        'layer4.2.relu_2': 'layer4', # 1/32
-        #    }
-        #)
-        #inp = torch.randn(2, 3, 224, 224)
-        #with torch.no_grad():
-        #    out = self.feature_extractor(inp)
-        #in_channels_list = [o.shape[1] for o in out.values()]
-        #self.fpn = FeaturePyramidNetwork(
-        #    in_channels_list,
-        #    out_channels=256,
-        #    extra_blocks=LastLevelP6P7(256,256)
-        #)
-        #
-        #features = nn.Sequential(self.feature_extractor, self.fpn)
-        #inp = torch.randn(2, 3, 640, 640)
-        #with torch.no_grad():
-        #    out = features(inp)
-        #fm_sizes = [o.shape[2:] for o in out.values()]
-        #print(fm_sizes)
-        #
-        #self.head = Head(256, self.num_classes)
-        #fm_sizes=[(160,160),(80,80),(40,40),(20,20)]
-        #fm_strides = [8, 16, 32, 64, 128] 
-        #bb_sizes = [64, 128, 256, 512] 
-        #anchors, anchor_sizes = get_all_anchors_bb_sizes(
-        #    fm_sizes, fm_strides, bb_sizes)
         strides=[4, 8, 16, 32]
         feature_maps_sizes = [(input_size//s,input_size//s) for s in strides]
         anchors, anchor_sizes = get_all_anchors_bb_sizes(

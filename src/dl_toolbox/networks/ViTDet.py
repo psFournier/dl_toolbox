@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch import Tensor
-from torchvision.ops.feature_pyramid_network import ExtraFPNBlock
+from torchvision.ops.feature_pyramid_network import ExtraFPNBlock, LastLevelP6P7
 from torchvision.ops.misc import Conv2dNormActivation
 from collections import OrderedDict
 
@@ -21,7 +21,13 @@ class Scale(nn.Module):
 
 class Head(nn.Module):
 
-    def __init__(self, in_channels, n_classes, n_share_convs=4, n_feat_levels=5):
+    def __init__(
+        self,
+        in_channels,
+        n_classes,
+        n_share_convs=4,
+        n_feat_levels=5
+    ):
         super().__init__()
         
         tower = []
@@ -132,6 +138,7 @@ class SimpleFeaturePyramidNetwork(nn.Module):
     ):
         super().__init__()
         self.blocks = nn.ModuleList()
+        self.n_feat_levels = 0
         for block_index in range(0,4):
             layers = []
             current_in_channels = in_channels
@@ -187,6 +194,7 @@ class SimpleFeaturePyramidNetwork(nn.Module):
                 )
             ])
             self.blocks.append(nn.Sequential(*layers))
+            self.n_feat_levels += 1
 
         if extra_blocks is not None:
             if not isinstance(extra_blocks, ExtraFPNBlock):
@@ -217,25 +225,52 @@ class SimpleFeaturePyramidNetwork(nn.Module):
     
 class ViTDet(nn.Module):
     
-    def __init__(self, out_channels, num_classes):
+    def __init__(
+        self,
+        backbone,
+        in_channels,
+        out_channels,
+        num_classes,
+        add_extra_blocks
+    ):
         super(ViTDet, self).__init__()
-        #self.backbone = timm.create_model('samvit_base_patch16.sa1b', pretrained=True)
         self.backbone = timm.create_model(
-            'vit_tiny_patch16_224',
+            backbone,
             pretrained=True,
             dynamic_img_size=True #Deals with inputs of other size than pretraining
         )
+        if add_extra_blocks:
+            extra_blocks = LastLevelP6P7(
+                out_channels,
+                out_channels
+            )
+        else:
+            extra_blocks = None
         self.sfpn = SimpleFeaturePyramidNetwork(
-            in_channels=192,
+            in_channels=in_channels,
             out_channels=out_channels,
-            #extra_blocks=LastLevelP6P7(out_channels,out_channels),
+            extra_blocks=extra_blocks,
             norm_layer=LayerNorm2d
         )
-        self.head = Head(out_channels, num_classes, n_feat_levels=6) # 6=4+2extrablocks
+        n_feat_levels = self.sfpn.n_feat_levels
+        if extra_blocks is not None:
+            n_feat_levels += 2
+        self.head = Head(
+            in_channels=out_channels,
+            n_classes=num_classes,
+            n_feat_levels=n_feat_levels
+        )
         
     def forward_feat(self, x):
-        intermediates = self.backbone.forward_intermediates(x, indices=1, norm=False, intermediates_only=True)
-        features = self.sfpn(intermediates[0])
+        intermediates = self.backbone.forward_intermediates(
+            x,
+            indices=1,
+            norm=False,
+            intermediates_only=True
+        )
+        features = self.sfpn(
+            intermediates[0]
+        )
         return features
     
     def forward(self, x):
