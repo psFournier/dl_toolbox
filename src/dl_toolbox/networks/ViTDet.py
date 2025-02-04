@@ -133,13 +133,15 @@ class SimpleFeaturePyramidNetwork(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
+        block_indices=[0,1,2,3],
         extra_blocks: Optional[ExtraFPNBlock] = None,
         norm_layer: Optional[Callable[..., nn.Module]] = None,
     ):
         super().__init__()
         self.blocks = nn.ModuleList()
         self.n_feat_levels = 0
-        for block_index in range(0,4):
+        self.strides = []
+        for block_index in block_indices:
             layers = []
             current_in_channels = in_channels
             if block_index == 0:
@@ -160,6 +162,7 @@ class SimpleFeaturePyramidNetwork(nn.Module):
                     ),
                 ])
                 current_in_channels = in_channels // 4
+                stride = 1/4
             elif block_index == 1:
                 layers.append(
                     nn.ConvTranspose2d(
@@ -170,10 +173,13 @@ class SimpleFeaturePyramidNetwork(nn.Module):
                     ),
                 )
                 current_in_channels = in_channels // 2
+                stride = 1/2
             elif block_index == 2:
                 # nothing to do for this scale
+                stride = 1
                 pass
             elif block_index == 3:
+                stride = 2
                 layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
 
             layers.extend([
@@ -195,6 +201,7 @@ class SimpleFeaturePyramidNetwork(nn.Module):
             ])
             self.blocks.append(nn.Sequential(*layers))
             self.n_feat_levels += 1
+            self.strides.append(float(stride))
 
         if extra_blocks is not None:
             if not isinstance(extra_blocks, ExtraFPNBlock):
@@ -228,7 +235,6 @@ class ViTDet(nn.Module):
     def __init__(
         self,
         backbone,
-        in_channels,
         out_channels,
         num_classes,
         add_extra_blocks
@@ -247,12 +253,16 @@ class ViTDet(nn.Module):
         else:
             extra_blocks = None
         self.sfpn = SimpleFeaturePyramidNetwork(
-            in_channels=in_channels,
+            in_channels=self.backbone.embed_dim,
             out_channels=out_channels,
             extra_blocks=extra_blocks,
             norm_layer=LayerNorm2d
         )
         n_feat_levels = self.sfpn.n_feat_levels
+        patch_size = self.backbone.patch_embed.patch_size[0]
+        self.strides = [patch_size*stride for stride in self.sfpn.strides]
+        #assert all(map(lambda x: x.is_integer(), strides))
+        #self.strides = [int(s) for s in strides]
         if extra_blocks is not None:
             n_feat_levels += 2
         self.head = Head(

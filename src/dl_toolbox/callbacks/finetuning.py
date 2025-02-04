@@ -12,7 +12,7 @@ class Finetuning(BaseFinetuning):
 
     def freeze_before_training(self, pl_module):
         if self.activated:
-            self.freeze(getattr(pl_module, self.module_name), train_bn=self.train_bn)
+            self.freeze(getattr(pl_module.model, self.module_name), train_bn=self.train_bn)
     
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the epoch begins."""
@@ -26,7 +26,7 @@ class Finetuning(BaseFinetuning):
     def finetune_function(self, pl_module, current, optimizer):
         if self.activated and current == self.unfreeze_at:
             self.unfreeze_and_add_param_group(
-                modules=getattr(pl_module, self.module_name),
+                modules=getattr(pl_module.model, self.module_name),
                 optimizer=optimizer,
                 lr=None,
                 initial_denom_lr=self.initial_denom_lr,

@@ -7,6 +7,7 @@ defaults:
 
 _target_: dl_toolbox.modules.FCOS
 input_size: 448
+det_size_bounds: [128, 256, 512]
 pre_nms_thresh: 0.3
 pre_nms_top_n: 100000
 nms_thresh: 0.45

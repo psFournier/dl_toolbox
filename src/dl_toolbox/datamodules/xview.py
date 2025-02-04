@@ -12,10 +12,12 @@ class xView(Base):
     
     def __init__(
         self,
+        tile_size,
         *args,
         **kwargs
     ):    
         super().__init__(*args, **kwargs)
+        self.tile_size = tile_size # w
         self.class_list = xView1.classes[self.merge].value   
         
     def prepare_data(self):        
@@ -26,18 +28,28 @@ class xView(Base):
             # It seems that xview annotations geojson contain bboxes for images not in train_images nor val (test set not avail?)
             ids += [id for id in coco.getImgIds(catIds=merge) if id in coco.imgs.keys()]
         nb_imgs = len(ids)
-        val_start, test_start = int(0.7*nb_imgs), int(0.75*nb_imgs)
+        val_start, test_start = int(0.8*nb_imgs), int(0.85*nb_imgs)
         train_ids, val_ids = ids[:val_start], ids[val_start:test_start]
         self.train_ids_and_windows = []
         for id in train_ids:
             img = coco.imgs[id]
-            w, h = img['width'], img['height']
-            self.train_ids_and_windows += [(id, w) for w in get_tiles(w,h,448,step_w=256)]
+            tiles = get_tiles(
+                img['width'],
+                img['height'],
+                self.tile_size,
+                step_w=256
+            )
+            self.train_ids_and_windows += [(id, w) for w in tiles]
         self.val_ids_and_windows = []
         for id in val_ids:
             img = coco.imgs[id]
-            w, h = img['width'], img['height']
-            self.val_ids_and_windows += [(id, w) for w in get_tiles(w,h,448,step_w=448)]
+            tiles = get_tiles(
+                img['width'],
+                img['height'],
+                self.tile_size,
+                step_w=self.tile_size
+            )
+            self.val_ids_and_windows += [(id, w) for w in tiles]
         self.coco = coco
     
     def setup(self, stage=None):

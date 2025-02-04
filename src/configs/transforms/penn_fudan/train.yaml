@@ -2,9 +2,9 @@ _target_: torchvision.transforms.v2.Compose
 transforms: 
     - _target_: torchvision.transforms.v2.Resize
       size: 480
-      max_size: 640
+      max_size: 672
     - _target_: torchvision.transforms.v2.RandomCrop
-      size: [640, 640]
+      size: [672, 672]
       pad_if_needed: true
       fill: 0
     - _target_: torchvision.transforms.v2.ConvertBoundingBoxFormat

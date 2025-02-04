@@ -143,6 +143,7 @@ class FCOS(pl.LightningModule):
         optimizer,
         scheduler,
         input_size,
+        det_size_bounds,
         pre_nms_thresh=0.3,
         pre_nms_top_n=100000,
         nms_thresh=0.45,
@@ -162,12 +163,13 @@ class FCOS(pl.LightningModule):
             box_format='xywh', # make sure your dataset outputs target in xywh format
             backend='faster_coco_eval'
         )
-        strides=[4, 8, 16, 32]
-        feature_maps_sizes = [(input_size//s,input_size//s) for s in strides]
+        feature_maps_sizes = [input_size/s for s in self.model.strides]
+        assert all(map(lambda x: x.is_integer(), feature_maps_sizes))
+        feature_maps_sizes = [(int(fms), int(fms)) for fms in feature_maps_sizes]
         anchors, anchor_sizes = get_all_anchors_bb_sizes(
-            fm_sizes=feature_maps_sizes, # 640/16 * [4,2,1,0.5]
-            fm_strides=strides,
-            bb_sizes=[128, 256, 512]
+            fm_sizes=feature_maps_sizes,
+            fm_strides=self.model.strides,
+            bb_sizes=det_size_bounds
         )
         self.register_buffer('anchors', anchors) # Lx2
         self.register_buffer('anchor_sizes', anchor_sizes) # Lx2
@@ -194,19 +196,7 @@ class FCOS(pl.LightningModule):
         }
 
     def forward(self, x):
-        return self.model(x)
-        #features = self.feature_extractor(x)
-        #feature_maps = list(self.fpn(features).values()) # feature maps from FPN
-        ##features = list(self.features(x).values()) # feature maps from FPN
-        #box_cls, box_regression, centerness = self.head(feature_maps)
-        #return box_cls, box_regression, centerness
-        #return self.network(x)
-    
-    #def predict(self, x):
-    #    cls_logits, bbox_reg, centerness = self.forward(x)
-    #    preds = self.post_process(cls_logits, bbox_reg, centerness, x.shape[-1])
-    #    return preds
-    
+        return self.model(x)    
 
     def post_process_batch(
         self,
@@ -300,19 +290,10 @@ class FCOS(pl.LightningModule):
         )
         loss = losses['combined_loss']
         self.log(f"Loss/train", loss.detach().item())
+        self.log(f"cls_loss/train", losses['cls_loss'].detach().item())
+        self.log(f"reg_loss/train", losses['reg_loss'].detach().item())
+        self.log(f"centerness_loss/train", losses['centerness_loss'].detach().item())
         return loss
-        
-        #b = batch['sup']
-        #cls_logits, bbox_reg, centerness = self.forward(b['image']) # BxNumAnchorsxC, BxNumAnchorsx4, BxNumx1
-        #cls_tgts, reg_tgts = associate_targets_to_anchors(
-        #    b['target'], self.anchors, self.anchor_sizes) # BxNumAnchors, BxNumAnchorsx4
-        #losses = self.loss(cls_logits, bbox_reg, centerness, cls_tgts, reg_tgts)
-        #train_loss = losses["combined_loss"]
-        #self.log(f"Loss/train", train_loss.detach().item())
-        #self.train_losses.append(train_loss.detach().item())
-        ##preds = self.post_process(cls_logits, bbox_reg, centerness, x.shape[-1])
-        ##self.map_metric.update(preds, targets)
-        #return train_loss
         
     def validation_step(self, batch, batch_idx):
         
@@ -332,7 +313,7 @@ class FCOS(pl.LightningModule):
         )
         loss = losses['combined_loss']
         self.log(f"Loss/val", loss.detach().item())
-        b,c,h,w = image.shape
+        b,c,h,w = image.shape           
         preds = self.post_process_batch(
             cls_logits,
             bbox_reg,
@@ -340,21 +321,6 @@ class FCOS(pl.LightningModule):
             (h,w),
         )
         self.map_metric.update(preds, batch['target'])
-            
-        #cls_logits, bbox_reg, centerness = self.forward(batch['image']) # BxNumAnchorsxC, BxNumAnchorsx4, BxNumx1
-        #cls_tgts, reg_tgts = associate_targets_to_anchors(
-        #    batch['target'], self.anchors, self.anchor_sizes) # BxNumAnchors, BxNumAnchorsx4
-        #losses = self.loss(cls_logits, bbox_reg, centerness, cls_tgts, reg_tgts)
-        #val_loss = losses["combined_loss"]
-        #self.log(f"Loss/val", val_loss.detach().item())
-        #preds = self.post_process(cls_logits, bbox_reg, centerness, batch['image'].shape[-1])
-        #self.map_metric.update(preds, batch['target'])
-        #self.val_losses.append(val_loss.detach().item())
-        
-    #def on_train_epoch_end(self):
-    #    train_loss = sum(self.train_losses)/len(self.train_losses)
-    #    print(f'\n{train_loss=}')
-    #    self.train_losses.clear()
         
     def on_validation_epoch_end(self):
         mapmetric = self.map_metric.compute()['map']

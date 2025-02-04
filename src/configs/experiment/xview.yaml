@@ -10,11 +10,17 @@ defaults:
 # this allows you to overwrite only specified parameters
 
 experiment_name: "xview"
-
+        
+datamodule:
+    tile_size: 672
+    merge: building
+    
 module:
-    input_size: 448
+    input_size: ${datamodule.tile_size}
     optimizer:
         weight_decay: 0.05
+    model:
+        backbone: vit_base_patch14_dinov2
             
 trainer:
   max_steps: 1000000
@@ -37,8 +43,9 @@ hydra:
     
 callbacks:
     finetuning:
-        activated: false
-        unfreeze_at: 1000
+        activated: true
+        module_name: backbone
+        unfreeze_at: 100
         initial_denom_lr: 100
     lora:
         activated: false

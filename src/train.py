@@ -23,7 +23,7 @@ def train(cfg: DictConfig) -> None:
             ".", "", "", default_hp_metric=False
         ),
         callbacks=list(callbacks.values()),#+[dsm],
-        profiler="simple"
+        #profiler="simple"
     )
     #module = torch.compile(module)
     trainer.fit(module, datamodule=datamodule, ckpt_path=cfg.ckpt)
