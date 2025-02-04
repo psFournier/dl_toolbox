@@ -12,11 +12,10 @@ defaults:
 experiment_name: "xview"
         
 datamodule:
-    tile_size: 672
     merge: building
     
 module:
-    input_size: ${datamodule.tile_size}
+    input_size: 672
     optimizer:
         weight_decay: 0.05
     model:

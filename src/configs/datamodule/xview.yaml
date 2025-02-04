@@ -5,7 +5,6 @@ defaults:
 
 _target_: dl_toolbox.datamodules.xView
 merge: all
-tile_size: 672
 data_path: ${paths.data}
 batch_size: 2
 num_workers: 6
