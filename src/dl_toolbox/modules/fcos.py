@@ -142,6 +142,7 @@ class FCOS(pl.LightningModule):
         loss,
         optimizer,
         scheduler,
+        #scheduler_interval,
         input_size,
         det_size_bounds,
         pre_nms_thresh=0.3,
@@ -159,6 +160,7 @@ class FCOS(pl.LightningModule):
         self.loss = loss(num_classes=self.num_classes)
         self.optimizer = optimizer
         self.scheduler = scheduler
+        #self.scheduler_interval = scheduler_interval
         self.map_metric = MeanAveragePrecision(
             box_format='xywh', # make sure your dataset outputs target in xywh format
             backend='faster_coco_eval'
@@ -326,3 +328,7 @@ class FCOS(pl.LightningModule):
         mapmetric = self.map_metric.compute()['map']
         self.log("map/val", mapmetric)
         self.map_metric.reset()
+        
+    #def predict_step(self):
+    #    image = batch["image"]
+    #    cls_logits, bbox_reg, centerness = self.model(image)

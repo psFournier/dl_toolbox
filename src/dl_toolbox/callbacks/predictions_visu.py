@@ -30,7 +30,9 @@ def display_batch(trainer, module, batch, prefix, mode):
         preds = list(preds.detach().cpu()[:nb])
         fig = show_segmentations(int_imgs, preds, class_list, alpha=0.5)
     elif mode=='detection':
-        preds = module.predict(x)
+        b,c,h,w = x.shape
+        outputs = module.forward(x)
+        preds = module.post_process_batch(*outputs, (h,w))
         preds = [{k: v.detach().cpu() for k, v in p.items()} for p in preds]
         fig = show_detections(int_imgs, preds, class_list)    
     

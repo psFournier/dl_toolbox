@@ -4,7 +4,7 @@ defaults:
   - override /datamodule: xview
   - override /module: fcos
   - override /optimizer@module.optimizer: adamw
-  - override /scheduler@module.scheduler: onecycle
+  - override /scheduler@module.scheduler: constant
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
@@ -17,7 +17,10 @@ datamodule:
 module:
     input_size: 672
     optimizer:
+        lr: 0.0001
         weight_decay: 0.05
+    scheduler:
+        total_iters: 10000
     model:
         backbone: vit_base_patch14_dinov2
             
@@ -50,7 +53,7 @@ callbacks:
         activated: false
     preds_visu:
         mode: detection
-        freq: 0
+        freq: 10
     preds_writing:
         every_n_batch: 0
         base_path: ${datamodule.data_path}

@@ -7,6 +7,7 @@ from collections import OrderedDict
 
 import timm
 from typing import Callable, Dict, Optional
+import math
 
 
 class Scale(nn.Module):
@@ -60,6 +61,19 @@ class Head(nn.Module):
                                  padding=1)
 
         self.scales = nn.ModuleList([Scale(init_value=1.0) for _ in range(n_feat_levels)])
+        
+        # initialization
+        for modules in [self.shared_layers, self.cls_logits,
+                        self.bbox_pred, self.ctrness]:
+            for l in modules.modules():
+                if isinstance(l, nn.Conv2d):
+                    torch.nn.init.normal_(l.weight, std=0.01)
+                    torch.nn.init.constant_(l.bias, 0)
+
+        # initialize the bias for focal loss
+        prior_prob = 0.01
+        bias_value = -math.log((1 - prior_prob) / prior_prob)
+        torch.nn.init.constant_(self.cls_logits.bias, bias_value)
 
     def forward(self, x):
         cls_logits = []
