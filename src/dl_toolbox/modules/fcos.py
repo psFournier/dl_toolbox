@@ -174,7 +174,7 @@ class FCOS(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         image = batch["sup"]["image"]               
         cls_logits, bbox_reg, centerness = self.model(image)
-        cls_tgts, reg_tgts = associate_targets_to_anchors(
+        cls_tgts, reg_tgts = self.associate_targets_to_anchors(
             batch["sup"]['target'],
             self.anchors,
             self.anchor_sizes
@@ -196,7 +196,7 @@ class FCOS(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         image = batch["image"]
         cls_logits, bbox_reg, centerness = self.model(image)
-        cls_tgts, reg_tgts = associate_targets_to_anchors(
+        cls_tgts, reg_tgts = self.associate_targets_to_anchors(
             batch['target'],
             self.anchors,
             self.anchor_sizes
@@ -256,8 +256,8 @@ class FCOS(pl.LightningModule):
                 reg_targets = reg_targets.new_zeros((len(anchors),4))
             all_cls_targets.append(cls_targets)
             all_reg_targets.append(reg_targets)
-    # BxL & BxLx4
-    return torch.stack(all_cls_targets), torch.stack(all_reg_targets)    
+        # BxL & BxLx4
+        return torch.stack(all_cls_targets), torch.stack(all_reg_targets)    
         
     @classmethod
     def get_anchors(cls, model, input_size, det_size_bounds):
