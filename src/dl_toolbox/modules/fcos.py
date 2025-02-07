@@ -96,42 +96,6 @@ def anchor_bbox_area(bbox, anchors, fits_to_feature_level):
     anchor_bbox_area[~fits_to_feature_level] = INF
     return anchor_bbox_area
 
-def associate_targets_to_anchors(targets_batch, anchors, anchors_bb_sizes):
-    """
-    Associate one target cls/bbox to regress ONLY to each anchor: among the bboxes that contain the anchor and have the right size, pick that of min area.
-    If no tgt exists for an anchor, the tgt class is 0.
-    inputs:
-        targets_batch: list of dict of tv_tensors {'labels':, 'boxes':}; boxes should be in XYWH format
-        anchors: 
-        anchor_bb_sizes:
-    outputs:
-        all class targets: BxNumAnchors
-        all bbox targets: BxNumAnchorsx4
-    """
-    all_reg_targets, all_cls_targets = [], []
-    for targets in targets_batch:
-        bbox_targets = targets['boxes'] # Tx4, format XYWH
-        cls_targets = targets['labels'] # T
-        reg_targets = calculate_reg_targets(
-            anchors, bbox_targets) # LxTx4, LxT
-        fits_to_feature_level = apply_distance_constraints(
-            reg_targets, anchors_bb_sizes) # LxT
-        locations_to_gt_area = anchor_bbox_area(
-            bbox_targets, anchors, fits_to_feature_level)
-        # Core of the anchor/target association
-        if cls_targets.shape[0]>0:
-            loc_min_area, loc_min_idxs = locations_to_gt_area.min(dim=1) #L,idx in [0,T-1],T must be>0
-            reg_targets = reg_targets[range(len(anchors)), loc_min_idxs] # Lx4
-            cls_targets = cls_targets[loc_min_idxs] # L
-            cls_targets[loc_min_area == INF] = 0 # 0 is no-obj category
-        else:
-            cls_targets = cls_targets.new_zeros((len(anchors),))
-            reg_targets = reg_targets.new_zeros((len(anchors),4))
-        all_cls_targets.append(cls_targets)
-        all_reg_targets.append(reg_targets)
-    # BxL & BxLx4
-    return torch.stack(all_cls_targets), torch.stack(all_reg_targets)
-
 ## FCOS lightning module
 
 class FCOS(pl.LightningModule):
@@ -165,23 +129,15 @@ class FCOS(pl.LightningModule):
             box_format='xywh', # make sure your dataset outputs target in xywh format
             backend='faster_coco_eval'
         )
-        feature_maps_sizes = [input_size/s for s in self.model.strides]
-        assert all(map(lambda x: x.is_integer(), feature_maps_sizes))
-        feature_maps_sizes = [(int(fms), int(fms)) for fms in feature_maps_sizes]
-        anchors, anchor_sizes = get_all_anchors_bb_sizes(
-            fm_sizes=feature_maps_sizes,
-            fm_strides=self.model.strides,
-            bb_sizes=det_size_bounds
-        )
+        anchors, anchor_sizes = self.get_anchors(self.model, input_size, det_size_bounds)
         self.register_buffer('anchors', anchors) # Lx2
         self.register_buffer('anchor_sizes', anchor_sizes) # Lx2
-                
         self.pre_nms_thresh = pre_nms_thresh
         self.pre_nms_top_n = pre_nms_top_n
         self.nms_thresh = nms_thresh
         self.fpn_post_nms_top_n = fpn_post_nms_top_n
         self.min_size = min_size
-    
+
     def configure_optimizers(self):
         train_params = list(filter(lambda p: p[1].requires_grad, self.named_parameters()))
         nb_train = sum([int(torch.numel(p[1])) for p in train_params])
@@ -197,85 +153,25 @@ class FCOS(pl.LightningModule):
             },
         }
 
-    def forward(self, x):
-        return self.model(x)    
-
-    def post_process_batch(
-        self,
-        cls_preds, # B x L x C 
-        reg_preds, # B x L x 4
-        cness_preds, # B x L x 1
-        input_size
-    ): 
-        preds = []
-        for logits, ltrb, cness in zip(cls_preds, reg_preds, cness_preds):
-            boxes, scores, classes = self.post_process(logits, ltrb, cness, input_size)
-            preds.append({'boxes': boxes, 'scores': scores, 'labels': classes})
+    def forward(self, x, cls_logits=None, bbox_reg=None, centerness=None):
+        if cls_logits is None or bbox_reg is None or centerness is None:
+            cls_logits, bbox_reg, centerness = self.model(x) 
+        b,c,h,w = x.shape           
+        preds = self.post_process_batch(
+            cls_logits,
+            bbox_reg,
+            centerness,
+            (h,w),
+            self.anchors, 
+            self.pre_nms_thresh,
+            self.pre_nms_top_n,
+            self.min_size,
+            self.nms_thresh,
+            self.fpn_post_nms_top_n
+        )
         return preds
     
-    def post_process(
-        self,
-        logits,
-        ltrb,
-        cness,
-        input_size
-    ):
-        probas = logits.sigmoid() # LxC
-        high_probas = probas > self.pre_nms_thresh # LxC
-        # Indices on L and C axis of high prob pairs anchor/class
-        high_prob_anchors_idx, high_prob_cls = high_probas.nonzero(as_tuple=True) # dim l <= L*C
-        high_prob_cls += 1 # 0 is for no object
-        high_prob_ltrb = ltrb[high_prob_anchors_idx] # lx4
-        high_prob_anchors = self.anchors[high_prob_anchors_idx] # lx2
-        # Tensor shape l with values from logits*cness such that logits > pre_nms_thresh 
-        cness_modulated_probas = probas * cness.sigmoid() # LxC
-        high_prob_scores = cness_modulated_probas[high_probas] # l
-        # si l est trop longue
-        if high_probas.sum().item() > self.pre_nms_top_n:
-            # Filter the pre_nms_top_n most probable pairs 
-            high_prob_scores, top_k_indices = high_prob_scores.topk(
-                self.pre_nms_top_n, sorted=False) 
-            high_prob_cls = high_prob_cls[top_k_indices]
-            high_prob_ltrb = high_prob_ltrb[top_k_indices]
-            high_prob_anchors = high_prob_anchors[top_k_indices]
-
-        # Rewrites bbox (x0,y0,x1,y1) from reg targets (l,t,r,b) following eq (1) in paper
-        high_prob_boxes = torch.stack([
-            high_prob_anchors[:, 0] - high_prob_ltrb[:, 0],
-            high_prob_anchors[:, 1] - high_prob_ltrb[:, 1],
-            high_prob_anchors[:, 0] + high_prob_ltrb[:, 2],
-            high_prob_anchors[:, 1] + high_prob_ltrb[:, 3],
-        ], dim=1)
-
-        high_prob_boxes = torchvision.ops.clip_boxes_to_image(high_prob_boxes, input_size)
-        big_enough_box_idxs = torchvision.ops.remove_small_boxes(high_prob_boxes, self.min_size)
-        boxes = high_prob_boxes[big_enough_box_idxs]
-        # Why not do that on scores and classes too ? 
-        classes = high_prob_cls[big_enough_box_idxs]
-        scores = high_prob_scores[big_enough_box_idxs]
-        #high_prob_scores = torch.sqrt(high_prob_scores) # WHY SQRT ? REmOVED
-        # NMS expects boxes to be in xyxy format
-        nms_idxs = torchvision.ops.nms(boxes, scores, self.nms_thresh)
-        boxes = boxes[nms_idxs]
-        scores = scores[nms_idxs]
-        classes = classes[nms_idxs]
-        if len(nms_idxs) > self.fpn_post_nms_top_n:
-            image_thresh, _ = torch.kthvalue(
-                scores.cpu(),
-                len(nms_idxs) - self.fpn_post_nms_top_n + 1)
-            keep = scores >= image_thresh.item()
-            #keep = torch.nonzero(keep).squeeze(1)
-            boxes, scores, classes = boxes[keep], scores[keep], classes[keep]
-        # Then back to xywh boxes for preds and metric computation
-        boxes[:, 2] -= boxes[:, 0]
-        boxes[:, 3] -= boxes[:, 1]
-        # Isn't this cond auto valid from the beginning filter ?
-        #keep = scores >= pre_nms_thresh
-        #boxes, scores, classes = boxes[keep], scores[keep], classes[keep]
-        return boxes, scores, classes 
-    
     def training_step(self, batch, batch_idx):
-        
         image = batch["sup"]["image"]               
         cls_logits, bbox_reg, centerness = self.model(image)
         cls_tgts, reg_tgts = associate_targets_to_anchors(
@@ -298,14 +194,13 @@ class FCOS(pl.LightningModule):
         return loss
         
     def validation_step(self, batch, batch_idx):
-        
+        image = batch["image"]
+        cls_logits, bbox_reg, centerness = self.model(image)
         cls_tgts, reg_tgts = associate_targets_to_anchors(
             batch['target'],
             self.anchors,
             self.anchor_sizes
         )
-        image = batch["image"]
-        cls_logits, bbox_reg, centerness = self.model(image)
         losses = self.loss(
             cls_logits,
             bbox_reg,
@@ -315,13 +210,7 @@ class FCOS(pl.LightningModule):
         )
         loss = losses['combined_loss']
         self.log(f"Loss/val", loss.detach().item())
-        b,c,h,w = image.shape           
-        preds = self.post_process_batch(
-            cls_logits,
-            bbox_reg,
-            centerness,
-            (h,w),
-        )
+        preds = self.forward(image, cls_logits, bbox_reg, centerness)
         self.map_metric.update(preds, batch['target'])
         
     def on_validation_epoch_end(self):
@@ -332,3 +221,142 @@ class FCOS(pl.LightningModule):
     #def predict_step(self):
     #    image = batch["image"]
     #    cls_logits, bbox_reg, centerness = self.model(image)
+    
+    @classmethod
+    def associate_targets_to_anchors(cls, targets_batch, anchors, anchors_bb_sizes):
+        """
+        Associate one target cls/bbox to regress ONLY to each anchor: among the bboxes that contain the anchor and have the right size, pick that of min area.
+        If no tgt exists for an anchor, the tgt class is 0.
+        inputs:
+            targets_batch: list of dict of tv_tensors {'labels':, 'boxes':}; boxes should be in XYWH format
+            anchors: 
+            anchor_bb_sizes:
+        outputs:
+            all class targets: BxNumAnchors
+            all bbox targets: BxNumAnchorsx4
+        """
+        all_reg_targets, all_cls_targets = [], []
+        for targets in targets_batch:
+            bbox_targets = targets['boxes'] # Tx4, format XYWH
+            cls_targets = targets['labels'] # T
+            reg_targets = calculate_reg_targets(
+                anchors, bbox_targets) # LxTx4, LxT
+            fits_to_feature_level = apply_distance_constraints(
+                reg_targets, anchors_bb_sizes) # LxT
+            locations_to_gt_area = anchor_bbox_area(
+                bbox_targets, anchors, fits_to_feature_level)
+            # Core of the anchor/target association
+            if cls_targets.shape[0]>0:
+                loc_min_area, loc_min_idxs = locations_to_gt_area.min(dim=1) #L,idx in [0,T-1],T must be>0
+                reg_targets = reg_targets[range(len(anchors)), loc_min_idxs] # Lx4
+                cls_targets = cls_targets[loc_min_idxs] # L
+                cls_targets[loc_min_area == INF] = 0 # 0 is no-obj category
+            else:
+                cls_targets = cls_targets.new_zeros((len(anchors),))
+                reg_targets = reg_targets.new_zeros((len(anchors),4))
+            all_cls_targets.append(cls_targets)
+            all_reg_targets.append(reg_targets)
+    # BxL & BxLx4
+    return torch.stack(all_cls_targets), torch.stack(all_reg_targets)    
+        
+    @classmethod
+    def get_anchors(cls, model, input_size, det_size_bounds):
+        feature_maps_sizes = [input_size/s for s in model.strides]
+        assert all(map(lambda x: x.is_integer(), feature_maps_sizes))
+        feature_maps_sizes = [(int(fms), int(fms)) for fms in feature_maps_sizes]
+        return get_all_anchors_bb_sizes(
+            fm_sizes=feature_maps_sizes,
+            fm_strides=model.strides,
+            bb_sizes=det_size_bounds
+        )
+    
+    @classmethod
+    def post_process_batch(
+        cls,
+        cls_preds, # B x L x C 
+        reg_preds, # B x L x 4
+        cness_preds, # B x L x 1
+        input_size,
+        anchors,
+        pre_nms_thresh,
+        pre_nms_top_n,
+        min_size,
+        nms_thresh,
+        fpn_post_nms_top_n
+    ): 
+        preds = []
+        for logits, ltrb, cness in zip(cls_preds, reg_preds, cness_preds):
+            boxes, scores, classes = cls.post_process(
+                logits, ltrb, cness, input_size, anchors, 
+                pre_nms_thresh, pre_nms_top_n, min_size, nms_thresh, fpn_post_nms_top_n
+            )
+            preds.append({'boxes': boxes, 'scores': scores, 'labels': classes})
+        return preds
+    
+    @classmethod
+    def post_process(
+        cls,
+        logits,
+        ltrb,
+        cness,
+        input_size,
+        anchors,
+        pre_nms_thresh,
+        pre_nms_top_n,
+        min_size,
+        nms_thresh,
+        fpn_post_nms_top_n
+    ):
+        probas = logits.sigmoid() # LxC
+        high_probas = probas > pre_nms_thresh # LxC
+        # Indices on L and C axis of high prob pairs anchor/class
+        high_prob_anchors_idx, high_prob_cls = high_probas.nonzero(as_tuple=True) # dim l <= L*C
+        high_prob_cls += 1 # 0 is for no object
+        high_prob_ltrb = ltrb[high_prob_anchors_idx] # lx4
+        high_prob_anchors = anchors[high_prob_anchors_idx] # lx2
+        # Tensor shape l with values from logits*cness such that logits > pre_nms_thresh 
+        cness_modulated_probas = probas * cness.sigmoid() # LxC
+        high_prob_scores = cness_modulated_probas[high_probas] # l
+        # si l est trop longue
+        if high_probas.sum().item() > pre_nms_top_n:
+            # Filter the pre_nms_top_n most probable pairs 
+            high_prob_scores, top_k_indices = high_prob_scores.topk(
+                pre_nms_top_n, sorted=False) 
+            high_prob_cls = high_prob_cls[top_k_indices]
+            high_prob_ltrb = high_prob_ltrb[top_k_indices]
+            high_prob_anchors = high_prob_anchors[top_k_indices]
+
+        # Rewrites bbox (x0,y0,x1,y1) from reg targets (l,t,r,b) following eq (1) in paper
+        high_prob_boxes = torch.stack([
+            high_prob_anchors[:, 0] - high_prob_ltrb[:, 0],
+            high_prob_anchors[:, 1] - high_prob_ltrb[:, 1],
+            high_prob_anchors[:, 0] + high_prob_ltrb[:, 2],
+            high_prob_anchors[:, 1] + high_prob_ltrb[:, 3],
+        ], dim=1)
+
+        high_prob_boxes = torchvision.ops.clip_boxes_to_image(high_prob_boxes, input_size)
+        big_enough_box_idxs = torchvision.ops.remove_small_boxes(high_prob_boxes, min_size)
+        boxes = high_prob_boxes[big_enough_box_idxs]
+        # Why not do that on scores and classes too ? 
+        classes = high_prob_cls[big_enough_box_idxs]
+        scores = high_prob_scores[big_enough_box_idxs]
+        #high_prob_scores = torch.sqrt(high_prob_scores) # WHY SQRT ? REmOVED
+        # NMS expects boxes to be in xyxy format
+        nms_idxs = torchvision.ops.nms(boxes, scores, nms_thresh)
+        boxes = boxes[nms_idxs]
+        scores = scores[nms_idxs]
+        classes = classes[nms_idxs]
+        if len(nms_idxs) > fpn_post_nms_top_n:
+            image_thresh, _ = torch.kthvalue(
+                scores.cpu(),
+                len(nms_idxs) - fpn_post_nms_top_n + 1)
+            keep = scores >= image_thresh.item()
+            #keep = torch.nonzero(keep).squeeze(1)
+            boxes, scores, classes = boxes[keep], scores[keep], classes[keep]
+        # Then back to xywh boxes for preds and metric computation
+        boxes[:, 2] -= boxes[:, 0]
+        boxes[:, 3] -= boxes[:, 1]
+        # Isn't this cond auto valid from the beginning filter ?
+        #keep = scores >= pre_nms_thresh
+        #boxes, scores, classes = boxes[keep], scores[keep], classes[keep]
+        return boxes, scores, classes 

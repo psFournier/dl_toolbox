@@ -53,7 +53,7 @@ callbacks:
         activated: false
     preds_visu:
         mode: detection
-        freq: 10
+        freq: 1
     preds_writing:
         every_n_batch: 0
         base_path: ${datamodule.data_path}

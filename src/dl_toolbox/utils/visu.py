@@ -4,6 +4,14 @@ import matplotlib.pyplot as plt
 import torch
 import matplotlib.patches as mpatches 
 
+def unnormalize(x):
+    imgs = list(x)
+    mins = [i.view(3, -1).min(1)[0].view(3, 1, 1) for i in imgs]
+    maxs = [i.view(3, -1).max(1)[0].view(3, 1, 1) for i in imgs]
+    unnorm_imgs = [(i-m)/(M-m) for i,m,M in zip(imgs, mins, maxs)]
+    int_imgs = [img.mul(255.).to(torch.uint8) for img in unnorm_imgs]
+    return int_imgs
+
 def show_classifications(imgs, classifications, class_list, targets=None):
     n = len(imgs)
     if targets is None:
